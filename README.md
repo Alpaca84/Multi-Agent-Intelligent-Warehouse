@@ -31,6 +31,33 @@ This repository implements a production-grade assistant patterned on NVIDIA's AI
 - **📊 Real-time Monitoring** - Prometheus metrics + Grafana dashboards
 - **🔗 System Integrations** - WMS, ERP, IoT, RFID/Barcode, Time Attendance
 
+### 🛡️ **Safety & Compliance Agent Action Tools**
+
+The Safety & Compliance Agent now includes **7 comprehensive action tools** for complete safety management:
+
+#### **Incident Management**
+- **`log_incident`** - Log safety incidents with severity classification and SIEM integration
+- **`near_miss_capture`** - Capture near-miss reports with photo upload and geotagging
+
+#### **Safety Procedures**
+- **`start_checklist`** - Manage safety checklists (forklift pre-op, PPE, LOTO)
+- **`lockout_tagout_request`** - Create LOTO procedures with CMMS integration
+- **`create_corrective_action`** - Track corrective actions and assign responsibilities
+
+#### **Communication & Training**
+- **`broadcast_alert`** - Multi-channel safety alerts (PA, Teams/Slack, SMS)
+- **`retrieve_sds`** - Safety Data Sheet retrieval with micro-training
+
+#### **Example Workflow**
+```
+User: "Machine over-temp event detected"
+Agent Actions:
+1. ✅ broadcast_alert - Emergency alert (Tier 2)
+2. ✅ lockout_tagout_request - LOTO request (Tier 1)  
+3. ✅ start_checklist - Safety checklist for area lead
+4. ✅ log_incident - Incident with severity classification
+```
+
 ---
 
 ## ✨ What it does
@@ -38,7 +65,7 @@ This repository implements a production-grade assistant patterned on NVIDIA's AI
 - **Specialized Agents**
   - **Inventory Intelligence** — stock lookup, replenishment advice, cycle counting context.
   - **Operations Coordination** — workforce scheduling, task assignment, equipment allocation, KPIs.
-  - **Safety & Compliance** — incident logging, policy lookup, safety checklists.
+  - **Safety & Compliance** — incident logging, policy lookup, safety checklists, alert broadcasting, LOTO procedures, corrective actions, SDS retrieval, near-miss reporting.
 - **Hybrid Retrieval**
   - **Structured**: PostgreSQL/TimescaleDB (IoT time-series).
   - **Vector**: Milvus (semantic search over SOPs/manuals).
@@ -706,7 +733,7 @@ GH Actions CI; IaC (K8s, Helm, Terraform); blue-green deploys; production deploy
 - **🧠 Multi-Agent System**: Planner/Router with LangGraph orchestration
 - **📦 Inventory Intelligence Agent**: Stock lookup, replenishment, cycle counting
 - **👥 Operations Coordination Agent**: Workforce scheduling, task management, KPIs
-- **🛡️ Safety & Compliance Agent**: Incident reporting, policy lookup, compliance
+- **🛡️ Safety & Compliance Agent**: Incident reporting, policy lookup, compliance, alert broadcasting, LOTO procedures, corrective actions, SDS retrieval, near-miss reporting
 - **💾 Memory Manager**: Conversation persistence, user profiles, session context
 - **🔗 NVIDIA NIM Integration**: Llama 3.1 70B + NV-EmbedQA-E5-v5 embeddings
 - **🗄️ Hybrid Retrieval**: PostgreSQL/TimescaleDB + Milvus vector search
@@ -719,7 +746,7 @@ GH Actions CI; IaC (K8s, Helm, Terraform); blue-green deploys; production deploy
 
 ### 🧪 **Test Results**
 - **Operations Agent**: ✅ PASSED - Workforce and task management
-- **Safety Agent**: ✅ PASSED - Incident reporting and policy lookup  
+- **Safety Agent**: ✅ PASSED - Incident reporting, policy lookup, action tools (7 comprehensive safety management tools)  
 - **Memory Manager**: ✅ PASSED - Conversation persistence and user profiles
 - **Authentication System**: ✅ PASSED - JWT/OAuth2 with RBAC
 - **Frontend UI**: ✅ PASSED - React dashboard with real-time chat

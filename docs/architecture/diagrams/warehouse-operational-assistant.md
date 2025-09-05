@@ -23,7 +23,7 @@ graph TB
         Planner[Planner/Router Agent<br/>Intent Classification]
         Inventory[Inventory Intelligence Agent<br/>Stock Lookup & Replenishment]
         Operations[Operations Coordination Agent<br/>Workforce & Task Management]
-        Safety[Safety & Compliance Agent<br/>Incident Reporting & Policies]
+        Safety[Safety & Compliance Agent<br/>Incident Reporting, Policies & Action Tools<br/>7 Comprehensive Safety Management Tools]
         Chat[Chat Agent<br/>General Queries]
     end
 
@@ -207,6 +207,33 @@ graph TB
     class Kafka,Etcd,Docker infraLayer
     class Prometheus,Grafana,AlertManager,NodeExporter,Cadvisor monitorLayer
     class CHAT_API,INVENTORY_API,OPERATIONS_API,SAFETY_API,WMS_API,IOT_API,AUTH_API,HEALTH_API,METRICS_API apiLayer
+```
+
+## 🛡️ Safety & Compliance Agent Action Tools
+
+The Safety & Compliance Agent now includes **7 comprehensive action tools** for complete safety management:
+
+### **Incident Management Tools**
+- **`log_incident`** - Log safety incidents with severity classification and SIEM integration
+- **`near_miss_capture`** - Capture near-miss reports with photo upload and geotagging
+
+### **Safety Procedure Tools**
+- **`start_checklist`** - Manage safety checklists (forklift pre-op, PPE, LOTO)
+- **`lockout_tagout_request`** - Create LOTO procedures with CMMS integration
+- **`create_corrective_action`** - Track corrective actions and assign responsibilities
+
+### **Communication & Training Tools**
+- **`broadcast_alert`** - Multi-channel safety alerts (PA, Teams/Slack, SMS)
+- **`retrieve_sds`** - Safety Data Sheet retrieval with micro-training
+
+### **Example Safety Workflow**
+```
+User Query: "Machine over-temp event detected"
+Agent Actions:
+1. ✅ broadcast_alert - Emergency alert (Tier 2)
+2. ✅ lockout_tagout_request - LOTO request (Tier 1)  
+3. ✅ start_checklist - Safety checklist for area lead
+4. ✅ log_incident - Incident with severity classification
 ```
 
 ## Data Flow Architecture
@@ -471,7 +498,7 @@ graph TB
 - **🤖 AI-Powered Chat**: Real-time conversation with NVIDIA NIMs integration
 - **📦 Inventory Management**: Stock lookup, replenishment recommendations, cycle counting
 - **👥 Operations Coordination**: Workforce scheduling, task management, KPI tracking
-- **🛡️ Safety & Compliance**: Incident reporting, policy lookup, safety checklists
+- **🛡️ Safety & Compliance**: Incident reporting, policy lookup, safety checklists, alert broadcasting, LOTO procedures, corrective actions, SDS retrieval, near-miss reporting
 - **🔐 Authentication & Authorization**: JWT-based auth with 5 user roles and RBAC
 - **🛡️ Content Safety**: NeMo Guardrails for input/output validation
 - **💾 Memory Management**: Session context, conversation history, user profiles
