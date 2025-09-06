@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from chain_server.routers.health import router as health_router
 from chain_server.routers.chat import router as chat_router
-from chain_server.routers.inventory import router as inventory_router
+from chain_server.routers.equipment import router as equipment_router
 from chain_server.routers.operations import router as operations_router
 from chain_server.routers.safety import router as safety_router
 from chain_server.routers.auth import router as auth_router
@@ -38,7 +38,7 @@ async def metrics_middleware(request: Request, call_next):
 
 app.include_router(health_router)
 app.include_router(chat_router)
-app.include_router(inventory_router)
+app.include_router(equipment_router)
 app.include_router(operations_router)
 app.include_router(safety_router)
 app.include_router(auth_router)

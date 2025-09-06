@@ -188,7 +188,7 @@ const ChatInterface: React.FC = () => {
                 {message.structured_data && message.structured_data.items && message.structured_data.items.length > 0 && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Inventory Details:
+                      Equipment Details:
                     </Typography>
                     {message.structured_data.items.map((item: any, index: number) => (
                       <Box key={index} sx={{ 
@@ -273,7 +273,7 @@ const ChatInterface: React.FC = () => {
             fullWidth
             multiline
             maxRows={4}
-            placeholder="Ask me about inventory, operations, safety, or anything warehouse-related..."
+            placeholder="Ask me about equipment, operations, safety, or anything warehouse-related..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}

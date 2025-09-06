@@ -23,10 +23,10 @@ import {
   Cell,
 } from 'recharts';
 import { useQuery } from 'react-query';
-import { inventoryAPI, operationsAPI, safetyAPI } from '../services/api';
+import { equipmentAPI, operationsAPI, safetyAPI } from '../services/api';
 
 const Analytics: React.FC = () => {
-  const { data: inventoryItems } = useQuery('inventory', inventoryAPI.getAllItems);
+  const { data: equipmentItems } = useQuery('equipment', equipmentAPI.getAllItems);
   const { data: tasks } = useQuery('tasks', operationsAPI.getTasks);
   const { data: incidents } = useQuery('incidents', safetyAPI.getIncidents);
 
@@ -139,10 +139,10 @@ const Analytics: React.FC = () => {
                 <Card>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Total Inventory Items
+                      Total Equipment Items
                     </Typography>
                     <Typography variant="h4">
-                      {inventoryItems?.length || 0}
+                      {equipmentItems?.length || 0}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -175,10 +175,10 @@ const Analytics: React.FC = () => {
                 <Card>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Low Stock Items
+                      Low Stock Equipment
                     </Typography>
                     <Typography variant="h4">
-                      {inventoryItems?.filter(item => item.quantity <= item.reorder_point).length || 0}
+                      {equipmentItems?.filter(item => item.quantity <= item.reorder_point).length || 0}
                     </Typography>
                   </CardContent>
                 </Card>

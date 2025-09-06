@@ -12,35 +12,35 @@ import {
   LinearProgress,
 } from '@mui/material';
 import {
-  Inventory as InventoryIcon,
+  Build as EquipmentIcon,
   Work as OperationsIcon,
   Security as SafetyIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
-import { healthAPI, inventoryAPI, operationsAPI, safetyAPI } from '../services/api';
+import { healthAPI, equipmentAPI, operationsAPI, safetyAPI } from '../services/api';
 
 const Dashboard: React.FC = () => {
   const { data: healthStatus } = useQuery('health', healthAPI.check);
-  const { data: inventoryItems } = useQuery('inventory', inventoryAPI.getAllItems);
+  const { data: equipmentItems } = useQuery('equipment', equipmentAPI.getAllItems);
   const { data: tasks } = useQuery('tasks', operationsAPI.getTasks);
   const { data: incidents } = useQuery('incidents', safetyAPI.getIncidents);
 
-  const lowStockItems = inventoryItems?.filter(item => item.quantity <= item.reorder_point) || [];
+  const lowStockItems = equipmentItems?.filter(item => item.quantity <= item.reorder_point) || [];
   const pendingTasks = tasks?.filter(task => task.status === 'pending') || [];
   const recentIncidents = incidents?.slice(0, 5) || [];
 
   const stats = [
     {
-      title: 'Total Inventory Items',
-      value: inventoryItems?.length || 0,
-      icon: <InventoryIcon />,
+      title: 'Total Equipment Items',
+      value: equipmentItems?.length || 0,
+      icon: <EquipmentIcon />,
       color: 'primary',
     },
     {
-      title: 'Low Stock Items',
+      title: 'Low Stock Equipment',
       value: lowStockItems.length,
-      icon: <InventoryIcon />,
+      icon: <EquipmentIcon />,
       color: 'warning',
     },
     {

@@ -1,8 +1,17 @@
 """
-Inventory Intelligence Agent for Warehouse Operations
+Equipment & Asset Operations Agent (EAO) for Warehouse Operations
 
-Provides intelligent inventory management capabilities including stock lookup,
-replenishment recommendations, cycle counting assistance, and WMS integration.
+Mission: Ensure equipment is available, safe, and optimally used for warehouse workflows.
+Owns: availability, assignments, telemetry, maintenance requests, compliance links.
+Collaborates: with Operations Coordination Agent for task/route planning and equipment allocation,
+with Safety & Compliance Agent for pre-op checks, incidents, LOTO.
+
+Provides intelligent equipment and asset management capabilities including:
+- Equipment availability and assignment tracking
+- Asset utilization and performance monitoring
+- Maintenance scheduling and work order management
+- Equipment telemetry and status monitoring
+- Compliance and safety integration
 """
 
 import logging
@@ -16,38 +25,41 @@ from chain_server.services.llm.nim_client import get_nim_client, LLMResponse
 from inventory_retriever.hybrid_retriever import get_hybrid_retriever, SearchContext
 from inventory_retriever.structured.inventory_queries import InventoryItem
 from memory_retriever.memory_manager import get_memory_manager
-from .action_tools import get_inventory_action_tools, InventoryActionTools
+from .equipment_action_tools import get_equipment_action_tools, EquipmentActionTools
 
 logger = logging.getLogger(__name__)
 
 @dataclass
-class InventoryQuery:
-    """Structured inventory query."""
-    intent: str  # "stock_lookup", "replenishment", "cycle_count", "location", "low_stock"
-    entities: Dict[str, Any]  # Extracted entities like SKU, location, etc.
+class EquipmentQuery:
+    """Structured equipment query."""
+    intent: str  # "equipment_lookup", "assignment", "utilization", "maintenance", "availability", "telemetry"
+    entities: Dict[str, Any]  # Extracted entities like equipment_id, location, etc.
     context: Dict[str, Any]  # Additional context
     user_query: str  # Original user query
 
 @dataclass
-class InventoryResponse:
-    """Structured inventory response."""
-    response_type: str  # "stock_info", "replenishment_advice", "cycle_count_plan", "location_info"
+class EquipmentResponse:
+    """Structured equipment response."""
+    response_type: str  # "equipment_info", "assignment_status", "utilization_report", "maintenance_plan", "availability_status"
     data: Dict[str, Any]  # Structured data
     natural_language: str  # Natural language response
     recommendations: List[str]  # Actionable recommendations
     confidence: float  # Confidence score (0.0 to 1.0)
     actions_taken: List[Dict[str, Any]]  # Actions performed by the agent
 
-class InventoryIntelligenceAgent:
+class EquipmentAssetOperationsAgent:
     """
-    Inventory Intelligence Agent with NVIDIA NIM integration.
+    Equipment & Asset Operations Agent (EAO) with NVIDIA NIM integration.
     
-    Provides comprehensive inventory management capabilities including:
-    - Stock lookup and analysis
-    - Replenishment recommendations
-    - Cycle counting assistance
-    - Location-based queries
-    - WMS integration support
+    Mission: Ensure equipment is available, safe, and optimally used for warehouse workflows.
+    Owns: availability, assignments, telemetry, maintenance requests, compliance links.
+    
+    Provides comprehensive equipment and asset management capabilities including:
+    - Equipment availability and assignment tracking
+    - Asset utilization and performance monitoring
+    - Maintenance scheduling and work order management
+    - Equipment telemetry and status monitoring
+    - Compliance and safety integration
     """
     
     def __init__(self):
@@ -61,10 +73,10 @@ class InventoryIntelligenceAgent:
         try:
             self.nim_client = await get_nim_client()
             self.hybrid_retriever = await get_hybrid_retriever()
-            self.action_tools = await get_inventory_action_tools()
-            logger.info("Inventory Intelligence Agent initialized successfully")
+            self.action_tools = await get_equipment_action_tools()
+            logger.info("Equipment & Asset Operations Agent initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize Inventory Intelligence Agent: {e}")
+            logger.error(f"Failed to initialize Equipment & Asset Operations Agent: {e}")
             raise
     
     async def process_query(
@@ -72,17 +84,17 @@ class InventoryIntelligenceAgent:
         query: str, 
         session_id: str = "default",
         context: Optional[Dict[str, Any]] = None
-    ) -> InventoryResponse:
+    ) -> EquipmentResponse:
         """
-        Process inventory-related queries with full intelligence.
+        Process equipment and asset-related queries with full intelligence.
         
         Args:
-            query: User's inventory query
+            query: User's equipment query (e.g., "assign a forklift to lane B", "charger status for Truck-07")
             session_id: Session identifier for context
             context: Additional context
             
         Returns:
-            InventoryResponse with structured data and natural language
+            EquipmentResponse with structured data and natural language
         """
         try:
             # Initialize if needed
@@ -100,16 +112,16 @@ class InventoryIntelligenceAgent:
             )
             
             # Step 1: Understand intent and extract entities using LLM
-            inventory_query = await self._understand_query(query, session_id, context)
+            equipment_query = await self._understand_query(query, session_id, context)
             
             # Step 2: Retrieve relevant data using hybrid retriever
-            retrieved_data = await self._retrieve_data(inventory_query)
+            retrieved_data = await self._retrieve_data(equipment_query)
             
             # Step 3: Execute action tools if needed
-            actions_taken = await self._execute_action_tools(inventory_query, context)
+            actions_taken = await self._execute_action_tools(equipment_query, context)
             
             # Step 4: Generate intelligent response using LLM
-            response = await self._generate_response(inventory_query, retrieved_data, session_id, memory_context, actions_taken)
+            response = await self._generate_response(equipment_query, retrieved_data, session_id, memory_context, actions_taken)
             
             # Step 5: Store conversation in memory
             await memory_manager.store_conversation_turn(
@@ -117,8 +129,8 @@ class InventoryIntelligenceAgent:
                 user_id=context.get("user_id", "default_user") if context else "default_user",
                 user_query=query,
                 agent_response=response.natural_language,
-                intent=inventory_query.intent,
-                entities=inventory_query.entities,
+                intent=equipment_query.intent,
+                entities=equipment_query.entities,
                 metadata={
                     "response_type": response.response_type,
                     "confidence": response.confidence,
@@ -130,7 +142,7 @@ class InventoryIntelligenceAgent:
             
         except Exception as e:
             logger.error(f"Failed to process inventory query: {e}")
-            return InventoryResponse(
+            return EquipmentResponse(
                 response_type="error",
                 data={"error": str(e)},
                 natural_language=f"I encountered an error processing your inventory query: {str(e)}",
@@ -144,7 +156,7 @@ class InventoryIntelligenceAgent:
         query: str, 
         session_id: str, 
         context: Optional[Dict[str, Any]]
-    ) -> InventoryQuery:
+    ) -> EquipmentQuery:
         """Use LLM to understand query intent and extract entities."""
         try:
             # Build context-aware prompt
@@ -159,17 +171,17 @@ User Query: "{query}"
 Previous Context: {context_str}
 
 Extract the following information:
-1. Intent: One of ["stock_lookup", "replenishment", "cycle_count", "location", "low_stock", "reserve_inventory", "adjust_reorder_point", "reslotting", "investigate_discrepancy", "general"]
-2. Entities: Extract SKU codes, locations, quantities, time periods, order_id, new_rp, expected_quantity, actual_quantity, etc.
+1. Intent: One of ["equipment_lookup", "assignment", "utilization", "maintenance", "availability", "telemetry", "charger_status", "pm_schedule", "loto_request", "general"]
+2. Entities: Extract equipment_id, location, assignment, maintenance_type, utilization_period, charger_id, etc.
 3. Context: Any additional relevant context
 
 Respond in JSON format:
 {{
-    "intent": "stock_lookup",
+    "intent": "equipment_lookup",
     "entities": {{
-        "sku": "SKU123",
-        "location": "Aisle A3",
-        "quantity": 10
+        "equipment_id": "Forklift-001",
+        "location": "Lane B",
+        "assignment": "operator123"
     }},
     "context": {{
         "time_period": "last_week",
@@ -188,7 +200,7 @@ Respond in JSON format:
             # Parse LLM response
             try:
                 parsed_response = json.loads(response.content)
-                return InventoryQuery(
+                return EquipmentQuery(
                     intent=parsed_response.get("intent", "general"),
                     entities=parsed_response.get("entities", {}),
                     context=parsed_response.get("context", {}),
@@ -202,44 +214,46 @@ Respond in JSON format:
             logger.error(f"Query understanding failed: {e}")
             return self._fallback_intent_detection(query)
     
-    def _fallback_intent_detection(self, query: str) -> InventoryQuery:
+    def _fallback_intent_detection(self, query: str) -> EquipmentQuery:
         """Fallback intent detection using keyword matching."""
         query_lower = query.lower()
         
-        if any(word in query_lower for word in ["stock", "quantity", "level", "sku", "atp", "available"]):
-            intent = "stock_lookup"
-        elif any(word in query_lower for word in ["reorder", "replenish", "low stock"]):
-            intent = "replenishment"
-        elif any(word in query_lower for word in ["cycle count", "count", "audit"]):
-            intent = "cycle_count"
-        elif any(word in query_lower for word in ["location", "where", "aisle"]):
-            intent = "location"
-        elif any(word in query_lower for word in ["reserve", "hold", "book"]):
-            intent = "reserve_inventory"
-        elif any(word in query_lower for word in ["reorder point", "adjust", "change rp"]):
-            intent = "adjust_reorder_point"
-        elif any(word in query_lower for word in ["reslot", "slotting", "velocity", "optimize"]):
-            intent = "reslotting"
-        elif any(word in query_lower for word in ["discrepancy", "investigate", "mismatch", "wrong"]):
-            intent = "investigate_discrepancy"
+        if any(word in query_lower for word in ["assign", "assignment", "allocate", "assign"]):
+            intent = "assignment"
+        elif any(word in query_lower for word in ["utilization", "usage", "utilize", "performance"]):
+            intent = "utilization"
+        elif any(word in query_lower for word in ["maintenance", "pm", "preventive", "repair", "service"]):
+            intent = "maintenance"
+        elif any(word in query_lower for word in ["availability", "available", "status", "ready"]):
+            intent = "availability"
+        elif any(word in query_lower for word in ["telemetry", "data", "monitoring", "sensors"]):
+            intent = "telemetry"
+        elif any(word in query_lower for word in ["charger", "charging", "battery", "power"]):
+            intent = "charger_status"
+        elif any(word in query_lower for word in ["loto", "lockout", "tagout", "lock out"]):
+            intent = "loto_request"
+        elif any(word in query_lower for word in ["equipment", "forklift", "conveyor", "scanner", "amr", "agv"]):
+            intent = "equipment_lookup"
+        elif any(word in query_lower for word in ["location", "where", "aisle", "zone"]):
+            intent = "equipment_lookup"
         else:
             intent = "general"
         
-        return InventoryQuery(
+        return EquipmentQuery(
             intent=intent,
             entities={},
             context={},
             user_query=query
         )
     
-    async def _retrieve_data(self, inventory_query: InventoryQuery) -> Dict[str, Any]:
+    async def _retrieve_data(self, equipment_query: EquipmentQuery) -> Dict[str, Any]:
         """Retrieve relevant data using hybrid retriever."""
         try:
             # Create search context
             search_context = SearchContext(
-                query=inventory_query.user_query,
-                search_type="inventory",
-                filters=inventory_query.entities,
+                query=equipment_query.user_query,
+                search_type="equipment",
+                filters=equipment_query.entities,
                 limit=20
             )
             
@@ -252,7 +266,7 @@ Respond in JSON format:
             return {
                 "search_results": search_results,
                 "inventory_summary": inventory_summary,
-                "query_entities": inventory_query.entities
+                "query_entities": equipment_query.entities
             }
             
         except Exception as e:
@@ -261,7 +275,7 @@ Respond in JSON format:
     
     async def _execute_action_tools(
         self, 
-        inventory_query: InventoryQuery, 
+        equipment_query: EquipmentQuery, 
         context: Optional[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """Execute action tools based on query intent and entities."""
@@ -272,18 +286,18 @@ Respond in JSON format:
                 return actions_taken
             
             # Extract entities for action execution
-            sku = inventory_query.entities.get("sku")
-            quantity = inventory_query.entities.get("quantity", 0)
-            location = inventory_query.entities.get("location")
-            order_id = inventory_query.entities.get("order_id")
+            sku = equipment_query.entities.get("sku")
+            quantity = equipment_query.entities.get("quantity", 0)
+            location = equipment_query.entities.get("location")
+            order_id = equipment_query.entities.get("order_id")
             
             # Execute actions based on intent
-            if inventory_query.intent == "stock_lookup" and sku:
+            if equipment_query.intent == "stock_lookup" and sku:
                 # Check stock levels
                 stock_info = await self.action_tools.check_stock(
                     sku=sku,
-                    site=inventory_query.entities.get("site"),
-                    locations=inventory_query.entities.get("locations")
+                    site=equipment_query.entities.get("site"),
+                    locations=equipment_query.entities.get("locations")
                 )
                 actions_taken.append({
                     "action": "check_stock",
@@ -292,13 +306,40 @@ Respond in JSON format:
                     "timestamp": datetime.now().isoformat()
                 })
             
-            elif inventory_query.intent == "reserve_inventory" and sku and quantity and order_id:
+            elif equipment_query.intent == "atp_lookup" and sku:
+                # Check Available to Promise (ATP) - more sophisticated than basic stock lookup
+                stock_info = await self.action_tools.check_stock(
+                    sku=sku,
+                    site=equipment_query.entities.get("site"),
+                    locations=equipment_query.entities.get("locations")
+                )
+                
+                # Calculate ATP: Current stock - reserved quantities + incoming orders
+                # For now, we'll simulate this with the basic stock info
+                atp_data = {
+                    "sku": sku,
+                    "current_stock": stock_info.on_hand,
+                    "reserved_quantity": 0,  # Would come from WMS in real implementation
+                    "incoming_orders": 0,    # Would come from ERP in real implementation
+                    "available_to_promise": stock_info.on_hand,  # Simplified calculation
+                    "locations": stock_info.locations,
+                    "last_updated": datetime.now().isoformat()
+                }
+                
+                actions_taken.append({
+                    "action": "atp_lookup",
+                    "sku": sku,
+                    "result": atp_data,
+                    "timestamp": datetime.now().isoformat()
+                })
+            
+            elif equipment_query.intent == "reserve_inventory" and sku and quantity and order_id:
                 # Reserve inventory
                 reservation = await self.action_tools.reserve_inventory(
                     sku=sku,
                     qty=quantity,
                     order_id=order_id,
-                    hold_until=inventory_query.entities.get("hold_until")
+                    hold_until=equipment_query.entities.get("hold_until")
                 )
                 actions_taken.append({
                     "action": "reserve_inventory",
@@ -309,14 +350,14 @@ Respond in JSON format:
                     "timestamp": datetime.now().isoformat()
                 })
             
-            elif inventory_query.intent == "replenishment" and sku and quantity:
+            elif equipment_query.intent == "replenishment" and sku and quantity:
                 # Create replenishment task
                 replenishment_task = await self.action_tools.create_replenishment_task(
                     sku=sku,
-                    from_location=inventory_query.entities.get("from_location", "STAGING"),
+                    from_location=equipment_query.entities.get("from_location", "STAGING"),
                     to_location=location or "PICKING",
                     qty=quantity,
-                    priority=inventory_query.entities.get("priority", "medium")
+                    priority=equipment_query.entities.get("priority", "medium")
                 )
                 actions_taken.append({
                     "action": "create_replenishment_task",
@@ -334,9 +375,9 @@ Respond in JSON format:
                         pr = await self.action_tools.generate_purchase_requisition(
                             sku=sku,
                             qty=quantity * 2,  # Order double the replenishment amount
-                            supplier=inventory_query.entities.get("supplier"),
-                            contract_id=inventory_query.entities.get("contract_id"),
-                            need_by_date=inventory_query.entities.get("need_by_date"),
+                            supplier=equipment_query.entities.get("supplier"),
+                            contract_id=equipment_query.entities.get("contract_id"),
+                            need_by_date=equipment_query.entities.get("need_by_date"),
                             tier=1,  # Propose for approval
                             user_id=context.get("user_id", "system") if context else "system"
                         )
@@ -348,13 +389,13 @@ Respond in JSON format:
                             "timestamp": datetime.now().isoformat()
                         })
             
-            elif inventory_query.intent == "cycle_count" and (sku or location):
+            elif equipment_query.intent == "cycle_count" and (sku or location):
                 # Start cycle count
                 cycle_count_task = await self.action_tools.start_cycle_count(
                     sku=sku,
                     location=location,
-                    class_name=inventory_query.entities.get("class_name"),
-                    priority=inventory_query.entities.get("priority", "medium")
+                    class_name=equipment_query.entities.get("class_name"),
+                    priority=equipment_query.entities.get("priority", "medium")
                 )
                 actions_taken.append({
                     "action": "start_cycle_count",
@@ -364,27 +405,27 @@ Respond in JSON format:
                     "timestamp": datetime.now().isoformat()
                 })
             
-            elif inventory_query.intent == "adjust_reorder_point" and sku and "new_rp" in inventory_query.entities:
+            elif equipment_query.intent == "adjust_reorder_point" and sku and "new_rp" in equipment_query.entities:
                 # Adjust reorder point (requires planner role)
                 adjustment = await self.action_tools.adjust_reorder_point(
                     sku=sku,
-                    new_rp=inventory_query.entities["new_rp"],
-                    rationale=inventory_query.entities.get("rationale", "User requested adjustment"),
+                    new_rp=equipment_query.entities["new_rp"],
+                    rationale=equipment_query.entities.get("rationale", "User requested adjustment"),
                     user_id=context.get("user_id", "system") if context else "system"
                 )
                 actions_taken.append({
                     "action": "adjust_reorder_point",
                     "sku": sku,
-                    "new_rp": inventory_query.entities["new_rp"],
+                    "new_rp": equipment_query.entities["new_rp"],
                     "result": adjustment,
                     "timestamp": datetime.now().isoformat()
                 })
             
-            elif inventory_query.intent == "reslotting" and sku:
+            elif equipment_query.intent == "reslotting" and sku:
                 # Recommend reslotting
                 reslotting = await self.action_tools.recommend_reslotting(
                     sku=sku,
-                    peak_velocity_window=inventory_query.entities.get("peak_velocity_window", 30)
+                    peak_velocity_window=equipment_query.entities.get("peak_velocity_window", 30)
                 )
                 actions_taken.append({
                     "action": "recommend_reslotting",
@@ -393,13 +434,13 @@ Respond in JSON format:
                     "timestamp": datetime.now().isoformat()
                 })
             
-            elif inventory_query.intent == "investigate_discrepancy" and sku and "expected_quantity" in inventory_query.entities:
+            elif equipment_query.intent == "investigate_discrepancy" and sku and "expected_quantity" in equipment_query.entities:
                 # Investigate discrepancy
                 investigation = await self.action_tools.investigate_discrepancy(
                     sku=sku,
                     location=location or "UNKNOWN",
-                    expected_quantity=inventory_query.entities["expected_quantity"],
-                    actual_quantity=inventory_query.entities.get("actual_quantity", 0)
+                    expected_quantity=equipment_query.entities["expected_quantity"],
+                    actual_quantity=equipment_query.entities.get("actual_quantity", 0)
                 )
                 actions_taken.append({
                     "action": "investigate_discrepancy",
@@ -421,12 +462,12 @@ Respond in JSON format:
     
     async def _generate_response(
         self, 
-        inventory_query: InventoryQuery, 
+        equipment_query: EquipmentQuery, 
         retrieved_data: Dict[str, Any],
         session_id: str,
         memory_context: Optional[Dict[str, Any]] = None,
         actions_taken: Optional[List[Dict[str, Any]]] = None
-    ) -> InventoryResponse:
+    ) -> EquipmentResponse:
         """Generate intelligent response using LLM with retrieved context."""
         try:
             # Build context for LLM
@@ -441,9 +482,9 @@ Respond in JSON format:
             prompt = f"""
 You are an inventory intelligence agent. Generate a comprehensive response based on the user query and retrieved data.
 
-User Query: "{inventory_query.user_query}"
-Intent: {inventory_query.intent}
-Entities: {inventory_query.entities}
+User Query: "{equipment_query.user_query}"
+Intent: {equipment_query.intent}
+Entities: {equipment_query.entities}
 
 Retrieved Data:
 {context_str}
@@ -498,7 +539,7 @@ Respond in JSON format:
                         content = content[start:end].strip()
                 
                 parsed_response = json.loads(content)
-                return InventoryResponse(
+                return EquipmentResponse(
                     response_type=parsed_response.get("response_type", "general"),
                     data=parsed_response.get("data", {}),
                     natural_language=parsed_response.get("natural_language", "I processed your inventory query."),
@@ -510,18 +551,18 @@ Respond in JSON format:
                 logger.warning(f"Failed to parse LLM JSON response: {e}")
                 logger.warning(f"Raw response: {response.content}")
                 # Fallback response
-                return self._generate_fallback_response(inventory_query, retrieved_data, actions_taken)
+                return self._generate_fallback_response(equipment_query, retrieved_data, actions_taken)
                 
         except Exception as e:
             logger.error(f"Response generation failed: {e}")
-            return self._generate_fallback_response(inventory_query, retrieved_data, actions_taken)
+            return self._generate_fallback_response(equipment_query, retrieved_data, actions_taken)
     
     def _generate_fallback_response(
         self, 
-        inventory_query: InventoryQuery, 
+        equipment_query: EquipmentQuery, 
         retrieved_data: Dict[str, Any],
         actions_taken: Optional[List[Dict[str, Any]]] = None
-    ) -> InventoryResponse:
+    ) -> EquipmentResponse:
         """Generate intelligent fallback response when LLM fails."""
         try:
             search_results = retrieved_data.get("search_results")
@@ -531,7 +572,7 @@ Respond in JSON format:
                 items = search_results.structured_results
                 
                 # Generate more intelligent response based on query intent
-                if inventory_query.intent == "stock_lookup":
+                if equipment_query.intent == "stock_lookup":
                     if len(items) == 1:
                         item = items[0]
                         natural_language = f"Found {item.name} (SKU: {item.sku}) with {item.quantity} units in stock at {item.location}. "
@@ -541,17 +582,41 @@ Respond in JSON format:
                             natural_language += f"Stock level is healthy (reorder point: {item.reorder_point} units)."
                     else:
                         natural_language = f"I found {len(items)} inventory items matching your query."
+                elif equipment_query.intent == "atp_lookup":
+                    if len(items) == 1:
+                        item = items[0]
+                        # Get ATP data from actions taken
+                        atp_data = None
+                        for action in actions_taken:
+                            if action.get("action") == "atp_lookup":
+                                atp_data = action.get("result")
+                                break
+                        
+                        if atp_data:
+                            natural_language = f"📊 Available to Promise (ATP) for {item.name} (SKU: {item.sku}):\n"
+                            natural_language += f"• Current Stock: {atp_data['current_stock']} units\n"
+                            natural_language += f"• Reserved Quantity: {atp_data['reserved_quantity']} units\n"
+                            natural_language += f"• Incoming Orders: {atp_data['incoming_orders']} units\n"
+                            natural_language += f"• Available to Promise: {atp_data['available_to_promise']} units\n"
+                            natural_language += f"• Location: {item.location}"
+                        else:
+                            natural_language = f"Found {item.name} (SKU: {item.sku}) with {item.quantity} units available at {item.location}."
+                    else:
+                        natural_language = f"I found {len(items)} inventory items matching your ATP query."
                 else:
                     natural_language = f"I found {len(items)} inventory items matching your query."
                 
-                recommendations = ["Consider reviewing stock levels", "Check reorder points"]
+                if equipment_query.intent == "atp_lookup":
+                    recommendations = ["Monitor ATP levels regularly", "Consider safety stock for critical items", "Review reserved quantities"]
+                else:
+                    recommendations = ["Consider reviewing stock levels", "Check reorder points"]
                 confidence = 0.8 if items else 0.6
             else:
-                natural_language = "I couldn't find specific inventory data for your query."
-                recommendations = ["Try rephrasing your question", "Check if the SKU exists"]
+                natural_language = "I couldn't find specific equipment data for your query."
+                recommendations = ["Try rephrasing your question", "Check if the equipment ID exists"]
                 confidence = 0.3
             
-            return InventoryResponse(
+            return EquipmentResponse(
                 response_type="fallback",
                 data={"items": [asdict(item) for item in items] if items else []},
                 natural_language=natural_language,
@@ -562,7 +627,7 @@ Respond in JSON format:
             
         except Exception as e:
             logger.error(f"Fallback response generation failed: {e}")
-            return InventoryResponse(
+            return EquipmentResponse(
                 response_type="error",
                 data={"error": str(e)},
                 natural_language="I encountered an error processing your request.",
@@ -623,8 +688,8 @@ Respond in JSON format:
     def _update_context(
         self, 
         session_id: str, 
-        inventory_query: InventoryQuery, 
-        response: InventoryResponse
+        equipment_query: EquipmentQuery, 
+        response: EquipmentResponse
     ) -> None:
         """Update conversation context."""
         try:
@@ -637,19 +702,19 @@ Respond in JSON format:
             
             # Add to history
             self.conversation_context[session_id]["history"].append({
-                "query": inventory_query.user_query,
-                "intent": inventory_query.intent,
+                "query": equipment_query.user_query,
+                "intent": equipment_query.intent,
                 "response_type": response.response_type,
                 "timestamp": datetime.now().isoformat()
             })
             
             # Update current focus
-            if inventory_query.intent != "general":
-                self.conversation_context[session_id]["current_focus"] = inventory_query.intent
+            if equipment_query.intent != "general":
+                self.conversation_context[session_id]["current_focus"] = equipment_query.intent
             
             # Update last entities
-            if inventory_query.entities:
-                self.conversation_context[session_id]["last_entities"] = inventory_query.entities
+            if equipment_query.entities:
+                self.conversation_context[session_id]["last_entities"] = equipment_query.entities
             
             # Keep history manageable
             if len(self.conversation_context[session_id]["history"]) > 10:
@@ -672,13 +737,13 @@ Respond in JSON format:
         if session_id in self.conversation_context:
             del self.conversation_context[session_id]
 
-# Global inventory agent instance
-_inventory_agent: Optional[InventoryIntelligenceAgent] = None
+# Global equipment agent instance
+_equipment_agent: Optional[EquipmentAssetOperationsAgent] = None
 
-async def get_inventory_agent() -> InventoryIntelligenceAgent:
-    """Get or create the global inventory agent instance."""
-    global _inventory_agent
-    if _inventory_agent is None:
-        _inventory_agent = InventoryIntelligenceAgent()
-        await _inventory_agent.initialize()
-    return _inventory_agent
+async def get_equipment_agent() -> EquipmentAssetOperationsAgent:
+    """Get or create the global equipment agent instance."""
+    global _equipment_agent
+    if _equipment_agent is None:
+        _equipment_agent = EquipmentAssetOperationsAgent()
+        await _equipment_agent.initialize()
+    return _equipment_agent

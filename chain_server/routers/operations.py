@@ -52,12 +52,23 @@ async def get_tasks():
         
         tasks = []
         for row in results:
+            # Parse JSON payload if it's a string
+            payload = row['payload']
+            if isinstance(payload, str):
+                try:
+                    import json
+                    payload = json.loads(payload)
+                except json.JSONDecodeError:
+                    payload = {}
+            elif payload is None:
+                payload = {}
+                
             tasks.append(Task(
                 id=row['id'],
                 kind=row['kind'],
                 status=row['status'],
                 assignee=row['assignee'],
-                payload=row['payload'] if row['payload'] else {},
+                payload=payload,
                 created_at=row['created_at'].isoformat() if row['created_at'] else "",
                 updated_at=row['updated_at'].isoformat() if row['updated_at'] else ""
             ))
@@ -97,12 +108,13 @@ async def create_task(task: TaskCreate):
     """Create a new task."""
     try:
         await sql_retriever.initialize()
+        import json
         query = """
             INSERT INTO tasks (kind, status, assignee, payload, created_at, updated_at)
             VALUES ($1, $2, $3, $4, NOW(), NOW())
             RETURNING id, kind, status, assignee, payload, created_at, updated_at
         """
-        result = await sql_retriever.fetch_one(query, task.kind, task.status, task.assignee, task.payload)
+        result = await sql_retriever.fetch_one(query, task.kind, task.status, task.assignee, json.dumps(task.payload))
         
         return Task(
             id=result['id'],
@@ -132,6 +144,13 @@ async def update_task(task_id: int, update: TaskUpdate):
         status = update.status if update.status is not None else current_task['status']
         assignee = update.assignee if update.assignee is not None else current_task['assignee']
         payload = update.payload if update.payload is not None else current_task['payload']
+        
+        # Ensure payload is JSON-encoded
+        import json
+        if isinstance(payload, dict):
+            payload = json.dumps(payload)
+        elif payload is None:
+            payload = json.dumps({})
         
         query = """
             UPDATE tasks 
@@ -165,12 +184,24 @@ async def assign_task(task_id: int, assignee: str):
         
         # Get updated task
         task = await TaskQueries().get_task_by_id(sql_retriever, task_id)
+        
+        # Parse JSON payload if it's a string
+        payload = task['payload']
+        if isinstance(payload, str):
+            try:
+                import json
+                payload = json.loads(payload)
+            except json.JSONDecodeError:
+                payload = {}
+        elif payload is None:
+            payload = {}
+            
         return Task(
             id=task['id'],
             kind=task['kind'],
             status=task['status'],
             assignee=task['assignee'],
-            payload=task['payload'] if task['payload'] else {},
+            payload=payload,
             created_at=task['created_at'].isoformat() if task['created_at'] else "",
             updated_at=task['updated_at'].isoformat() if task['updated_at'] else ""
         )

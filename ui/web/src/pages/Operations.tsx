@@ -131,26 +131,119 @@ const Operations: React.FC = () => {
 
       {/* Workforce Status */}
       {workforceStatus && (
-        <Paper sx={{ p: 2, mb: 3 }}>
+        <Paper sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom>
             Workforce Status
           </Typography>
-          <Grid container spacing={2}>
-            {workforceStatus.shifts && Object.entries(workforceStatus.shifts).map(([shift, data]: [string, any]) => (
-              <Grid item xs={12} md={6} key={shift}>
-                <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                  <Typography variant="subtitle1" sx={{ textTransform: 'capitalize' }}>
-                    {shift} Shift
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {data.start_time} - {data.end_time}
-                  </Typography>
-                  <Typography variant="body2">
-                    Employees: {data.total_count} | Active Tasks: {data.active_tasks}
-                  </Typography>
-                </Box>
-              </Grid>
-            ))}
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ 
+                p: 2, 
+                border: 1, 
+                borderColor: 'divider', 
+                borderRadius: 2,
+                textAlign: 'center',
+                backgroundColor: 'primary.light',
+                color: 'primary.contrastText'
+              }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  {workforceStatus.total_workers}
+                </Typography>
+                <Typography variant="body2">
+                  Total Workers
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ 
+                p: 2, 
+                border: 1, 
+                borderColor: 'divider', 
+                borderRadius: 2,
+                textAlign: 'center',
+                backgroundColor: 'success.light',
+                color: 'success.contrastText'
+              }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  {workforceStatus.active_workers}
+                </Typography>
+                <Typography variant="body2">
+                  Active Workers
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ 
+                p: 2, 
+                border: 1, 
+                borderColor: 'divider', 
+                borderRadius: 2,
+                textAlign: 'center',
+                backgroundColor: 'info.light',
+                color: 'info.contrastText'
+              }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  {workforceStatus.available_workers}
+                </Typography>
+                <Typography variant="body2">
+                  Available Workers
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ 
+                p: 2, 
+                border: 1, 
+                borderColor: 'divider', 
+                borderRadius: 2,
+                textAlign: 'center',
+                backgroundColor: 'warning.light',
+                color: 'warning.contrastText'
+              }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  {workforceStatus.tasks_in_progress}
+                </Typography>
+                <Typography variant="body2">
+                  Tasks in Progress
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6}>
+              <Box sx={{ 
+                p: 2, 
+                border: 1, 
+                borderColor: 'divider', 
+                borderRadius: 2,
+                textAlign: 'center',
+                backgroundColor: 'secondary.light',
+                color: 'secondary.contrastText'
+              }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  {workforceStatus.tasks_pending}
+                </Typography>
+                <Typography variant="body2">
+                  Pending Tasks
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6}>
+              <Box sx={{ 
+                p: 2, 
+                border: 1, 
+                borderColor: 'divider', 
+                borderRadius: 2,
+                textAlign: 'center',
+                backgroundColor: 'grey.200',
+                color: 'text.primary'
+              }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  {Math.round((workforceStatus.active_workers / workforceStatus.total_workers) * 100)}%
+                </Typography>
+                <Typography variant="body2">
+                  Workforce Utilization
+                </Typography>
+              </Box>
+            </Grid>
           </Grid>
         </Paper>
       )}

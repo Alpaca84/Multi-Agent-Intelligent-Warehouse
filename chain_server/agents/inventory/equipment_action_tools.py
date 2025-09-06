@@ -1,13 +1,12 @@
 """
-Inventory Intelligence Agent Action Tools
+Equipment & Asset Operations Agent Action Tools
 
-Provides comprehensive action tools for inventory management including:
-- Stock checking and reservation
-- Replenishment task creation
-- Purchase requisition generation
-- Reorder point adjustments
-- Cycle counting operations
-- Discrepancy investigation
+Provides comprehensive action tools for equipment and asset management including:
+- Equipment availability and assignment tracking
+- Asset utilization and performance monitoring
+- Maintenance scheduling and work order management
+- Equipment telemetry and status monitoring
+- Compliance and safety integration
 """
 
 import logging
@@ -19,6 +18,7 @@ import json
 
 from chain_server.services.llm.nim_client import get_nim_client
 from inventory_retriever.structured.inventory_queries import InventoryItem
+from inventory_retriever.structured.sql_retriever import SQLRetriever
 from chain_server.services.wms.integration_service import get_wms_service
 from chain_server.services.erp.integration_service import get_erp_service
 from chain_server.services.scanning.integration_service import get_scanning_service
@@ -101,12 +101,12 @@ class DiscrepancyInvestigation:
     findings: List[str]
     resolution: Optional[str]
 
-class InventoryActionTools:
+class EquipmentActionTools:
     """
-    Action tools for Inventory Intelligence Agent.
+    Action tools for Equipment & Asset Operations Agent.
     
-    Provides comprehensive inventory management capabilities including:
-    - Stock checking and ATP calculations
+    Provides comprehensive equipment and asset management capabilities including:
+    - Equipment availability and assignment tracking
     - Inventory reservations and holds
     - Replenishment task creation
     - Purchase requisition generation
@@ -117,6 +117,7 @@ class InventoryActionTools:
     
     def __init__(self):
         self.nim_client = None
+        self.sql_retriever = None
         self.wms_service = None
         self.erp_service = None
         self.scanning_service = None
@@ -125,6 +126,8 @@ class InventoryActionTools:
         """Initialize action tools with required services."""
         try:
             self.nim_client = await get_nim_client()
+            self.sql_retriever = SQLRetriever()
+            await self.sql_retriever.initialize()
             self.wms_service = await get_wms_service()
             self.erp_service = await get_erp_service()
             self.scanning_service = await get_scanning_service()
@@ -151,17 +154,27 @@ class InventoryActionTools:
             StockInfo with on_hand, ATP, and location details
         """
         try:
-            if not self.wms_service:
+            if not self.sql_retriever:
                 await self.initialize()
             
-            # Get stock data from WMS
-            stock_data = await self.wms_service.get_inventory_levels(
-                sku=sku,
-                site=site,
-                locations=locations
-            )
+            # Get stock data directly from database
+            query = """
+            SELECT sku, name, quantity, location, reorder_point, updated_at
+            FROM inventory_items 
+            WHERE sku = $1
+            """
+            params = [sku]
             
-            if not stock_data:
+            if locations:
+                location_conditions = []
+                for i, loc in enumerate(locations, start=2):
+                    location_conditions.append(f"location LIKE ${i}")
+                    params.append(f"%{loc}%")
+                query += f" AND ({' OR '.join(location_conditions)})"
+            
+            results = await self.sql_retriever.fetch_all(query, *params)
+            
+            if not results:
                 return StockInfo(
                     sku=sku,
                     on_hand=0,
@@ -173,21 +186,22 @@ class InventoryActionTools:
                 )
             
             # Calculate ATP (Available to Promise)
-            on_hand = sum(loc.get("quantity", 0) for loc in stock_data.get("locations", []))
-            reserved = sum(loc.get("reserved", 0) for loc in stock_data.get("locations", []))
+            # For now, we'll use the basic quantity as ATP (simplified)
+            # In a real system, this would consider reservations, incoming orders, etc.
+            item = results[0]
+            on_hand = item.get("quantity", 0)
+            reserved = 0  # Would come from reservations table in real implementation
             atp = max(0, on_hand - reserved)
             
-            # Get reorder point and safety stock
-            item_info = await self.wms_service.get_item_info(sku)
-            reorder_point = item_info.get("reorder_point", 0) if item_info else 0
-            safety_stock = item_info.get("safety_stock", 0) if item_info else 0
+            reorder_point = item.get("reorder_point", 0)
+            safety_stock = 0  # Would come from item configuration in real implementation
             
             return StockInfo(
                 sku=sku,
                 on_hand=on_hand,
                 available_to_promise=atp,
-                locations=stock_data.get("locations", []),
-                last_updated=datetime.now(),
+                locations=[{"location": item.get("location", ""), "quantity": on_hand}],
+                last_updated=item.get("updated_at", datetime.now()),
                 reorder_point=reorder_point,
                 safety_stock=safety_stock
             )
@@ -755,12 +769,12 @@ class InventoryActionTools:
             )
 
 # Global action tools instance
-_action_tools: Optional[InventoryActionTools] = None
+_action_tools: Optional[EquipmentActionTools] = None
 
-async def get_inventory_action_tools() -> InventoryActionTools:
-    """Get or create the global inventory action tools instance."""
+async def get_equipment_action_tools() -> EquipmentActionTools:
+    """Get or create the global equipment action tools instance."""
     global _action_tools
     if _action_tools is None:
-        _action_tools = InventoryActionTools()
+        _action_tools = EquipmentActionTools()
         await _action_tools.initialize()
     return _action_tools

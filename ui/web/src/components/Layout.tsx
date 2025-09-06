@@ -23,7 +23,7 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   Chat as ChatIcon,
-  Inventory as InventoryIcon,
+  Build as EquipmentIcon,
   Work as OperationsIcon,
   Security as SafetyIcon,
   Analytics as AnalyticsIcon,
@@ -42,7 +42,7 @@ interface LayoutProps {
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { text: 'Chat Assistant', icon: <ChatIcon />, path: '/chat' },
-  { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
+  { text: 'Equipment & Assets', icon: <EquipmentIcon />, path: '/equipment' },
   { text: 'Operations', icon: <OperationsIcon />, path: '/operations' },
   { text: 'Safety', icon: <SafetyIcon />, path: '/safety' },
   { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },

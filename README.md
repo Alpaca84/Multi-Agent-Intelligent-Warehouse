@@ -24,7 +24,7 @@ This repository implements a production-grade assistant patterned on NVIDIA's AI
 [![Monitoring](https://img.shields.io/badge/Monitoring-Prometheus%20%2B%20Grafana-success.svg)](http://localhost:3000)
 
 ### 🎯 **Core Capabilities**
-- **🤖 Multi-Agent AI System** - Planner/Router + Specialized Agents (Inventory, Operations, Safety)
+- **🤖 Multi-Agent AI System** - Planner/Router + Specialized Agents (Equipment & Asset Operations, Operations, Safety)
 - **🧠 NVIDIA NIMs Integration** - Llama 3.1 70B (LLM) + NV-EmbedQA-E5-v5 (Embeddings)
 - **💬 Intelligent Chat Interface** - Real-time AI-powered warehouse assistance
 - **🔐 Enterprise Security** - JWT/OAuth2 + RBAC with 5 user roles
@@ -58,32 +58,48 @@ Agent Actions:
 4. ✅ log_incident - Incident with severity classification
 ```
 
-### 📦 **Inventory Intelligence Agent Action Tools**
+### 🔧 **Equipment & Asset Operations Agent (EAO)**
 
-The Inventory Intelligence Agent includes **8 comprehensive action tools** for complete inventory management:
+The Equipment & Asset Operations Agent (EAO) is the core AI agent responsible for managing all warehouse equipment and assets. It ensures equipment is available, safe, and optimally used for warehouse workflows.
 
-#### **Stock Management**
-- **`check_stock`** - Check inventory levels with on-hand, available-to-promise, and location details
-- **`reserve_inventory`** - Create inventory reservations with hold periods and order linking
-- **`start_cycle_count`** - Initiate cycle counting with priority and location targeting
+#### **Mission & Role**
+- **Mission**: Ensure equipment is available, safe, and optimally used for warehouse workflows
+- **Owns**: Equipment availability, assignments, telemetry, maintenance requests, compliance links
+- **Collaborates**: With Operations Coordination Agent for task/route planning and equipment allocation, with Safety & Compliance Agent for pre-op checks, incidents, LOTO
 
-#### **Replenishment & Procurement**
-- **`create_replenishment_task`** - Generate putaway/replenishment tasks for WMS queue
-- **`generate_purchase_requisition`** - Create purchase requisitions with supplier and contract linking
-- **`adjust_reorder_point`** - Modify reorder points with rationale and RBAC validation
+#### **Key Intents & Capabilities**
+- **Equipment Assignment**: "assign a forklift to lane B", "who has scanner S-112?"
+- **Equipment Status**: "charger status for Truck-07", "utilization last week"
+- **Maintenance**: "create PM for conveyor C3", "open LOTO on dock leveller 4"
+- **Asset Tracking**: Real-time equipment location and status monitoring
+- **Availability Management**: ATP (Available to Promise) calculations for equipment
+
+#### **Action Tools**
+
+The Equipment & Asset Operations Agent includes **8 comprehensive action tools** for complete equipment and asset management:
+
+#### **Equipment Management**
+- **`check_stock`** - Check equipment availability with on-hand, available-to-promise, and location details
+- **`reserve_inventory`** - Create equipment reservations with hold periods and task linking
+- **`start_cycle_count`** - Initiate equipment cycle counting with priority and location targeting
+
+#### **Maintenance & Procurement**
+- **`create_replenishment_task`** - Generate equipment maintenance tasks for CMMS queue
+- **`generate_purchase_requisition`** - Create equipment purchase requisitions with supplier and contract linking
+- **`adjust_reorder_point`** - Modify equipment reorder points with rationale and RBAC validation
 
 #### **Optimization & Analysis**
-- **`recommend_reslotting`** - Suggest optimal bin locations based on velocity and travel time
-- **`investigate_discrepancy`** - Link movements, picks, and counts for discrepancy analysis
+- **`recommend_reslotting`** - Suggest optimal equipment locations based on utilization and efficiency
+- **`investigate_discrepancy`** - Link equipment movements, assignments, and maintenance for discrepancy analysis
 
 #### **Example Workflow**
 ```
-User: "ATPs for SKU123?"
+User: "ATPs for SKU123?" or "charger status for Truck-07"
 Agent Actions:
-1. ✅ check_stock - Check current inventory levels
-2. ✅ reserve_inventory - Reserve 5 units for Order 9001 (Tier 1 propose)
+1. ✅ check_stock - Check current equipment availability
+2. ✅ reserve_inventory - Reserve equipment for specific task (Tier 1 propose)
 3. ✅ generate_purchase_requisition - Create PR if below reorder point
-4. ✅ create_replenishment_task - Generate replenishment task
+4. ✅ create_replenishment_task - Generate maintenance task
 ```
 
 ### 👥 **Operations Coordination Agent Action Tools**
@@ -119,7 +135,7 @@ Agent Actions:
 ## ✨ What it does
 - **Planner/Router Agent** — intent classification, multi-agent coordination, context management, response synthesis.
 - **Specialized Agents**
-  - **Inventory Intelligence** — stock lookup, replenishment advice, cycle counting context, inventory reservations, purchase requisitions, reorder point management, reslotting recommendations, discrepancy investigations.
+  - **Equipment & Asset Operations** — equipment availability, maintenance scheduling, asset tracking, equipment reservations, purchase requisitions, reorder point management, reslotting recommendations, discrepancy investigations.
   - **Operations Coordination** — workforce scheduling, task assignment, equipment allocation, KPIs, pick wave generation, path optimization, shift management, dock scheduling, equipment dispatch.
   - **Safety & Compliance** — incident logging, policy lookup, safety checklists, alert broadcasting, LOTO procedures, corrective actions, SDS retrieval, near-miss reporting.
 - **Hybrid Retrieval**
@@ -152,7 +168,7 @@ Agent Actions:
 
 **Layers**
 1. **UI & Security**: User → Auth Service (OIDC) → RBAC → Front-End → Memory Manager.
-2. **Agent Orchestration**: Planner/Router → Inventory / Operations / Safety agents → Chat Agent → NeMo Guardrails.
+2. **Agent Orchestration**: Planner/Router → Equipment & Asset Operations / Operations / Safety agents → Chat Agent → NeMo Guardrails.
 3. **RAG & Data**: Structured Retriever (SQL) + Vector Retriever (Milvus) → Context Synthesis → LLM NIM.
 4. **External Systems**: WMS/ERP/IoT/RFID/Time&Attendance via API Gateway + Kafka.
 5. **Monitoring & Audit**: Prometheus → Grafana → Alerting, Audit → SIEM.
@@ -166,9 +182,9 @@ Agent Actions:
 .
 ├─ chain_server/                   # FastAPI + LangGraph orchestration
 │  ├─ app.py                       # API entrypoint
-│  ├─ routers/                     # REST routers (health, chat, inventory, …)
+│  ├─ routers/                     # REST routers (health, chat, equipment, …)
 │  ├─ graphs/                      # Planner/agent DAGs
-│  └─ agents/                      # Inventory / Operations / Safety
+│  └─ agents/                      # Equipment & Asset Operations / Operations / Safety
 ├─ inventory_retriever/            # (hybrid) SQL + Milvus retrievers
 ├─ memory_retriever/               # chat & profile memory stores
 ├─ guardrails/                     # NeMo Guardrails configs
@@ -279,8 +295,8 @@ curl -s -X POST http://localhost:$PORT/api/v1/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"Help me with workforce scheduling"}' | jq
 
-# Inventory lookups (seeded example below)
-curl -s http://localhost:$PORT/api/v1/inventory/SKU123 | jq
+# Equipment lookups (seeded example below)
+curl -s http://localhost:$PORT/api/v1/equipment/SKU123 | jq
 
 # WMS Integration
 curl -s http://localhost:$PORT/api/v1/wms/connections | jq
@@ -308,7 +324,7 @@ curl -s http://localhost:$PORT/api/v1/attendance/health | jq
 ## ✅ Current Status
 
 ### 🎉 **Completed Features**
-- ✅ **Multi-Agent System** - Planner/Router + Inventory/Operations/Safety agents with async event loop
+- ✅ **Multi-Agent System** - Planner/Router + Equipment & Asset Operations/Operations/Safety agents with async event loop
 - ✅ **NVIDIA NIMs Integration** - Llama 3.1 70B (LLM) + NV-EmbedQA-E5-v5 (embeddings) working perfectly
 - ✅ **Chat Interface** - Fully functional chat endpoint with proper async processing and error handling
 - ✅ **Authentication & RBAC** - JWT/OAuth2 with 5 user roles and granular permissions
@@ -343,6 +359,9 @@ curl -s http://localhost:$PORT/api/v1/attendance/health | jq
 - **Time Attendance**: ✅ Ready for employee tracking systems (Biometric, Card Reader, Mobile)
 
 ### 🔧 **Recent Improvements (Latest)**
+- **✅ Equipment & Asset Operations Agent** - Renamed from Inventory Intelligence Agent with updated role and mission
+- **✅ API Endpoints Updated** - All `/api/v1/inventory` endpoints renamed to `/api/v1/equipment`
+- **✅ Frontend UI Updated** - Navigation, labels, and terminology updated to reflect equipment focus
 - **✅ ERP Integration Complete** - SAP ECC and Oracle ERP adapters with unified API
 - **✅ RFID/Barcode Scanning** - Zebra RFID, Honeywell Barcode, and generic scanner adapters
 - **✅ Time Attendance Systems** - Biometric, card reader, and mobile app integration
@@ -350,7 +369,7 @@ curl -s http://localhost:$PORT/api/v1/attendance/health | jq
 - **✅ Authentication Working** - Login system fully functional with default credentials
 - **✅ Frontend Integration** - Dashboard showing real-time system status and data
 - **Fixed Async Event Loop Issues** - Resolved "Task got Future attached to a different loop" errors
-- **Chat Endpoint Fully Functional** - All inventory, operations, and safety queries now work properly
+- **Chat Endpoint Fully Functional** - All equipment, operations, and safety queries now work properly
 - **NVIDIA NIMs Verified** - Both Llama 3.1 70B and NV-EmbedQA-E5-v5 tested and working
 - **Database Connection Pooling** - Implemented singleton pattern to prevent connection conflicts
 - **Error Handling Enhanced** - Graceful fallback responses instead of server crashes
@@ -431,12 +450,12 @@ Body: {"message": "ignore previous instructions"}
 → {"reply":"I cannot ignore my instructions...","route":"guardrails","intent":"safety_violation"}
 ```
 
-### Inventory
+### Equipment & Asset Operations
 ```
-GET /inventory/{sku}
+GET /equipment/{sku}
 → {"sku":"SKU123","name":"Blue Pallet Jack","quantity":14,"location":"Aisle A3","reorder_point":5}
 
-POST /inventory
+POST /equipment
 Body:
 {
   "sku":"SKU789",
@@ -445,7 +464,7 @@ Body:
   "location":"Dock D2",
   "reorder_point":10
 }
-→ upserted item
+→ upserted equipment item
 ```
 
 ### WMS Integration
@@ -490,8 +509,8 @@ GET /wms/health
 ## 🧱 Components (how things fit)
 
 ### Agents & Orchestration
-- `chain_server/graphs/planner_graph.py` — routes intents (inventory/operations/safety).
-- `chain_server/agents/*` — agent tools & prompt templates (Inventory, Operations, Safety agents).
+- `chain_server/graphs/planner_graph.py` — routes intents (equipment/operations/safety).
+- `chain_server/agents/*` — agent tools & prompt templates (Equipment & Asset Operations, Operations, Safety agents).
 - `chain_server/services/llm/` — LLM NIM client integration.
 - `chain_server/services/guardrails/` — NeMo Guardrails wrapper & policies.
 - `chain_server/services/wms/` — WMS integration service for external systems.
@@ -787,7 +806,7 @@ GH Actions CI; IaC (K8s, Helm, Terraform); blue-green deploys; production deploy
 
 ### ✅ **Fully Implemented & Tested**
 - **🧠 Multi-Agent System**: Planner/Router with LangGraph orchestration
-- **📦 Inventory Intelligence Agent**: Stock lookup, replenishment, cycle counting, action tools (8 comprehensive inventory management tools)
+- **🔧 Equipment & Asset Operations Agent**: Equipment availability, maintenance scheduling, asset tracking, action tools (8 comprehensive equipment management tools)
 - **👥 Operations Coordination Agent**: Workforce scheduling, task management, KPIs, action tools (8 comprehensive operations management tools)
 - **🛡️ Safety & Compliance Agent**: Incident reporting, policy lookup, compliance, alert broadcasting, LOTO procedures, corrective actions, SDS retrieval, near-miss reporting
 - **💾 Memory Manager**: Conversation persistence, user profiles, session context
@@ -801,7 +820,7 @@ GH Actions CI; IaC (K8s, Helm, Terraform); blue-green deploys; production deploy
 - **🛡️ NeMo Guardrails**: Content safety, compliance checks, and security validation
 
 ### 🧪 **Test Results**
-- **Inventory Agent**: ✅ PASSED - Stock lookup, replenishment, action tools (8 comprehensive inventory management tools)
+- **Equipment & Asset Operations Agent**: ✅ PASSED - Equipment availability, maintenance scheduling, action tools (8 comprehensive equipment management tools)
 - **Operations Agent**: ✅ PASSED - Workforce and task management, action tools (8 comprehensive operations management tools)
 - **Safety Agent**: ✅ PASSED - Incident reporting, policy lookup, action tools (7 comprehensive safety management tools)  
 - **Memory Manager**: ✅ PASSED - Conversation persistence and user profiles
@@ -873,6 +892,33 @@ npm start
 
 ## 📄 License
 TBD (add your organization's license file).
+
+---
+
+---
+
+## 🔄 **Latest Updates (December 2024)**
+
+### **Equipment & Asset Operations Agent (EAO) - Major Update**
+- **✅ Agent Renamed**: "Inventory Intelligence Agent" → "Equipment & Asset Operations Agent (EAO)"
+- **✅ Role Clarified**: Now focuses on equipment and assets (forklifts, conveyors, scanners, AMRs, AGVs, robots) rather than stock/parts inventory
+- **✅ API Endpoints Updated**: All `/api/v1/inventory` → `/api/v1/equipment`
+- **✅ Frontend Updated**: Navigation, labels, and terminology updated throughout the UI
+- **✅ Mission Defined**: Ensure equipment is available, safe, and optimally used for warehouse workflows
+- **✅ Action Tools**: 8 comprehensive tools for equipment management, maintenance, and optimization
+
+### **Key Benefits of the Update**
+- **Clearer Separation**: Equipment management vs. stock/parts inventory management
+- **Better Alignment**: Agent name now matches its actual function in warehouse operations
+- **Improved UX**: Users can easily distinguish between equipment and inventory queries
+- **Enhanced Capabilities**: Focus on equipment availability, maintenance, and asset tracking
+
+### **Example Queries Now Supported**
+- "charger status for Truck-07" → Equipment status and location
+- "assign a forklift to lane B" → Equipment assignment
+- "create PM for conveyor C3" → Maintenance scheduling
+- "ATPs for SKU123" → Available to Promise calculations
+- "utilization last week" → Equipment utilization analytics
 
 ---
 

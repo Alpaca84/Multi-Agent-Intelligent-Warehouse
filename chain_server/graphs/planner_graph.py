@@ -33,9 +33,10 @@ class WarehouseState(TypedDict):
 class IntentClassifier:
     """Classifies user intents for warehouse operations."""
     
-    INVENTORY_KEYWORDS = [
-        "stock", "inventory", "sku", "reorder", "quantity", "location", 
-        "cycle count", "replenishment", "warehouse stock", "item"
+    EQUIPMENT_KEYWORDS = [
+        "equipment", "forklift", "conveyor", "scanner", "amr", "agv", "charger", 
+        "assignment", "utilization", "maintenance", "availability", "telemetry",
+        "battery", "truck", "lane", "pm", "loto", "lockout", "tagout"
     ]
     
     OPERATIONS_KEYWORDS = [
@@ -53,9 +54,9 @@ class IntentClassifier:
         """Classify user intent based on message content."""
         message_lower = message.lower()
         
-        # Check for inventory-related keywords
-        if any(keyword in message_lower for keyword in cls.INVENTORY_KEYWORDS):
-            return "inventory"
+        # Check for equipment-related keywords
+        if any(keyword in message_lower for keyword in cls.EQUIPMENT_KEYWORDS):
+            return "equipment"
         
         # Check for operations-related keywords
         if any(keyword in message_lower for keyword in cls.OPERATIONS_KEYWORDS):
@@ -97,10 +98,10 @@ def route_intent(state: WarehouseState) -> WarehouseState:
     
     return state
 
-async def inventory_agent(state: WarehouseState) -> WarehouseState:
-    """Handle inventory-related queries using the Inventory Intelligence Agent."""
+async def equipment_agent(state: WarehouseState) -> WarehouseState:
+    """Handle equipment-related queries using the Equipment & Asset Operations Agent."""
     try:
-        from chain_server.agents.inventory.inventory_agent import get_inventory_agent
+        from chain_server.agents.inventory.equipment_agent import get_equipment_agent
         
         # Get the latest user message
         if not state["messages"]:
@@ -116,22 +117,22 @@ async def inventory_agent(state: WarehouseState) -> WarehouseState:
         # Get session ID from context
         session_id = state.get("session_id", "default")
         
-        # Process with Inventory Intelligence Agent (sync wrapper)
-        response = await _process_inventory_query(
+        # Process with Equipment & Asset Operations Agent (sync wrapper)
+        response = await _process_equipment_query(
             query=message_text,
             session_id=session_id,
             context=state.get("context", {})
         )
         
         # Store the response dict directly
-        state["agent_responses"]["inventory"] = response
+        state["agent_responses"]["equipment"] = response
         
-        logger.info(f"Inventory agent processed request with confidence: {response.get('confidence', 0)}")
+        logger.info(f"Equipment agent processed request with confidence: {response.get('confidence', 0)}")
         
     except Exception as e:
-        logger.error(f"Error in inventory agent: {e}")
-        state["agent_responses"]["inventory"] = {
-            "natural_language": f"Error processing inventory request: {str(e)}",
+        logger.error(f"Error in equipment agent: {e}")
+        state["agent_responses"]["equipment"] = {
+            "natural_language": f"Error processing equipment request: {str(e)}",
             "structured_data": {"error": str(e)},
             "recommendations": [],
             "confidence": 0.0,
@@ -286,7 +287,7 @@ def create_planner_graph() -> StateGraph:
     
     # Add nodes
     workflow.add_node("route_intent", route_intent)
-    workflow.add_node("inventory", inventory_agent)
+    workflow.add_node("equipment", equipment_agent)
     workflow.add_node("operations", operations_agent)
     workflow.add_node("safety", safety_agent)
     workflow.add_node("general", general_agent)
@@ -300,7 +301,7 @@ def create_planner_graph() -> StateGraph:
         "route_intent",
         route_to_agent,
         {
-            "inventory": "inventory",
+            "equipment": "equipment",
             "operations": "operations", 
             "safety": "safety",
             "general": "general"
@@ -308,7 +309,7 @@ def create_planner_graph() -> StateGraph:
     )
     
     # Add edges from agents to synthesis
-    workflow.add_edge("inventory", "synthesize")
+    workflow.add_edge("equipment", "synthesize")
     workflow.add_edge("operations", "synthesize")
     workflow.add_edge("safety", "synthesize")
     workflow.add_edge("general", "synthesize")
@@ -437,33 +438,33 @@ async def _process_operations_query(query: str, session_id: str, context: Dict) 
             confidence=0.0
         )
 
-async def _process_inventory_query(query: str, session_id: str, context: Dict) -> Any:
-    """Async inventory agent processing."""
+async def _process_equipment_query(query: str, session_id: str, context: Dict) -> Any:
+    """Async equipment agent processing."""
     try:
-        from chain_server.agents.inventory.inventory_agent import get_inventory_agent
+        from chain_server.agents.inventory.equipment_agent import get_equipment_agent
         
-        # Get inventory agent
-        inventory_agent = await get_inventory_agent()
+        # Get equipment agent
+        equipment_agent = await get_equipment_agent()
         
         # Process query
-        response = await inventory_agent.process_query(
+        response = await equipment_agent.process_query(
             query=query,
             session_id=session_id,
             context=context
         )
         
-        # Convert InventoryResponse to dict
+        # Convert EquipmentResponse to dict
         from dataclasses import asdict
         return asdict(response)
         
     except Exception as e:
-        logger.error(f"Inventory processing failed: {e}")
+        logger.error(f"Equipment processing failed: {e}")
         # Return a fallback response
-        from chain_server.agents.inventory.inventory_agent import InventoryResponse
-        return InventoryResponse(
+        from chain_server.agents.inventory.equipment_agent import EquipmentResponse
+        return EquipmentResponse(
             response_type="error",
             data={"error": str(e)},
-            natural_language=f"Error processing inventory query: {str(e)}",
+            natural_language=f"Error processing equipment query: {str(e)}",
             recommendations=[],
             confidence=0.0
         )

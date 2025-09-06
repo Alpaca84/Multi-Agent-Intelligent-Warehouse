@@ -16,33 +16,33 @@ import {
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add as AddIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { inventoryAPI, InventoryItem } from '../services/api';
+import { equipmentAPI, EquipmentItem } from '../services/api';
 
-const Inventory: React.FC = () => {
+const Equipment: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [formData, setFormData] = useState<Partial<InventoryItem>>({});
+  const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
+  const [formData, setFormData] = useState<Partial<EquipmentItem>>({});
   const queryClient = useQueryClient();
 
-  const { data: inventoryItems, isLoading, error } = useQuery(
-    'inventory',
-    inventoryAPI.getAllItems
+  const { data: equipmentItems, isLoading, error } = useQuery(
+    'equipment',
+    equipmentAPI.getAllItems
   );
 
-  const createMutation = useMutation(inventoryAPI.createItem, {
+  const createMutation = useMutation(equipmentAPI.createItem, {
     onSuccess: () => {
-      queryClient.invalidateQueries('inventory');
+      queryClient.invalidateQueries('equipment');
       setOpen(false);
       setFormData({});
     },
   });
 
   const updateMutation = useMutation(
-    ({ sku, data }: { sku: string; data: Partial<InventoryItem> }) =>
-      inventoryAPI.updateItem(sku, data),
+    ({ sku, data }: { sku: string; data: Partial<EquipmentItem> }) =>
+      equipmentAPI.updateItem(sku, data),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries('inventory');
+        queryClient.invalidateQueries('equipment');
         setOpen(false);
         setSelectedItem(null);
         setFormData({});
@@ -50,7 +50,7 @@ const Inventory: React.FC = () => {
     }
   );
 
-  const handleOpen = (item?: InventoryItem) => {
+  const handleOpen = (item?: EquipmentItem) => {
     if (item) {
       setSelectedItem(item);
       setFormData(item);
@@ -71,7 +71,7 @@ const Inventory: React.FC = () => {
     if (selectedItem) {
       updateMutation.mutate({ sku: selectedItem.sku, data: formData });
     } else {
-      createMutation.mutate(formData as Omit<InventoryItem, 'updated_at'>);
+      createMutation.mutate(formData as Omit<EquipmentItem, 'updated_at'>);
     }
   };
 
@@ -121,10 +121,10 @@ const Inventory: React.FC = () => {
     return (
       <Box>
         <Typography variant="h4" gutterBottom>
-          Inventory Management
+          Equipment & Asset Operations
         </Typography>
         <Alert severity="error">
-          Failed to load inventory data. Please try again.
+          Failed to load equipment data. Please try again.
         </Alert>
       </Box>
     );
@@ -134,20 +134,20 @@ const Inventory: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
-          Inventory Management
+          Equipment & Asset Operations
         </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpen()}
         >
-          Add Item
+          Add Equipment
         </Button>
       </Box>
 
       <Paper sx={{ height: 600, width: '100%' }}>
         <DataGrid
-          rows={inventoryItems || []}
+          rows={equipmentItems || []}
           columns={columns}
           loading={isLoading}
           pageSize={10}
@@ -159,7 +159,7 @@ const Inventory: React.FC = () => {
 
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {selectedItem ? 'Edit Inventory Item' : 'Add New Inventory Item'}
+          {selectedItem ? 'Edit Equipment' : 'Add New Equipment'}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -228,4 +228,4 @@ const Inventory: React.FC = () => {
   );
 };
 
-export default Inventory;
+export default Equipment;

@@ -55,7 +55,7 @@ export interface ChatResponse {
   confidence?: number;
 }
 
-export interface InventoryItem {
+export interface EquipmentItem {
   sku: string;
   name: string;
   quantity: number;
@@ -89,24 +89,24 @@ export const chatAPI = {
   },
 };
 
-export const inventoryAPI = {
-  getItem: async (sku: string): Promise<InventoryItem> => {
-    const response = await api.get(`/api/v1/inventory/${sku}`);
+export const equipmentAPI = {
+  getItem: async (sku: string): Promise<EquipmentItem> => {
+    const response = await api.get(`/api/v1/equipment/${sku}`);
     return response.data;
   },
   
-  getAllItems: async (): Promise<InventoryItem[]> => {
-    const response = await api.get('/api/v1/inventory');
+  getAllItems: async (): Promise<EquipmentItem[]> => {
+    const response = await api.get('/api/v1/equipment');
     return response.data;
   },
   
-  updateItem: async (sku: string, data: Partial<InventoryItem>): Promise<InventoryItem> => {
-    const response = await api.put(`/api/v1/inventory/${sku}`, data);
+  updateItem: async (sku: string, data: Partial<EquipmentItem>): Promise<EquipmentItem> => {
+    const response = await api.put(`/api/v1/equipment/${sku}`, data);
     return response.data;
   },
   
-  createItem: async (data: Omit<InventoryItem, 'updated_at'>): Promise<InventoryItem> => {
-    const response = await api.post('/api/v1/inventory', data);
+  createItem: async (data: Omit<EquipmentItem, 'updated_at'>): Promise<EquipmentItem> => {
+    const response = await api.post('/api/v1/equipment', data);
     return response.data;
   },
 };

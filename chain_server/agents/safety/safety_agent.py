@@ -493,13 +493,14 @@ Respond in JSON format:
     async def _get_safety_incidents(self) -> List[Dict[str, Any]]:
         """Get safety incidents from database."""
         try:
+            await self.sql_retriever.initialize()
             query = """
             SELECT id, severity, description, reported_by, occurred_at
             FROM safety_incidents 
             ORDER BY occurred_at DESC
             LIMIT 10
             """
-            results = await self.sql_retriever.execute_query(query)
+            results = await self.sql_retriever.fetch_all(query)
             return results
         except Exception as e:
             logger.error(f"Failed to get safety incidents: {e}")
@@ -683,8 +684,30 @@ Respond in JSON format:
             data = retrieved_data
             
             if intent == "incident_report":
-                natural_language = "Here's the current safety incident information and reporting status."
-                recommendations = ["Report incidents immediately", "Follow up on open incidents"]
+                incidents = data.get("incidents", [])
+                if incidents:
+                    # Filter by severity if mentioned in query
+                    query_lower = safety_query.user_query.lower()
+                    filtered_incidents = incidents
+                    if "critical" in query_lower:
+                        filtered_incidents = [inc for inc in incidents if inc.get('severity') == 'critical']
+                    elif "high" in query_lower:
+                        filtered_incidents = [inc for inc in incidents if inc.get('severity') in ['high', 'critical']]
+                    elif "medium" in query_lower:
+                        filtered_incidents = [inc for inc in incidents if inc.get('severity') in ['medium', 'high', 'critical']]
+                    elif "low" in query_lower:
+                        filtered_incidents = [inc for inc in incidents if inc.get('severity') == 'low']
+                    
+                    if filtered_incidents:
+                        incident_summary = f"Found {len(filtered_incidents)} safety incidents:\n"
+                        for incident in filtered_incidents[:5]:  # Show top 5 incidents
+                            incident_summary += f"• {incident.get('description', 'No description')} (Severity: {incident.get('severity', 'Unknown')}, Reported by: {incident.get('reported_by', 'Unknown')}, Date: {incident.get('occurred_at', 'Unknown')})\n"
+                        natural_language = f"Here's the safety incident information:\n\n{incident_summary}"
+                    else:
+                        natural_language = f"No incidents found matching your criteria. Total incidents in system: {len(incidents)}"
+                else:
+                    natural_language = "No recent safety incidents found in the system."
+                recommendations = ["Report incidents immediately", "Follow up on open incidents", "Review incident patterns for safety improvements"]
             elif intent == "policy_lookup":
                 natural_language = "Here are the relevant safety policies and procedures."
                 recommendations = ["Review policy updates", "Ensure team compliance"]
@@ -746,7 +769,12 @@ Respond in JSON format:
             # Add incidents
             if "incidents" in retrieved_data:
                 incidents = retrieved_data["incidents"]
-                context_parts.append(f"Recent Incidents: {len(incidents)} incidents found")
+                if incidents:
+                    context_parts.append(f"Recent Incidents ({len(incidents)} found):")
+                    for incident in incidents:
+                        context_parts.append(f"  - ID {incident.get('id', 'N/A')}: {incident.get('description', 'No description')} (Severity: {incident.get('severity', 'Unknown')}, Reported by: {incident.get('reported_by', 'Unknown')}, Date: {incident.get('occurred_at', 'Unknown')})")
+                else:
+                    context_parts.append("Recent Incidents: No incidents found")
             
             # Add policies
             if "policies" in retrieved_data:
