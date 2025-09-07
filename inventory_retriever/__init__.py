@@ -7,6 +7,9 @@ This package provides comprehensive retrieval capabilities including:
 - Hybrid retrieval combining SQL and vector search
 - Query preprocessing and post-processing
 - Intelligent routing and optimization
+- Redis caching with configurable TTL and eviction policies
+- Cache warming and monitoring
+- Performance analytics and health checks
 """
 
 from .structured.sql_retriever import SQLRetriever
@@ -18,6 +21,14 @@ from .query_preprocessing import QueryPreprocessor, PreprocessedQuery, QueryInte
 from .structured.sql_query_router import SQLQueryRouter, QueryType, QueryComplexity
 from .result_postprocessing import ResultPostProcessor, ProcessedResult, ResultType, DataQuality
 from .integrated_query_processor import IntegratedQueryProcessor, QueryProcessingResult
+
+# Caching imports
+from .caching import (
+    RedisCacheService, CacheType, CacheConfig, CacheMetrics,
+    CacheManager, CachePolicy, CacheWarmingRule, EvictionStrategy,
+    CachedQueryProcessor, CacheIntegrationConfig,
+    get_cache_service, get_cache_manager, get_cached_query_processor
+)
 
 __all__ = [
     # Core retrievers
@@ -45,9 +56,24 @@ __all__ = [
     
     # Integrated processing
     'IntegratedQueryProcessor',
-    'QueryProcessingResult'
+    'QueryProcessingResult',
+    
+    # Caching
+    'RedisCacheService',
+    'CacheType',
+    'CacheConfig',
+    'CacheMetrics',
+    'CacheManager',
+    'CachePolicy',
+    'CacheWarmingRule',
+    'EvictionStrategy',
+    'CachedQueryProcessor',
+    'CacheIntegrationConfig',
+    'get_cache_service',
+    'get_cache_manager',
+    'get_cached_query_processor'
 ]
 
 __version__ = "1.0.0"
 __author__ = "Warehouse Operational Assistant Team"
-__description__ = "Advanced retrieval system with SQL path optimization and hybrid RAG"
+__description__ = "Advanced retrieval system with SQL path optimization, hybrid RAG, and intelligent Redis caching"
