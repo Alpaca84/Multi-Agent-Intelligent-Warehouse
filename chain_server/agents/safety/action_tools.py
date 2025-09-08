@@ -572,6 +572,41 @@ class SafetyActionTools:
                 created_at=datetime.now()
             )
     
+    async def get_safety_procedures(
+        self,
+        procedure_type: Optional[str] = None,
+        category: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Retrieve comprehensive safety procedures and policies.
+        
+        Args:
+            procedure_type: Specific procedure type (e.g., "emergency", "equipment", "ppe")
+            category: Safety category (e.g., "general", "equipment", "chemical", "emergency")
+            
+        Returns:
+            Dict containing safety procedures and policies
+        """
+        try:
+            # Get comprehensive safety procedures
+            procedures = await self._get_comprehensive_safety_procedures(procedure_type, category)
+            
+            return {
+                "procedures": procedures,
+                "total_count": len(procedures),
+                "last_updated": datetime.now().isoformat(),
+                "categories": list(set([p.get("category", "General") for p in procedures]))
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get safety procedures: {e}")
+            return {
+                "procedures": [],
+                "total_count": 0,
+                "error": str(e),
+                "last_updated": datetime.now().isoformat()
+            }
+    
     # Helper methods
     async def _create_siem_event(self, incident: SafetyIncident) -> Optional[Dict[str, Any]]:
         """Create SIEM event for incident."""
@@ -771,6 +806,281 @@ class SafetyActionTools:
         except Exception as e:
             logger.error(f"Failed to notify safety team of near-miss: {e}")
             return False
+    
+    async def _get_comprehensive_safety_procedures(
+        self, 
+        procedure_type: Optional[str] = None, 
+        category: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get comprehensive safety procedures and policies."""
+        try:
+            # Comprehensive safety procedures database
+            all_procedures = [
+                {
+                    "id": "PROC-001",
+                    "name": "Personal Protective Equipment (PPE) Requirements",
+                    "category": "General Safety",
+                    "type": "ppe",
+                    "priority": "High",
+                    "description": "Mandatory PPE requirements for all warehouse personnel",
+                    "steps": [
+                        "Hard hat must be worn at all times in warehouse areas",
+                        "Safety glasses required in production and storage zones",
+                        "Steel-toed boots mandatory for all floor operations",
+                        "High-visibility vests required in loading dock areas",
+                        "Cut-resistant gloves for material handling operations",
+                        "Hearing protection in high-noise areas (>85 dB)"
+                    ],
+                    "compliance_requirements": [
+                        "Daily PPE inspection before shift start",
+                        "Immediate replacement of damaged equipment",
+                        "Proper storage and maintenance of PPE",
+                        "Training on correct usage and limitations"
+                    ],
+                    "emergency_procedures": [
+                        "Report damaged or missing PPE immediately",
+                        "Stop work if proper PPE is not available",
+                        "Contact supervisor for PPE replacement"
+                    ],
+                    "last_updated": "2024-01-15",
+                    "status": "Active"
+                },
+                {
+                    "id": "PROC-002",
+                    "name": "Forklift Operation Safety Procedures",
+                    "category": "Equipment Safety",
+                    "type": "equipment",
+                    "priority": "Critical",
+                    "description": "Comprehensive safety procedures for forklift operations",
+                    "steps": [
+                        "Pre-operation inspection checklist completion",
+                        "Verify operator certification and training status",
+                        "Check load capacity and weight distribution",
+                        "Inspect hydraulic systems and controls",
+                        "Test brakes, steering, and warning devices",
+                        "Ensure clear visibility and proper lighting"
+                    ],
+                    "safety_requirements": [
+                        "Valid forklift operator certification required",
+                        "Maximum speed: 5 mph in warehouse, 3 mph in congested areas",
+                        "Load must not exceed rated capacity",
+                        "Load must be tilted back and secured",
+                        "No passengers allowed on forklift",
+                        "Use horn at intersections and blind spots"
+                    ],
+                    "emergency_procedures": [
+                        "Immediate shutdown if safety systems fail",
+                        "Report mechanical issues to maintenance",
+                        "Evacuate area if fuel leak detected",
+                        "Contact emergency services for serious incidents"
+                    ],
+                    "last_updated": "2024-01-10",
+                    "status": "Active"
+                },
+                {
+                    "id": "PROC-003",
+                    "name": "Emergency Evacuation Procedures",
+                    "category": "Emergency Response",
+                    "type": "emergency",
+                    "priority": "Critical",
+                    "description": "Step-by-step emergency evacuation procedures",
+                    "steps": [
+                        "Activate nearest fire alarm or emergency notification system",
+                        "Follow designated evacuation routes to assembly points",
+                        "Account for all personnel at assembly points",
+                        "Wait for all-clear signal before re-entering building",
+                        "Report missing personnel to emergency responders"
+                    ],
+                    "evacuation_routes": [
+                        "Primary: Main exits through loading dock",
+                        "Secondary: Emergency exits in each zone",
+                        "Assembly Point: Parking lot area A",
+                        "Disabled Access: Designated assistance areas"
+                    ],
+                    "emergency_contacts": [
+                        "Internal Emergency: Ext. 911",
+                        "Fire Department: 911",
+                        "Medical Emergency: 911",
+                        "Safety Manager: Ext. 5555"
+                    ],
+                    "last_updated": "2024-01-05",
+                    "status": "Active"
+                },
+                {
+                    "id": "PROC-004",
+                    "name": "Lockout/Tagout (LOTO) Procedures",
+                    "category": "Equipment Safety",
+                    "type": "equipment",
+                    "priority": "Critical",
+                    "description": "Energy isolation procedures for equipment maintenance",
+                    "steps": [
+                        "Identify all energy sources (electrical, hydraulic, pneumatic)",
+                        "Notify affected personnel of lockout",
+                        "Shut down equipment using normal shutdown procedures",
+                        "Isolate all energy sources",
+                        "Apply lockout devices to isolation points",
+                        "Test equipment to verify isolation",
+                        "Perform maintenance work",
+                        "Remove lockout devices and restore energy"
+                    ],
+                    "safety_requirements": [
+                        "Only authorized personnel may perform LOTO",
+                        "Each person must apply their own lock",
+                        "Locks must be individually keyed",
+                        "Tags must clearly identify the person and purpose",
+                        "Verify zero energy state before work begins"
+                    ],
+                    "emergency_procedures": [
+                        "Emergency removal requires management approval",
+                        "Document all emergency LOTO removals",
+                        "Investigate circumstances of emergency removal",
+                        "Provide additional training if needed"
+                    ],
+                    "last_updated": "2024-01-08",
+                    "status": "Active"
+                },
+                {
+                    "id": "PROC-005",
+                    "name": "Chemical Handling and Storage Procedures",
+                    "category": "Chemical Safety",
+                    "type": "chemical",
+                    "priority": "High",
+                    "description": "Safe handling and storage of hazardous chemicals",
+                    "steps": [
+                        "Review Safety Data Sheet (SDS) before handling",
+                        "Wear appropriate PPE as specified in SDS",
+                        "Use proper handling equipment and containers",
+                        "Store chemicals in designated areas only",
+                        "Maintain proper segregation of incompatible materials",
+                        "Label all containers clearly and accurately"
+                    ],
+                    "storage_requirements": [
+                        "Store in well-ventilated areas",
+                        "Maintain proper temperature controls",
+                        "Keep away from heat sources and ignition points",
+                        "Ensure proper segregation of incompatible chemicals",
+                        "Maintain clear access to emergency equipment"
+                    ],
+                    "emergency_procedures": [
+                        "Evacuate area immediately if spill occurs",
+                        "Call emergency services for large spills",
+                        "Use appropriate spill containment materials",
+                        "Follow SDS emergency procedures",
+                        "Report all chemical incidents immediately"
+                    ],
+                    "last_updated": "2024-01-12",
+                    "status": "Active"
+                },
+                {
+                    "id": "PROC-006",
+                    "name": "Material Handling Safety Procedures",
+                    "category": "General Safety",
+                    "type": "general",
+                    "priority": "High",
+                    "description": "Safe material handling and lifting procedures",
+                    "steps": [
+                        "Assess load weight and size before lifting",
+                        "Use mechanical aids when available",
+                        "Maintain proper body mechanics during lifting",
+                        "Keep load close to body and centered",
+                        "Use team lifting for heavy or awkward loads",
+                        "Clear path of travel before moving loads"
+                    ],
+                    "lifting_guidelines": [
+                        "Maximum individual lift: 50 pounds",
+                        "Use two-person lift for 50-100 pounds",
+                        "Use mechanical aids for over 100 pounds",
+                        "Never lift above shoulder height",
+                        "Take breaks to prevent fatigue"
+                    ],
+                    "emergency_procedures": [
+                        "Stop immediately if injury occurs",
+                        "Report all lifting injuries",
+                        "Seek medical attention for back injuries",
+                        "Investigate cause of injury"
+                    ],
+                    "last_updated": "2024-01-18",
+                    "status": "Active"
+                },
+                {
+                    "id": "PROC-007",
+                    "name": "Fire Prevention and Response Procedures",
+                    "category": "Emergency Response",
+                    "type": "emergency",
+                    "priority": "Critical",
+                    "description": "Fire prevention measures and response procedures",
+                    "prevention_measures": [
+                        "Maintain clear access to fire exits and equipment",
+                        "Store flammable materials in designated areas",
+                        "Ensure proper electrical maintenance",
+                        "Prohibit smoking in warehouse areas",
+                        "Regular inspection of fire suppression systems"
+                    ],
+                    "response_procedures": [
+                        "Activate fire alarm immediately",
+                        "Call 911 and report fire location",
+                        "Evacuate building using designated routes",
+                        "Use fire extinguisher only if safe to do so",
+                        "Meet at designated assembly point",
+                        "Account for all personnel"
+                    ],
+                    "fire_extinguisher_usage": [
+                        "P - Pull the pin",
+                        "A - Aim at base of fire",
+                        "S - Squeeze the handle",
+                        "S - Sweep from side to side"
+                    ],
+                    "last_updated": "2024-01-20",
+                    "status": "Active"
+                },
+                {
+                    "id": "PROC-008",
+                    "name": "Incident Reporting and Investigation Procedures",
+                    "category": "General Safety",
+                    "type": "general",
+                    "priority": "High",
+                    "description": "Procedures for reporting and investigating safety incidents",
+                    "reporting_requirements": [
+                        "Report all incidents immediately to supervisor",
+                        "Complete incident report within 24 hours",
+                        "Include witness statements and evidence",
+                        "Document conditions and circumstances",
+                        "Preserve evidence and scene"
+                    ],
+                    "investigation_process": [
+                        "Immediate response to secure scene",
+                        "Interview witnesses and involved parties",
+                        "Document findings and root causes",
+                        "Develop corrective action plan",
+                        "Implement preventive measures",
+                        "Follow up on corrective actions"
+                    ],
+                    "documentation_requirements": [
+                        "Incident report form completion",
+                        "Witness statement collection",
+                        "Photo documentation of scene",
+                        "Medical treatment documentation",
+                        "Corrective action tracking"
+                    ],
+                    "last_updated": "2024-01-22",
+                    "status": "Active"
+                }
+            ]
+            
+            # Filter procedures based on type and category
+            filtered_procedures = all_procedures
+            
+            if procedure_type:
+                filtered_procedures = [p for p in filtered_procedures if p.get("type") == procedure_type]
+            
+            if category:
+                filtered_procedures = [p for p in filtered_procedures if p.get("category") == category]
+            
+            return filtered_procedures
+            
+        except Exception as e:
+            logger.error(f"Failed to get safety procedures: {e}")
+            return []
 
 # Global action tools instance
 _action_tools: Optional[SafetyActionTools] = None

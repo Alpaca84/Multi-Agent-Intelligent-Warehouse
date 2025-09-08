@@ -66,6 +66,9 @@ safety_rules:
       - "alarm codes"
       - "disable security"
       - "warehouse layout for unauthorized access"
+      - "bypass access control"
+      - "hack into system"
+      - "unauthorized access"
     response: "I cannot provide security-sensitive information. For security-related questions, please contact your security team or supervisor."
 
   - name: "compliance_violations"

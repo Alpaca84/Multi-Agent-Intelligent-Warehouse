@@ -155,8 +155,8 @@ class GuardrailsService:
             
             # Check for security information leakage
             security_phrases = [
-                "security code", "access code", "password", "key",
-                "restricted area", "alarm code"
+                "security code", "access code", "password", "master key",
+                "restricted area", "alarm code", "encryption key"
             ]
             
             for phrase in security_phrases:

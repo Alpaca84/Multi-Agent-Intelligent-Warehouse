@@ -54,7 +54,11 @@ class IntentClassifier:
         "safety", "incident", "compliance", "policy", "checklist", 
         "hazard", "accident", "protocol", "training", "audit",
         "over-temp", "overtemp", "temperature", "event", "detected",
-        "alert", "warning", "emergency", "malfunction", "failure"
+        "alert", "warning", "emergency", "malfunction", "failure",
+        "ppe", "protective", "equipment", "helmet", "gloves", "boots",
+        "procedures", "guidelines", "standards", "regulations",
+        "evacuation", "fire", "chemical", "lockout", "tagout", "loto",
+        "injury", "report", "investigation", "corrective", "action"
     ]
     
     @classmethod

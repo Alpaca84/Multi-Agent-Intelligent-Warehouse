@@ -262,6 +262,11 @@ Respond in JSON format:
                 training_records = self._get_training_records()
                 data["training"] = training_records
             
+            # Get safety procedures
+            if safety_query.intent in ["policy_lookup", "general"] or "procedure" in safety_query.user_query.lower():
+                procedures = await self._get_safety_procedures()
+                data["procedures"] = procedures
+            
             return data
             
         except Exception as e:
@@ -480,6 +485,22 @@ Respond in JSON format:
                     "timestamp": datetime.now().isoformat()
                 })
             
+            elif safety_query.intent in ["policy_lookup", "general"] or "procedure" in safety_query.user_query.lower():
+                # Get safety procedures
+                procedure_type = safety_query.entities.get("procedure_type")
+                category = safety_query.entities.get("category")
+                procedures = await self.action_tools.get_safety_procedures(
+                    procedure_type=procedure_type,
+                    category=category
+                )
+                actions_taken.append({
+                    "action": "get_safety_procedures",
+                    "procedure_type": procedure_type,
+                    "category": category,
+                    "result": procedures,
+                    "timestamp": datetime.now().isoformat()
+                })
+            
             return actions_taken
             
         except Exception as e:
@@ -592,6 +613,23 @@ Respond in JSON format:
                 {"employee": "Lisa Brown", "certification": "PPE Training", "expires": "2024-03-05"}
             ]
         }
+    
+    async def _get_safety_procedures(self) -> Dict[str, Any]:
+        """Get comprehensive safety procedures."""
+        try:
+            if not self.action_tools:
+                await self.initialize()
+            
+            procedures = await self.action_tools.get_safety_procedures()
+            return procedures
+        except Exception as e:
+            logger.error(f"Failed to get safety procedures: {e}")
+            return {
+                "procedures": [],
+                "total_count": 0,
+                "error": str(e),
+                "last_updated": datetime.now().isoformat()
+            }
     
     async def _generate_safety_response(
         self, 
@@ -709,8 +747,30 @@ Respond in JSON format:
                     natural_language = "No recent safety incidents found in the system."
                 recommendations = ["Report incidents immediately", "Follow up on open incidents", "Review incident patterns for safety improvements"]
             elif intent == "policy_lookup":
-                natural_language = "Here are the relevant safety policies and procedures."
-                recommendations = ["Review policy updates", "Ensure team compliance"]
+                procedures = data.get("procedures", {})
+                if procedures and procedures.get("procedures"):
+                    procedure_list = procedures["procedures"]
+                    natural_language = f"Here are the comprehensive safety procedures and policies:\n\n"
+                    
+                    for i, proc in enumerate(procedure_list[:5], 1):  # Show top 5 procedures
+                        natural_language += f"{i}. **{proc.get('name', 'Unknown Procedure')}**\n"
+                        natural_language += f"   Category: {proc.get('category', 'General')}\n"
+                        natural_language += f"   Priority: {proc.get('priority', 'Medium')}\n"
+                        natural_language += f"   Description: {proc.get('description', 'No description available')}\n"
+                        
+                        # Add key steps
+                        steps = proc.get('steps', [])
+                        if steps:
+                            natural_language += f"   Key Steps:\n"
+                            for step in steps[:3]:  # Show first 3 steps
+                                natural_language += f"   - {step}\n"
+                        natural_language += "\n"
+                    
+                    if len(procedure_list) > 5:
+                        natural_language += f"... and {len(procedure_list) - 5} more procedures available.\n"
+                else:
+                    natural_language = "Here are the relevant safety policies and procedures."
+                recommendations = ["Review policy updates", "Ensure team compliance", "Follow all safety procedures"]
             elif intent == "compliance_check":
                 natural_language = "Here's the current compliance status and audit information."
                 recommendations = ["Address compliance gaps", "Schedule regular audits"]
@@ -718,8 +778,30 @@ Respond in JSON format:
                 natural_language = "Here are the training records and certification status."
                 recommendations = ["Schedule upcoming training", "Track certification expirations"]
             else:
-                natural_language = "I processed your safety query and retrieved relevant information."
-                recommendations = ["Maintain safety standards", "Regular safety reviews"]
+                procedures = data.get("procedures", {})
+                if procedures and procedures.get("procedures"):
+                    procedure_list = procedures["procedures"]
+                    natural_language = f"Here are the comprehensive safety procedures and policies:\n\n"
+                    
+                    for i, proc in enumerate(procedure_list[:5], 1):  # Show top 5 procedures
+                        natural_language += f"{i}. **{proc.get('name', 'Unknown Procedure')}**\n"
+                        natural_language += f"   Category: {proc.get('category', 'General')}\n"
+                        natural_language += f"   Priority: {proc.get('priority', 'Medium')}\n"
+                        natural_language += f"   Description: {proc.get('description', 'No description available')}\n"
+                        
+                        # Add key steps
+                        steps = proc.get('steps', [])
+                        if steps:
+                            natural_language += f"   Key Steps:\n"
+                            for step in steps[:3]:  # Show first 3 steps
+                                natural_language += f"   - {step}\n"
+                        natural_language += "\n"
+                    
+                    if len(procedure_list) > 5:
+                        natural_language += f"... and {len(procedure_list) - 5} more procedures available.\n"
+                else:
+                    natural_language = "I processed your safety query and retrieved relevant information."
+                recommendations = ["Review policy updates", "Ensure team compliance", "Follow all safety procedures"]
             
             return SafetyResponse(
                 response_type="fallback",
@@ -790,6 +872,16 @@ Respond in JSON format:
             if "training" in retrieved_data:
                 training = retrieved_data["training"]
                 context_parts.append(f"Training Records: {len(training.get('employees', []))} employees tracked")
+            
+            # Add procedures
+            if "procedures" in retrieved_data:
+                procedures = retrieved_data["procedures"]
+                if procedures and procedures.get("procedures"):
+                    procedure_list = procedures["procedures"]
+                    context_parts.append(f"Safety Procedures: {len(procedure_list)} procedures available")
+                    context_parts.append(f"Categories: {', '.join(procedures.get('categories', []))}")
+                else:
+                    context_parts.append("Safety Procedures: No procedures found")
             
             return "\n".join(context_parts) if context_parts else "No relevant data found"
             
