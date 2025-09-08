@@ -16,17 +16,17 @@ import {
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add as AddIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { equipmentAPI, EquipmentItem } from '../services/api';
+import { equipmentAPI, EquipmentAsset } from '../services/api';
 
 const Equipment: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
-  const [formData, setFormData] = useState<Partial<EquipmentItem>>({});
+  const [selectedItem, setSelectedItem] = useState<EquipmentAsset | null>(null);
+  const [formData, setFormData] = useState<Partial<EquipmentAsset>>({});
   const queryClient = useQueryClient();
 
-  const { data: equipmentItems, isLoading, error } = useQuery(
+  const { data: equipmentAssets, isLoading, error } = useQuery(
     'equipment',
-    equipmentAPI.getAllItems
+    equipmentAPI.getAllAssets
   );
 
   const createMutation = useMutation(equipmentAPI.createItem, {

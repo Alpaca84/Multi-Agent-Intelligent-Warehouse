@@ -55,7 +55,22 @@ export interface ChatResponse {
   confidence?: number;
 }
 
-export interface EquipmentItem {
+export interface EquipmentAsset {
+  asset_id: string;
+  type: string;
+  model?: string;
+  zone?: string;
+  status: string;
+  owner_user?: string;
+  next_pm_due?: string;
+  last_maintenance?: string;
+  created_at: string;
+  updated_at: string;
+  metadata: Record<string, any>;
+}
+
+// Keep old interface for inventory items
+export interface InventoryItem {
   sku: string;
   name: string;
   quantity: number;
@@ -90,24 +105,109 @@ export const chatAPI = {
 };
 
 export const equipmentAPI = {
-  getItem: async (sku: string): Promise<EquipmentItem> => {
-    const response = await api.get(`/api/v1/equipment/${sku}`);
+  getAsset: async (asset_id: string): Promise<EquipmentAsset> => {
+    const response = await api.get(`/api/v1/equipment/${asset_id}`);
     return response.data;
   },
   
-  getAllItems: async (): Promise<EquipmentItem[]> => {
+  getAllAssets: async (): Promise<EquipmentAsset[]> => {
     const response = await api.get('/api/v1/equipment');
     return response.data;
   },
   
-  updateItem: async (sku: string, data: Partial<EquipmentItem>): Promise<EquipmentItem> => {
-    const response = await api.put(`/api/v1/equipment/${sku}`, data);
+  getAssetStatus: async (asset_id: string): Promise<any> => {
+    const response = await api.get(`/api/v1/equipment/${asset_id}/status`);
     return response.data;
   },
   
-  createItem: async (data: Omit<EquipmentItem, 'updated_at'>): Promise<EquipmentItem> => {
-    const response = await api.post('/api/v1/equipment', data);
+  assignAsset: async (data: {
+    asset_id: string;
+    assignee: string;
+    assignment_type?: string;
+    task_id?: string;
+    duration_hours?: number;
+    notes?: string;
+  }): Promise<any> => {
+    const response = await api.post('/api/v1/equipment/assign', data);
     return response.data;
+  },
+  
+  releaseAsset: async (data: {
+    asset_id: string;
+    released_by: string;
+    notes?: string;
+  }): Promise<any> => {
+    const response = await api.post('/api/v1/equipment/release', data);
+    return response.data;
+  },
+  
+  getTelemetry: async (asset_id: string, metric?: string, hours_back?: number): Promise<any[]> => {
+    const params = new URLSearchParams();
+    if (metric) params.append('metric', metric);
+    if (hours_back) params.append('hours_back', hours_back.toString());
+    
+    const response = await api.get(`/api/v1/equipment/${asset_id}/telemetry?${params}`);
+    return response.data;
+  },
+  
+  scheduleMaintenance: async (data: {
+    asset_id: string;
+    maintenance_type: string;
+    description: string;
+    scheduled_by: string;
+    scheduled_for: string;
+    estimated_duration_minutes?: number;
+    priority?: string;
+  }): Promise<any> => {
+    const response = await api.post('/api/v1/equipment/maintenance', data);
+    return response.data;
+  },
+  
+  getMaintenanceSchedule: async (asset_id?: string, maintenance_type?: string, days_ahead?: number): Promise<any[]> => {
+    const params = new URLSearchParams();
+    if (asset_id) params.append('asset_id', asset_id);
+    if (maintenance_type) params.append('maintenance_type', maintenance_type);
+    if (days_ahead) params.append('days_ahead', days_ahead.toString());
+    
+    const response = await api.get(`/api/v1/equipment/maintenance/schedule?${params}`);
+    return response.data;
+  },
+  
+  getAssignments: async (asset_id?: string, assignee?: string, active_only?: boolean): Promise<any[]> => {
+    const params = new URLSearchParams();
+    if (asset_id) params.append('asset_id', asset_id);
+    if (assignee) params.append('assignee', assignee);
+    if (active_only) params.append('active_only', active_only.toString());
+    
+    const response = await api.get(`/api/v1/equipment/assignments?${params}`);
+    return response.data;
+  },
+};
+
+// Keep old equipmentAPI for inventory items (if needed)
+export const inventoryAPI = {
+  getItem: async (sku: string): Promise<InventoryItem> => {
+    const response = await api.get(`/api/v1/inventory/${sku}`);
+    return response.data;
+  },
+  
+  getAllItems: async (): Promise<InventoryItem[]> => {
+    const response = await api.get('/api/v1/inventory');
+    return response.data;
+  },
+  
+  createItem: async (data: Omit<InventoryItem, 'updated_at'>): Promise<InventoryItem> => {
+    const response = await api.post('/api/v1/inventory', data);
+    return response.data;
+  },
+  
+  updateItem: async (sku: string, data: Partial<InventoryItem>): Promise<InventoryItem> => {
+    const response = await api.put(`/api/v1/inventory/${sku}`, data);
+    return response.data;
+  },
+  
+  deleteItem: async (sku: string): Promise<void> => {
+    await api.delete(`/api/v1/inventory/${sku}`);
   },
 };
 
