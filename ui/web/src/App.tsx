@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ChatInterface from './pages/ChatInterface';
+import ChatInterfaceNew from './pages/ChatInterfaceNew';
 import Equipment from './pages/Equipment';
 import Operations from './pages/Operations';
 import Safety from './pages/Safety';
@@ -25,7 +26,7 @@ function App() {
                 <Layout>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/chat" element={<ChatInterface />} />
+                    <Route path="/chat" element={<ChatInterfaceNew />} />
                     <Route path="/equipment" element={<Equipment />} />
                     <Route path="/operations" element={<Operations />} />
                     <Route path="/safety" element={<Safety />} />
