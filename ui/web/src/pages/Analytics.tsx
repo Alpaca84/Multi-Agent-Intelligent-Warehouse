@@ -26,7 +26,7 @@ import { useQuery } from 'react-query';
 import { equipmentAPI, operationsAPI, safetyAPI } from '../services/api';
 
 const Analytics: React.FC = () => {
-  const { data: equipmentItems } = useQuery('equipment', equipmentAPI.getAllItems);
+  const { data: equipmentAssets } = useQuery('equipment', equipmentAPI.getAllAssets);
   const { data: tasks } = useQuery('tasks', operationsAPI.getTasks);
   const { data: incidents } = useQuery('incidents', safetyAPI.getIncidents);
 
@@ -139,10 +139,10 @@ const Analytics: React.FC = () => {
                 <Card>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Total Equipment Items
+                      Total Equipment Assets
                     </Typography>
                     <Typography variant="h4">
-                      {equipmentItems?.length || 0}
+                      {equipmentAssets?.length || 0}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -175,10 +175,13 @@ const Analytics: React.FC = () => {
                 <Card>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Low Stock Equipment
+                      Maintenance Needed
                     </Typography>
                     <Typography variant="h4">
-                      {equipmentItems?.filter(item => item.quantity <= item.reorder_point).length || 0}
+                      {equipmentAssets?.filter(asset => 
+                        asset.status === 'maintenance' || 
+                        (asset.next_pm_due && new Date(asset.next_pm_due) <= new Date())
+                      ).length || 0}
                     </Typography>
                   </CardContent>
                 </Card>

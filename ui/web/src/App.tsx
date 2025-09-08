@@ -8,8 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ChatInterface from './pages/ChatInterface';
 import ChatInterfaceNew from './pages/ChatInterfaceNew';
-import Equipment from './pages/Equipment';
-import EquipmentNew from './pages/EquipmentNew';
+import Equipment from './pages/EquipmentNew';
 import Operations from './pages/Operations';
 import Safety from './pages/Safety';
 import Analytics from './pages/Analytics';
@@ -28,7 +27,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/chat" element={<ChatInterfaceNew />} />
-                    <Route path="/equipment" element={<EquipmentNew />} />
+                    <Route path="/equipment" element={<Equipment />} />
                     <Route path="/operations" element={<Operations />} />
                     <Route path="/safety" element={<Safety />} />
                     <Route path="/analytics" element={<Analytics />} />

@@ -22,24 +22,28 @@ import { healthAPI, equipmentAPI, operationsAPI, safetyAPI } from '../services/a
 
 const Dashboard: React.FC = () => {
   const { data: healthStatus } = useQuery('health', healthAPI.check);
-  const { data: equipmentItems } = useQuery('equipment', equipmentAPI.getAllItems);
+  const { data: equipmentAssets } = useQuery('equipment', equipmentAPI.getAllAssets);
   const { data: tasks } = useQuery('tasks', operationsAPI.getTasks);
   const { data: incidents } = useQuery('incidents', safetyAPI.getIncidents);
 
-  const lowStockItems = equipmentItems?.filter(item => item.quantity <= item.reorder_point) || [];
+  // For equipment assets, we'll show assets that need maintenance instead of low stock
+  const maintenanceNeeded = equipmentAssets?.filter(asset => 
+    asset.status === 'maintenance' || 
+    (asset.next_pm_due && new Date(asset.next_pm_due) <= new Date())
+  ) || [];
   const pendingTasks = tasks?.filter(task => task.status === 'pending') || [];
   const recentIncidents = incidents?.slice(0, 5) || [];
 
   const stats = [
     {
-      title: 'Total Equipment Items',
-      value: equipmentItems?.length || 0,
+      title: 'Total Equipment Assets',
+      value: equipmentAssets?.length || 0,
       icon: <EquipmentIcon />,
       color: 'primary',
     },
     {
-      title: 'Low Stock Equipment',
-      value: lowStockItems.length,
+      title: 'Maintenance Needed',
+      value: maintenanceNeeded.length,
       icon: <EquipmentIcon />,
       color: 'warning',
     },
@@ -101,34 +105,37 @@ const Dashboard: React.FC = () => {
       </Grid>
 
       <Grid container spacing={3}>
-        {/* Low Stock Items */}
+        {/* Equipment Maintenance Needed */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              Low Stock Items
+              Equipment Maintenance Needed
             </Typography>
-            {lowStockItems.length > 0 ? (
+            {maintenanceNeeded.length > 0 ? (
               <Box>
-                {lowStockItems.map((item) => (
-                  <Box key={item.sku} sx={{ mb: 2 }}>
+                {maintenanceNeeded.map((asset) => (
+                  <Box key={asset.asset_id} sx={{ mb: 2 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body1">{item.name}</Typography>
-                      <Chip label={`${item.quantity} left`} color="warning" size="small" />
+                      <Typography variant="body1">{asset.asset_id} - {asset.type}</Typography>
+                      <Chip 
+                        label={asset.status} 
+                        color={asset.status === 'maintenance' ? 'error' : 'warning'} 
+                        size="small" 
+                      />
                     </Box>
                     <Typography variant="body2" color="text.secondary">
-                      SKU: {item.sku} | Location: {item.location}
+                      Model: {asset.model || 'N/A'} | Zone: {asset.zone || 'N/A'}
                     </Typography>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(item.quantity / item.reorder_point) * 100}
-                      color="warning"
-                      sx={{ mt: 1 }}
-                    />
+                    {asset.next_pm_due && (
+                      <Typography variant="body2" color="text.secondary">
+                        Next PM: {new Date(asset.next_pm_due).toLocaleDateString()}
+                      </Typography>
+                    )}
                   </Box>
                 ))}
               </Box>
             ) : (
-              <Typography color="text.secondary">No low stock items</Typography>
+              <Typography color="text.secondary">All equipment is in good condition</Typography>
             )}
           </Paper>
         </Grid>
