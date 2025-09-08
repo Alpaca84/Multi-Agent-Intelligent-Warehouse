@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { chatAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Message {
   id: string;
@@ -33,6 +34,7 @@ interface Message {
 }
 
 const ChatInterface: React.FC = () => {
+  const { isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -72,9 +74,21 @@ const ChatInterface: React.FC = () => {
     },
     onError: (error) => {
       console.error('Error sending message:', error);
+      let errorContent = 'Sorry, I encountered an error. Please try again.';
+      
+      if (error.response?.status === 401) {
+        errorContent = 'Authentication failed. Please log in again.';
+      } else if (error.response?.status === 403) {
+        errorContent = 'Access denied. Please check your permissions.';
+      } else if (error.code === 'ECONNABORTED') {
+        errorContent = 'Request timeout. Please try again.';
+      } else if (error.response?.data?.detail) {
+        errorContent = `Error: ${error.response.data.detail}`;
+      }
+      
       const errorMessage: Message = {
         id: Date.now().toString(),
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: errorContent,
         sender: 'assistant',
         timestamp: new Date(),
       };
@@ -85,6 +99,17 @@ const ChatInterface: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
+    
+    if (!isAuthenticated) {
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: 'Please log in to use the chat interface.',
+        sender: 'assistant',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
