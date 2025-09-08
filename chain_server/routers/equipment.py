@@ -1,8 +1,11 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
-from inventory_retriever.structured import SQLRetriever, InventoryQueries
+from datetime import datetime
 import logging
+
+from chain_server.agents.inventory.equipment_agent import get_equipment_agent, EquipmentAssetOperationsAgent
+from inventory_retriever.structured import SQLRetriever
 
 logger = logging.getLogger(__name__)
 
@@ -11,132 +14,398 @@ router = APIRouter(prefix="/api/v1", tags=["Equipment"])
 # Initialize SQL retriever
 sql_retriever = SQLRetriever()
 
-class EquipmentItem(BaseModel):
-    sku: str
-    name: str
-    quantity: int
-    location: str
-    reorder_point: int
+class EquipmentAsset(BaseModel):
+    asset_id: str
+    type: str
+    model: Optional[str] = None
+    zone: Optional[str] = None
+    status: str
+    owner_user: Optional[str] = None
+    next_pm_due: Optional[str] = None
+    last_maintenance: Optional[str] = None
+    created_at: str
     updated_at: str
+    metadata: Dict[str, Any] = {}
 
-class EquipmentUpdate(BaseModel):
-    name: Optional[str] = None
-    quantity: Optional[int] = None
-    location: Optional[str] = None
-    reorder_point: Optional[int] = None
+class EquipmentAssignment(BaseModel):
+    id: int
+    asset_id: str
+    task_id: Optional[str] = None
+    assignee: str
+    assignment_type: str
+    assigned_at: str
+    released_at: Optional[str] = None
+    notes: Optional[str] = None
 
-@router.get("/equipment", response_model=List[EquipmentItem])
-async def get_all_equipment_items():
-    """Get all equipment items."""
+class EquipmentTelemetry(BaseModel):
+    timestamp: str
+    asset_id: str
+    metric: str
+    value: float
+    unit: str
+    quality_score: float
+
+class MaintenanceRecord(BaseModel):
+    id: int
+    asset_id: str
+    maintenance_type: str
+    description: str
+    performed_by: str
+    performed_at: str
+    duration_minutes: int
+    cost: Optional[float] = None
+    notes: Optional[str] = None
+
+class AssignmentRequest(BaseModel):
+    asset_id: str
+    assignee: str
+    assignment_type: str = "task"
+    task_id: Optional[str] = None
+    duration_hours: Optional[int] = None
+    notes: Optional[str] = None
+
+class ReleaseRequest(BaseModel):
+    asset_id: str
+    released_by: str
+    notes: Optional[str] = None
+
+class MaintenanceRequest(BaseModel):
+    asset_id: str
+    maintenance_type: str
+    description: str
+    scheduled_by: str
+    scheduled_for: str
+    estimated_duration_minutes: int = 60
+    priority: str = "medium"
+
+@router.get("/equipment", response_model=List[EquipmentAsset])
+async def get_all_equipment(
+    equipment_type: Optional[str] = None,
+    zone: Optional[str] = None,
+    status: Optional[str] = None
+):
+    """Get all equipment assets with optional filtering."""
     try:
         await sql_retriever.initialize()
-        query = "SELECT sku, name, quantity, location, reorder_point, updated_at FROM inventory_items ORDER BY name"
-        results = await sql_retriever.fetch_all(query)
         
-        items = []
+        # Build query with filters
+        where_conditions = []
+        params = []
+        
+        if equipment_type:
+            where_conditions.append("type = %s")
+            params.append(equipment_type)
+        if zone:
+            where_conditions.append("zone = %s")
+            params.append(zone)
+        if status:
+            where_conditions.append("status = %s")
+            params.append(status)
+        
+        where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+        
+        query = f"""
+            SELECT asset_id, type, model, zone, status, owner_user, 
+                   next_pm_due, last_maintenance, created_at, updated_at, metadata
+            FROM equipment_assets 
+            WHERE {where_clause}
+            ORDER BY asset_id
+        """
+        
+        results = await sql_retriever.fetch_all(query, params)
+        
+        equipment_list = []
         for row in results:
-            items.append(EquipmentItem(
-                sku=row['sku'],
-                name=row['name'],
-                quantity=row['quantity'],
-                location=row['location'],
-                reorder_point=row['reorder_point'],
-                updated_at=row['updated_at'].isoformat() if row['updated_at'] else ""
+            equipment_list.append(EquipmentAsset(
+                asset_id=row['asset_id'],
+                type=row['type'],
+                model=row['model'],
+                zone=row['zone'],
+                status=row['status'],
+                owner_user=row['owner_user'],
+                next_pm_due=row['next_pm_due'].isoformat() if row['next_pm_due'] else None,
+                last_maintenance=row['last_maintenance'].isoformat() if row['last_maintenance'] else None,
+                created_at=row['created_at'].isoformat(),
+                updated_at=row['updated_at'].isoformat(),
+                metadata=row['metadata'] if row['metadata'] else {}
             ))
         
-        return items
+        return equipment_list
+        
     except Exception as e:
-        logger.error(f"Failed to get equipment items: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve equipment items")
+        logger.error(f"Failed to get equipment assets: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve equipment assets")
 
-@router.get("/equipment/{sku}", response_model=EquipmentItem)
-async def get_equipment_item(sku: str):
-    """Get a specific equipment item by SKU."""
+@router.get("/equipment/{asset_id}", response_model=EquipmentAsset)
+async def get_equipment_by_id(asset_id: str):
+    """Get a specific equipment asset by asset_id."""
     try:
         await sql_retriever.initialize()
-        item = await InventoryQueries(sql_retriever).get_item_by_sku(sku)
-        
-        if not item:
-            raise HTTPException(status_code=404, detail=f"Equipment item with SKU {sku} not found")
-        
-        return EquipmentItem(
-            sku=item.sku,
-            name=item.name,
-            quantity=item.quantity,
-            location=item.location or "",
-            reorder_point=item.reorder_point,
-            updated_at=item.updated_at.isoformat() if item.updated_at else ""
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to get equipment item {sku}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve equipment item")
-
-@router.post("/equipment", response_model=EquipmentItem)
-async def create_equipment_item(item: EquipmentItem):
-    """Create a new equipment item."""
-    try:
-        await sql_retriever.initialize()
-        # Insert new equipment item
-        insert_query = """
-        INSERT INTO inventory_items (sku, name, quantity, location, reorder_point, updated_at)
-        VALUES ($1, $2, $3, $4, $5, NOW())
+        query = """
+            SELECT asset_id, type, model, zone, status, owner_user, 
+                   next_pm_due, last_maintenance, created_at, updated_at, metadata
+            FROM equipment_assets 
+            WHERE asset_id = %s
         """
-        await sql_retriever.execute_command(
-            insert_query, 
-            item.sku, 
-            item.name, 
-            item.quantity, 
-            item.location, 
-            item.reorder_point
+        
+        result = await sql_retriever.fetch_one(query, [asset_id])
+        
+        if not result:
+            raise HTTPException(status_code=404, detail=f"Equipment asset {asset_id} not found")
+        
+        return EquipmentAsset(
+            asset_id=result['asset_id'],
+            type=result['type'],
+            model=result['model'],
+            zone=result['zone'],
+            status=result['status'],
+            owner_user=result['owner_user'],
+            next_pm_due=result['next_pm_due'].isoformat() if result['next_pm_due'] else None,
+            last_maintenance=result['last_maintenance'].isoformat() if result['last_maintenance'] else None,
+            created_at=result['created_at'].isoformat(),
+            updated_at=result['updated_at'].isoformat(),
+            metadata=result['metadata'] if result['metadata'] else {}
         )
         
-        return item
-    except Exception as e:
-        logger.error(f"Failed to create equipment item: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create equipment item")
-
-@router.put("/equipment/{sku}", response_model=EquipmentItem)
-async def update_equipment_item(sku: str, update: EquipmentUpdate):
-    """Update an existing equipment item."""
-    try:
-        await sql_retriever.initialize()
-        
-        # Get current item
-        current_item = await InventoryQueries(sql_retriever).get_item_by_sku(sku)
-        if not current_item:
-            raise HTTPException(status_code=404, detail=f"Equipment item with SKU {sku} not found")
-        
-        # Update fields
-        name = update.name if update.name is not None else current_item.name
-        quantity = update.quantity if update.quantity is not None else current_item.quantity
-        location = update.location if update.location is not None else current_item.location
-        reorder_point = update.reorder_point if update.reorder_point is not None else current_item.reorder_point
-        
-        await InventoryQueries(sql_retriever).update_item_quantity(sku, quantity)
-        
-        # Update other fields if needed
-        if update.name or update.location or update.reorder_point:
-            query = """
-                UPDATE inventory_items 
-                SET name = $1, location = $2, reorder_point = $3, updated_at = NOW()
-                WHERE sku = $4
-            """
-            await sql_retriever.execute_command(query, name, location, reorder_point, sku)
-        
-        # Return updated item
-        updated_item = await InventoryQueries(sql_retriever).get_item_by_sku(sku)
-        return EquipmentItem(
-            sku=updated_item.sku,
-            name=updated_item.name,
-            quantity=updated_item.quantity,
-            location=updated_item.location or "",
-            reorder_point=updated_item.reorder_point,
-            updated_at=updated_item.updated_at.isoformat() if updated_item.updated_at else ""
-        )
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to update equipment item {sku}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update equipment item")
+        logger.error(f"Failed to get equipment asset {asset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve equipment asset")
+
+@router.get("/equipment/{asset_id}/status", response_model=Dict[str, Any])
+async def get_equipment_status(asset_id: str):
+    """Get live equipment status including telemetry data."""
+    try:
+        equipment_agent = await get_equipment_agent()
+        
+        # Get equipment status
+        status_result = await equipment_agent.asset_tools.get_equipment_status(asset_id=asset_id)
+        
+        # Get recent telemetry data
+        telemetry_result = await equipment_agent.asset_tools.get_equipment_telemetry(
+            asset_id=asset_id, 
+            hours_back=1
+        )
+        
+        return {
+            "equipment_status": status_result,
+            "telemetry_data": telemetry_result,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get equipment status for {asset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve equipment status")
+
+@router.post("/equipment/assign", response_model=Dict[str, Any])
+async def assign_equipment(request: AssignmentRequest):
+    """Assign equipment to a user, task, or zone."""
+    try:
+        equipment_agent = await get_equipment_agent()
+        
+        result = await equipment_agent.asset_tools.assign_equipment(
+            asset_id=request.asset_id,
+            assignee=request.assignee,
+            assignment_type=request.assignment_type,
+            task_id=request.task_id,
+            duration_hours=request.duration_hours,
+            notes=request.notes
+        )
+        
+        if not result.get("success", False):
+            raise HTTPException(status_code=400, detail=result.get("error", "Assignment failed"))
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to assign equipment {request.asset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to assign equipment")
+
+@router.post("/equipment/release", response_model=Dict[str, Any])
+async def release_equipment(request: ReleaseRequest):
+    """Release equipment from current assignment."""
+    try:
+        equipment_agent = await get_equipment_agent()
+        
+        result = await equipment_agent.asset_tools.release_equipment(
+            asset_id=request.asset_id,
+            released_by=request.released_by,
+            notes=request.notes
+        )
+        
+        if not result.get("success", False):
+            raise HTTPException(status_code=400, detail=result.get("error", "Release failed"))
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to release equipment {request.asset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to release equipment")
+
+@router.get("/equipment/{asset_id}/telemetry", response_model=List[EquipmentTelemetry])
+async def get_equipment_telemetry(
+    asset_id: str,
+    metric: Optional[str] = None,
+    hours_back: int = 24
+):
+    """Get equipment telemetry data."""
+    try:
+        equipment_agent = await get_equipment_agent()
+        
+        result = await equipment_agent.asset_tools.get_equipment_telemetry(
+            asset_id=asset_id,
+            metric=metric,
+            hours_back=hours_back
+        )
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        telemetry_list = []
+        for data_point in result.get("telemetry_data", []):
+            telemetry_list.append(EquipmentTelemetry(
+                timestamp=data_point["timestamp"],
+                asset_id=data_point["asset_id"],
+                metric=data_point["metric"],
+                value=data_point["value"],
+                unit=data_point["unit"],
+                quality_score=data_point["quality_score"]
+            ))
+        
+        return telemetry_list
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get telemetry for equipment {asset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve telemetry data")
+
+@router.post("/equipment/maintenance", response_model=Dict[str, Any])
+async def schedule_maintenance(request: MaintenanceRequest):
+    """Schedule maintenance for equipment."""
+    try:
+        equipment_agent = await get_equipment_agent()
+        
+        # Parse scheduled_for datetime
+        scheduled_for = datetime.fromisoformat(request.scheduled_for.replace('Z', '+00:00'))
+        
+        result = await equipment_agent.asset_tools.schedule_maintenance(
+            asset_id=request.asset_id,
+            maintenance_type=request.maintenance_type,
+            description=request.description,
+            scheduled_by=request.scheduled_by,
+            scheduled_for=scheduled_for,
+            estimated_duration_minutes=request.estimated_duration_minutes,
+            priority=request.priority
+        )
+        
+        if not result.get("success", False):
+            raise HTTPException(status_code=400, detail=result.get("error", "Maintenance scheduling failed"))
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to schedule maintenance for equipment {request.asset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to schedule maintenance")
+
+@router.get("/equipment/maintenance/schedule", response_model=List[MaintenanceRecord])
+async def get_maintenance_schedule(
+    asset_id: Optional[str] = None,
+    maintenance_type: Optional[str] = None,
+    days_ahead: int = 30
+):
+    """Get maintenance schedule for equipment."""
+    try:
+        equipment_agent = await get_equipment_agent()
+        
+        result = await equipment_agent.asset_tools.get_maintenance_schedule(
+            asset_id=asset_id,
+            maintenance_type=maintenance_type,
+            days_ahead=days_ahead
+        )
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        maintenance_list = []
+        for record in result.get("maintenance_schedule", []):
+            maintenance_list.append(MaintenanceRecord(
+                id=record["id"],
+                asset_id=record["asset_id"],
+                maintenance_type=record["maintenance_type"],
+                description=record["description"],
+                performed_by=record["performed_by"],
+                performed_at=record["performed_at"],
+                duration_minutes=record["duration_minutes"],
+                cost=record.get("cost"),
+                notes=record.get("notes")
+            ))
+        
+        return maintenance_list
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get maintenance schedule: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve maintenance schedule")
+
+@router.get("/equipment/assignments", response_model=List[EquipmentAssignment])
+async def get_equipment_assignments(
+    asset_id: Optional[str] = None,
+    assignee: Optional[str] = None,
+    active_only: bool = True
+):
+    """Get equipment assignments."""
+    try:
+        await sql_retriever.initialize()
+        
+        # Build query with filters
+        where_conditions = []
+        params = []
+        
+        if asset_id:
+            where_conditions.append("asset_id = %s")
+            params.append(asset_id)
+        if assignee:
+            where_conditions.append("assignee = %s")
+            params.append(assignee)
+        if active_only:
+            where_conditions.append("released_at IS NULL")
+        
+        where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+        
+        query = f"""
+            SELECT id, asset_id, task_id, assignee, assignment_type, 
+                   assigned_at, released_at, notes
+            FROM equipment_assignments 
+            WHERE {where_clause}
+            ORDER BY assigned_at DESC
+        """
+        
+        results = await sql_retriever.fetch_all(query, params)
+        
+        assignments = []
+        for row in results:
+            assignments.append(EquipmentAssignment(
+                id=row['id'],
+                asset_id=row['asset_id'],
+                task_id=row['task_id'],
+                assignee=row['assignee'],
+                assignment_type=row['assignment_type'],
+                assigned_at=row['assigned_at'].isoformat(),
+                released_at=row['released_at'].isoformat() if row['released_at'] else None,
+                notes=row['notes']
+            ))
+        
+        return assignments
+        
+    except Exception as e:
+        logger.error(f"Failed to get equipment assignments: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve equipment assignments")

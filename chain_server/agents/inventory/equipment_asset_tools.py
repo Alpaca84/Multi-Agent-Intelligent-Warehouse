@@ -1,0 +1,637 @@
+"""
+Equipment & Asset Operations Agent Action Tools
+
+Provides comprehensive action tools for equipment and asset management including:
+- Equipment availability and assignment tracking
+- Asset utilization and performance monitoring
+- Maintenance scheduling and work order management
+- Equipment telemetry and status monitoring
+- Compliance and safety integration
+"""
+
+import logging
+from typing import Dict, List, Optional, Any, Union, Tuple
+from dataclasses import dataclass, asdict
+from datetime import datetime, timedelta
+import asyncio
+import json
+
+from chain_server.services.llm.nim_client import get_nim_client
+from inventory_retriever.structured.sql_retriever import SQLRetriever
+from chain_server.services.wms.integration_service import get_wms_service
+from chain_server.services.erp.integration_service import get_erp_service
+from chain_server.services.scanning.integration_service import get_scanning_service
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class EquipmentAsset:
+    """Equipment asset information."""
+    asset_id: str
+    type: str
+    model: str
+    zone: str
+    status: str
+    owner_user: Optional[str]
+    next_pm_due: Optional[datetime]
+    last_maintenance: Optional[datetime]
+    metadata: Dict[str, Any]
+
+@dataclass
+class EquipmentAssignment:
+    """Equipment assignment information."""
+    id: int
+    asset_id: str
+    task_id: Optional[str]
+    assignee: str
+    assignment_type: str
+    assigned_at: datetime
+    released_at: Optional[datetime]
+    notes: Optional[str]
+
+@dataclass
+class EquipmentTelemetry:
+    """Equipment telemetry data."""
+    ts: datetime
+    asset_id: str
+    metric: str
+    value: float
+    unit: str
+    quality_score: float
+
+@dataclass
+class MaintenanceRecord:
+    """Equipment maintenance record."""
+    id: int
+    asset_id: str
+    maintenance_type: str
+    description: str
+    performed_by: str
+    performed_at: datetime
+    duration_minutes: int
+    cost: float
+    notes: Optional[str]
+
+class EquipmentAssetTools:
+    """Action tools for equipment and asset operations."""
+    
+    def __init__(self):
+        self.sql_retriever = None
+        self.nim_client = None
+        self.wms_service = None
+        self.erp_service = None
+        self.scanning_service = None
+    
+    async def initialize(self) -> None:
+        """Initialize the action tools with required services."""
+        try:
+            self.sql_retriever = SQLRetriever()
+            self.nim_client = await get_nim_client()
+            self.wms_service = await get_wms_service()
+            self.erp_service = await get_erp_service()
+            self.scanning_service = await get_scanning_service()
+            logger.info("Equipment Asset Tools initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize Equipment Asset Tools: {e}")
+            raise
+    
+    async def get_equipment_status(
+        self,
+        asset_id: Optional[str] = None,
+        equipment_type: Optional[str] = None,
+        zone: Optional[str] = None,
+        status: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get equipment status and availability.
+        
+        Args:
+            asset_id: Specific equipment asset ID
+            equipment_type: Filter by equipment type (forklift, amr, agv, etc.)
+            zone: Filter by zone
+            status: Filter by status (available, assigned, charging, etc.)
+            
+        Returns:
+            Dictionary containing equipment status information
+        """
+        logger.info(f"Getting equipment status for asset_id: {asset_id}, type: {equipment_type}, zone: {zone}")
+        
+        try:
+            # Build query based on filters
+            where_conditions = []
+            params = []
+            
+            if asset_id:
+                where_conditions.append("asset_id = %s")
+                params.append(asset_id)
+            if equipment_type:
+                where_conditions.append("type = %s")
+                params.append(equipment_type)
+            if zone:
+                where_conditions.append("zone = %s")
+                params.append(zone)
+            if status:
+                where_conditions.append("status = %s")
+                params.append(status)
+            
+            where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+            
+            query = f"""
+                SELECT 
+                    asset_id, type, model, zone, status, owner_user, 
+                    next_pm_due, last_maintenance, created_at, updated_at, metadata
+                FROM equipment_assets 
+                WHERE {where_clause}
+                ORDER BY asset_id
+            """
+            
+            results = await self.sql_retriever.execute_query(query, params)
+            
+            equipment_list = []
+            for row in results:
+                equipment_list.append({
+                    "asset_id": row[0],
+                    "type": row[1],
+                    "model": row[2],
+                    "zone": row[3],
+                    "status": row[4],
+                    "owner_user": row[5],
+                    "next_pm_due": row[6].isoformat() if row[6] else None,
+                    "last_maintenance": row[7].isoformat() if row[7] else None,
+                    "created_at": row[8].isoformat(),
+                    "updated_at": row[9].isoformat(),
+                    "metadata": row[10] if row[10] else {}
+                })
+            
+            # Get summary statistics
+            summary_query = f"""
+                SELECT 
+                    type,
+                    status,
+                    COUNT(*) as count
+                FROM equipment_assets 
+                WHERE {where_clause}
+                GROUP BY type, status
+                ORDER BY type, status
+            """
+            
+            summary_results = await self.sql_retriever.execute_query(summary_query, params)
+            summary = {}
+            for row in summary_results:
+                equipment_type = row[0]
+                status = row[1]
+                count = row[2]
+                
+                if equipment_type not in summary:
+                    summary[equipment_type] = {}
+                summary[equipment_type][status] = count
+            
+            return {
+                "equipment": equipment_list,
+                "summary": summary,
+                "total_count": len(equipment_list),
+                "query_filters": {
+                    "asset_id": asset_id,
+                    "equipment_type": equipment_type,
+                    "zone": zone,
+                    "status": status
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting equipment status: {e}")
+            return {
+                "error": f"Failed to get equipment status: {str(e)}",
+                "equipment": [],
+                "summary": {},
+                "total_count": 0
+            }
+    
+    async def assign_equipment(
+        self,
+        asset_id: str,
+        assignee: str,
+        assignment_type: str = "task",
+        task_id: Optional[str] = None,
+        duration_hours: Optional[int] = None,
+        notes: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Assign equipment to a user, task, or zone.
+        
+        Args:
+            asset_id: Equipment asset ID to assign
+            assignee: User or system assigning the equipment
+            assignment_type: Type of assignment (task, user, zone, maintenance)
+            task_id: Optional task ID if assignment is task-related
+            duration_hours: Optional duration in hours
+            notes: Optional assignment notes
+            
+        Returns:
+            Dictionary containing assignment result
+        """
+        logger.info(f"Assigning equipment {asset_id} to {assignee} for {assignment_type}")
+        
+        try:
+            # Check if equipment is available
+            status_query = "SELECT status, owner_user FROM equipment_assets WHERE asset_id = %s"
+            status_result = await self.sql_retriever.execute_query(status_query, [asset_id])
+            
+            if not status_result:
+                return {
+                    "success": False,
+                    "error": f"Equipment {asset_id} not found",
+                    "assignment_id": None
+                }
+            
+            current_status, current_owner = status_result[0]
+            
+            if current_status != "available":
+                return {
+                    "success": False,
+                    "error": f"Equipment {asset_id} is not available (current status: {current_status})",
+                    "assignment_id": None
+                }
+            
+            # Create assignment
+            assignment_query = """
+                INSERT INTO equipment_assignments 
+                (asset_id, task_id, assignee, assignment_type, notes)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """
+            
+            assignment_result = await self.sql_retriever.execute_query(
+                assignment_query, 
+                [asset_id, task_id, assignee, assignment_type, notes]
+            )
+            
+            assignment_id = assignment_result[0][0] if assignment_result else None
+            
+            # Update equipment status
+            update_query = """
+                UPDATE equipment_assets 
+                SET status = 'assigned', owner_user = %s, updated_at = now()
+                WHERE asset_id = %s
+            """
+            
+            await self.sql_retriever.execute_query(update_query, [assignee, asset_id])
+            
+            return {
+                "success": True,
+                "assignment_id": assignment_id,
+                "asset_id": asset_id,
+                "assignee": assignee,
+                "assignment_type": assignment_type,
+                "assigned_at": datetime.now().isoformat(),
+                "message": f"Equipment {asset_id} successfully assigned to {assignee}"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error assigning equipment: {e}")
+            return {
+                "success": False,
+                "error": f"Failed to assign equipment: {str(e)}",
+                "assignment_id": None
+            }
+    
+    async def release_equipment(
+        self,
+        asset_id: str,
+        released_by: str,
+        notes: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Release equipment from current assignment.
+        
+        Args:
+            asset_id: Equipment asset ID to release
+            released_by: User releasing the equipment
+            notes: Optional release notes
+            
+        Returns:
+            Dictionary containing release result
+        """
+        logger.info(f"Releasing equipment {asset_id} by {released_by}")
+        
+        try:
+            # Get current assignment
+            assignment_query = """
+                SELECT id, assignee, assignment_type 
+                FROM equipment_assignments 
+                WHERE asset_id = %s AND released_at IS NULL
+                ORDER BY assigned_at DESC
+                LIMIT 1
+            """
+            
+            assignment_result = await self.sql_retriever.execute_query(assignment_query, [asset_id])
+            
+            if not assignment_result:
+                return {
+                    "success": False,
+                    "error": f"No active assignment found for equipment {asset_id}",
+                    "assignment_id": None
+                }
+            
+            assignment_id, assignee, assignment_type = assignment_result[0]
+            
+            # Update assignment with release info
+            release_query = """
+                UPDATE equipment_assignments 
+                SET released_at = now(), notes = COALESCE(notes || ' | ', '') || %s
+                WHERE id = %s
+            """
+            
+            release_notes = f"Released by {released_by}"
+            if notes:
+                release_notes += f": {notes}"
+            
+            await self.sql_retriever.execute_query(release_query, [release_notes, assignment_id])
+            
+            # Update equipment status
+            update_query = """
+                UPDATE equipment_assets 
+                SET status = 'available', owner_user = NULL, updated_at = now()
+                WHERE asset_id = %s
+            """
+            
+            await self.sql_retriever.execute_query(update_query, [asset_id])
+            
+            return {
+                "success": True,
+                "assignment_id": assignment_id,
+                "asset_id": asset_id,
+                "released_by": released_by,
+                "released_at": datetime.now().isoformat(),
+                "message": f"Equipment {asset_id} successfully released from {assignee}"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error releasing equipment: {e}")
+            return {
+                "success": False,
+                "error": f"Failed to release equipment: {str(e)}",
+                "assignment_id": None
+            }
+    
+    async def get_equipment_telemetry(
+        self,
+        asset_id: str,
+        metric: Optional[str] = None,
+        hours_back: int = 24
+    ) -> Dict[str, Any]:
+        """
+        Get equipment telemetry data.
+        
+        Args:
+            asset_id: Equipment asset ID
+            metric: Specific metric to retrieve (optional)
+            hours_back: Hours of historical data to retrieve
+            
+        Returns:
+            Dictionary containing telemetry data
+        """
+        logger.info(f"Getting telemetry for equipment {asset_id}, metric: {metric}, hours_back: {hours_back}")
+        
+        try:
+            # Build query
+            where_conditions = ["asset_id = %s", "ts >= %s"]
+            params = [asset_id, datetime.now() - timedelta(hours=hours_back)]
+            
+            if metric:
+                where_conditions.append("metric = %s")
+                params.append(metric)
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            query = f"""
+                SELECT ts, metric, value, unit, quality_score
+                FROM equipment_telemetry 
+                WHERE {where_clause}
+                ORDER BY ts DESC
+            """
+            
+            results = await self.sql_retriever.execute_query(query, params)
+            
+            telemetry_data = []
+            for row in results:
+                telemetry_data.append({
+                    "timestamp": row[0].isoformat(),
+                    "metric": row[1],
+                    "value": row[2],
+                    "unit": row[3],
+                    "quality_score": row[4]
+                })
+            
+            # Get available metrics
+            metrics_query = """
+                SELECT DISTINCT metric, unit
+                FROM equipment_telemetry 
+                WHERE asset_id = %s AND ts >= %s
+                ORDER BY metric
+            """
+            
+            metrics_result = await self.sql_retriever.execute_query(
+                metrics_query, 
+                [asset_id, datetime.now() - timedelta(hours=hours_back)]
+            )
+            
+            available_metrics = [{"metric": row[0], "unit": row[1]} for row in metrics_result]
+            
+            return {
+                "asset_id": asset_id,
+                "telemetry_data": telemetry_data,
+                "available_metrics": available_metrics,
+                "hours_back": hours_back,
+                "data_points": len(telemetry_data),
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting equipment telemetry: {e}")
+            return {
+                "error": f"Failed to get telemetry data: {str(e)}",
+                "asset_id": asset_id,
+                "telemetry_data": [],
+                "available_metrics": []
+            }
+    
+    async def schedule_maintenance(
+        self,
+        asset_id: str,
+        maintenance_type: str,
+        description: str,
+        scheduled_by: str,
+        scheduled_for: datetime,
+        estimated_duration_minutes: int = 60,
+        priority: str = "medium"
+    ) -> Dict[str, Any]:
+        """
+        Schedule maintenance for equipment.
+        
+        Args:
+            asset_id: Equipment asset ID
+            maintenance_type: Type of maintenance (preventive, corrective, emergency, inspection)
+            description: Maintenance description
+            scheduled_by: User scheduling the maintenance
+            scheduled_for: When maintenance should be performed
+            estimated_duration_minutes: Estimated duration in minutes
+            priority: Priority level (low, medium, high, critical)
+            
+        Returns:
+            Dictionary containing maintenance scheduling result
+        """
+        logger.info(f"Scheduling {maintenance_type} maintenance for equipment {asset_id}")
+        
+        try:
+            # Check if equipment exists
+            equipment_query = "SELECT asset_id, type, model FROM equipment_assets WHERE asset_id = %s"
+            equipment_result = await self.sql_retriever.execute_query(equipment_query, [asset_id])
+            
+            if not equipment_result:
+                return {
+                    "success": False,
+                    "error": f"Equipment {asset_id} not found",
+                    "maintenance_id": None
+                }
+            
+            # Create maintenance record
+            maintenance_query = """
+                INSERT INTO equipment_maintenance 
+                (asset_id, maintenance_type, description, performed_by, performed_at, 
+                 duration_minutes, notes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """
+            
+            notes = f"Scheduled by {scheduled_by}, Priority: {priority}, Duration: {estimated_duration_minutes} minutes"
+            
+            maintenance_result = await self.sql_retriever.execute_query(
+                maintenance_query,
+                [asset_id, maintenance_type, description, scheduled_by, scheduled_for, 
+                 estimated_duration_minutes, notes]
+            )
+            
+            maintenance_id = maintenance_result[0][0] if maintenance_result else None
+            
+            # Update equipment status if it's emergency maintenance
+            if maintenance_type == "emergency":
+                update_query = """
+                    UPDATE equipment_assets 
+                    SET status = 'maintenance', updated_at = now()
+                    WHERE asset_id = %s
+                """
+                await self.sql_retriever.execute_query(update_query, [asset_id])
+            
+            return {
+                "success": True,
+                "maintenance_id": maintenance_id,
+                "asset_id": asset_id,
+                "maintenance_type": maintenance_type,
+                "scheduled_for": scheduled_for.isoformat(),
+                "scheduled_by": scheduled_by,
+                "priority": priority,
+                "message": f"Maintenance scheduled for equipment {asset_id}"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error scheduling maintenance: {e}")
+            return {
+                "success": False,
+                "error": f"Failed to schedule maintenance: {str(e)}",
+                "maintenance_id": None
+            }
+    
+    async def get_maintenance_schedule(
+        self,
+        asset_id: Optional[str] = None,
+        maintenance_type: Optional[str] = None,
+        days_ahead: int = 30
+    ) -> Dict[str, Any]:
+        """
+        Get maintenance schedule for equipment.
+        
+        Args:
+            asset_id: Specific equipment asset ID (optional)
+            maintenance_type: Filter by maintenance type (optional)
+            days_ahead: Days ahead to look for scheduled maintenance
+            
+        Returns:
+            Dictionary containing maintenance schedule
+        """
+        logger.info(f"Getting maintenance schedule for asset_id: {asset_id}, type: {maintenance_type}")
+        
+        try:
+            # Build query
+            where_conditions = ["performed_at >= %s"]
+            params = [datetime.now()]
+            
+            if asset_id:
+                where_conditions.append("asset_id = %s")
+                params.append(asset_id)
+            if maintenance_type:
+                where_conditions.append("maintenance_type = %s")
+                params.append(maintenance_type)
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            query = f"""
+                SELECT 
+                    m.id, m.asset_id, e.type, e.model, e.zone,
+                    m.maintenance_type, m.description, m.performed_by,
+                    m.performed_at, m.duration_minutes, m.cost, m.notes
+                FROM equipment_maintenance m
+                JOIN equipment_assets e ON m.asset_id = e.asset_id
+                WHERE {where_clause}
+                ORDER BY m.performed_at ASC
+            """
+            
+            results = await self.sql_retriever.execute_query(query, params)
+            
+            maintenance_schedule = []
+            for row in results:
+                maintenance_schedule.append({
+                    "id": row[0],
+                    "asset_id": row[1],
+                    "equipment_type": row[2],
+                    "model": row[3],
+                    "zone": row[4],
+                    "maintenance_type": row[5],
+                    "description": row[6],
+                    "performed_by": row[7],
+                    "performed_at": row[8].isoformat(),
+                    "duration_minutes": row[9],
+                    "cost": float(row[10]) if row[10] else None,
+                    "notes": row[11]
+                })
+            
+            return {
+                "maintenance_schedule": maintenance_schedule,
+                "total_scheduled": len(maintenance_schedule),
+                "query_filters": {
+                    "asset_id": asset_id,
+                    "maintenance_type": maintenance_type,
+                    "days_ahead": days_ahead
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting maintenance schedule: {e}")
+            return {
+                "error": f"Failed to get maintenance schedule: {str(e)}",
+                "maintenance_schedule": [],
+                "total_scheduled": 0
+            }
+
+# Global instance
+_equipment_asset_tools: Optional[EquipmentAssetTools] = None
+
+async def get_equipment_asset_tools() -> EquipmentAssetTools:
+    """Get the global equipment asset tools instance."""
+    global _equipment_asset_tools
+    if _equipment_asset_tools is None:
+        _equipment_asset_tools = EquipmentAssetTools()
+        await _equipment_asset_tools.initialize()
+    return _equipment_asset_tools

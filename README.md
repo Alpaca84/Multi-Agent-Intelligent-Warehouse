@@ -43,7 +43,7 @@ This repository implements a production-grade assistant patterned on NVIDIA's AI
 
 ### **Enhanced Vector Search Optimization** - (NEW)
 
-The system now features **advanced vector search optimization** for significantly improved accuracy and performance:
+The system features **advanced vector search optimization** for improved accuracy and performance with intelligent chunking, evidence scoring, and smart query routing. See [docs/retrieval/01-evidence-scoring.md](docs/retrieval/01-evidence-scoring.md) for detailed implementation.
 
 #### **Intelligent Chunking Strategy**
 - **512-token chunks** with **64-token overlap** for optimal context preservation
@@ -517,7 +517,7 @@ Agent Actions:
 cd ui/web
 npm install # first time only
 npm start # starts React app on http://localhost:3001
-# Login: admin/password123
+# Login: (see docs/secrets.md for dev credentials)
 # Chat interface fully functional
 ```
 
@@ -543,7 +543,7 @@ npm start # starts React app on http://localhost:3001
 # Login with sample admin user
 curl -s -X POST http://localhost:$PORT/api/v1/auth/login \
  -H "Content-Type: application/json" \
- -d '{"username":"admin","password":"password123"}' | jq
+ -d '{"username":"<dev_user>","password":"<dev_password>"}' | jq
 
 # Use token for protected endpoints
 TOKEN="your_access_token_here"
@@ -602,22 +602,22 @@ curl -s http://localhost:$PORT/api/v1/attendance/health | jq
 
 ### **Completed Features**
 - **Multi-Agent System** - Planner/Router + Equipment & Asset Operations/Operations/Safety agents with async event loop
-- **NVIDIA NIMs Integration** - Llama 3.1 70B (LLM) + NV-EmbedQA-E5-v5 (embeddings) working perfectly
-- **Chat Interface** - Fully functional chat endpoint with proper async processing and error handling
-- **Advanced Reasoning Capabilities** - 5 reasoning types (Chain-of-Thought, Multi-Hop, Scenario Analysis, Causal, Pattern Recognition)
+- **NVIDIA NIMs Integration** - Llama 3.1 70B (LLM) + NV-EmbedQA-E5-v5 (embeddings) - In Progress
+- **Chat Interface** - Chat endpoint with async processing and error handling - In Progress
+- **Advanced Reasoning Capabilities** - 5 reasoning types (Chain-of-Thought, Multi-Hop, Scenario Analysis, Causal, Pattern Recognition) - In Progress
 - **Authentication & RBAC** - JWT/OAuth2 with 5 user roles and granular permissions
-- **React Frontend** - Real-time dashboard with chat interface and system monitoring
+- **React Frontend** - Dashboard with chat interface and system monitoring - In Progress
 - **Database Integration** - PostgreSQL/TimescaleDB with connection pooling and migrations
 - **Memory Management** - Chat history and user context persistence
 - **NeMo Guardrails** - Content safety, compliance checks, and security validation
-- **WMS Integration** - SAP EWM, Manhattan, Oracle WMS adapters with unified API
-- **IoT Integration** - Equipment monitoring, environmental sensors, safety systems, and asset tracking
-- **ERP Integration** - SAP ECC and Oracle ERP adapters with unified API
-- **RFID/Barcode Scanning** - Zebra RFID, Honeywell Barcode, and generic scanner adapters
-- **Time Attendance Systems** - Biometric, card reader, and mobile app integration
-- **Monitoring & Observability** - Prometheus/Grafana dashboards with comprehensive metrics
-- **API Gateway** - FastAPI with OpenAPI/Swagger documentation
-- **Error Handling** - Comprehensive error handling and logging throughout
+- **WMS Integration** - SAP EWM, Manhattan, Oracle WMS adapters with unified API - In Progress
+- **IoT Integration** - Equipment monitoring, environmental sensors, safety systems, and asset tracking - In Progress
+- **ERP Integration** - SAP ECC and Oracle ERP adapters with unified API - In Progress
+- **RFID/Barcode Scanning** - Zebra RFID, Honeywell Barcode, and generic scanner adapters - In Progress
+- **Time Attendance Systems** - Biometric, card reader, and mobile app integration - In Progress
+- **Monitoring & Observability** - Prometheus/Grafana dashboards with comprehensive metrics - In Progress
+- **API Gateway** - FastAPI with OpenAPI/Swagger documentation - In Progress
+- **Error Handling** - Error handling and logging throughout - In Progress
 
 ### **In Progress**
 - **Mobile App** - React Native app for handheld devices and field operations
@@ -628,7 +628,7 @@ curl -s http://localhost:$PORT/api/v1/attendance/health | jq
 - **Database**: PostgreSQL/TimescaleDB on port 5435 with connection pooling
 - **NVIDIA NIMs**: Llama 3.1 70B + NV-EmbedQA-E5-v5 fully operational
 - **Chat Endpoint**: Working with proper agent routing and error handling
-- **Authentication**: Login system working with default credentials (admin/password123)
+- **Authentication**: Login system working with dev credentials (see docs/secrets.md)
 - **Monitoring**: Prometheus/Grafana stack available
 - **WMS Integration**: Ready for external WMS connections (SAP EWM, Manhattan, Oracle)
 - **IoT Integration**: Ready for sensor and equipment monitoring
@@ -708,7 +708,7 @@ GET /health
 ### Authentication
 ```
 POST /auth/login
-Body: {"username": "admin", "password": "password123"}
+Body: {"username": "<dev_user>", "password": "<dev_password>"}
 → {"access_token": "...", "refresh_token": "...", "token_type": "bearer", "expires_in": 1800}
 
 GET /auth/me
@@ -1125,16 +1125,16 @@ GH Actions CI; IaC (K8s, Helm, Terraform); blue-green deploys; production deploy
 - **NeMo Guardrails**: Content safety, compliance checks, and security validation
 
 ### **Test Results**
-- **Equipment & Asset Operations Agent**: PASSED - Equipment availability, maintenance scheduling, action tools (8 comprehensive equipment management tools)
-- **Operations Agent**: PASSED - Workforce and task management, action tools (8 comprehensive operations management tools)
-- **Safety Agent**: PASSED - Incident reporting, policy lookup, action tools (7 comprehensive safety management tools) 
-- **Memory Manager**: PASSED - Conversation persistence and user profiles
-- **Authentication System**: PASSED - JWT/OAuth2 with RBAC
-- **Frontend UI**: PASSED - React dashboard with real-time chat
-- **WMS Integration**: PASSED - Multi-WMS adapter system
-- **Monitoring Stack**: PASSED - Prometheus/Grafana dashboards
-- **Full Integration**: PASSED - Complete system integration
-- **API Endpoints**: PASSED - Complete REST API functionality
+- **Equipment & Asset Operations Agent**: In Progress - Equipment availability, maintenance scheduling, action tools (8 equipment management tools)
+- **Operations Agent**: In Progress - Workforce and task management, action tools (8 operations management tools)
+- **Safety Agent**: In Progress - Incident reporting, policy lookup, action tools (7 safety management tools) 
+- **Memory Manager**: In Progress - Conversation persistence and user profiles
+- **Authentication System**: In Progress - JWT/OAuth2 with RBAC
+- **Frontend UI**: In Progress - React dashboard with chat interface
+- **WMS Integration**: In Progress - Multi-WMS adapter system
+- **Monitoring Stack**: In Progress - Prometheus/Grafana dashboards
+- **Full Integration**: In Progress - System integration
+- **API Endpoints**: In Progress - REST API functionality
 
 ### **Production Ready Features**
 - **Intent Classification**: Automatic routing to specialized agents
@@ -1755,7 +1755,7 @@ result = await processor.process_query(query)
 
 ---
 
-### **Key Achievements - December 2024**
+### **Key Achievements - September 2025**
 
 #### **Vector Search Optimization**
 - **512-token chunking** with 64-token overlap for optimal context preservation
