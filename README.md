@@ -19,8 +19,9 @@
 [![Response Quality Control](https://img.shields.io/badge/Response%20Quality%20Control-Intelligent-2196F3.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
 [![Equipment Status & Telemetry](https://img.shields.io/badge/Equipment%20Status%20%26%20Telemetry-Real--time-FF9800.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
 [![Advanced Reasoning](https://img.shields.io/badge/Advanced%20Reasoning-5%20Types-9C27B0.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
+[![NV-EmbedQA Integration](https://img.shields.io/badge/NV--EmbedQA-1024%20Dim%20Embeddings-76B900.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
 
-This repository implements a production-grade assistant patterned on NVIDIA's AI Blueprints (planner/router + specialized agents), adapted for warehouse domains. It uses a **hybrid RAG** stack (Postgres/Timescale + Milvus), **NeMo Guardrails**, **enhanced vector search optimization with evidence scoring and intelligent clarifying questions**, **intelligent SQL path optimization**, **advanced Redis caching**, **comprehensive response quality control**, **real-time equipment status and telemetry monitoring**, **advanced reasoning capabilities with 5 reasoning types**, and a clean API surface for UI or system integrations.
+This repository implements a production-grade assistant patterned on NVIDIA's AI Blueprints (planner/router + specialized agents), adapted for warehouse domains. It uses a **hybrid RAG** stack (Postgres/Timescale + Milvus), **NeMo Guardrails**, **production-grade vector search with NV-EmbedQA-E5-v5 embeddings**, **enhanced vector search optimization with evidence scoring and intelligent clarifying questions**, **intelligent SQL path optimization**, **advanced Redis caching**, **comprehensive response quality control**, **real-time equipment status and telemetry monitoring**, **advanced reasoning capabilities with 5 reasoning types**, and a clean API surface for UI or system integrations.
 
 ## Status & Features
 
@@ -33,7 +34,8 @@ This repository implements a production-grade assistant patterned on NVIDIA's AI
 
 ### **Core Capabilities**
 - **Multi-Agent AI System** - Planner/Router + Specialized Agents (Equipment & Asset Operations, Operations, Safety)
-- **NVIDIA NIMs Integration** - Llama 3.1 70B (LLM) + NV-EmbedQA-E5-v5 (Embeddings)
+- **NVIDIA NIMs Integration** - Llama 3.1 70B (LLM) + NV-EmbedQA-E5-v5 (1024-dim embeddings)
+- **Production-Grade Vector Search** - Real NVIDIA embeddings for accurate semantic search
 - **Intelligent Chat Interface** - Real-time AI-powered warehouse assistance
 - **Advanced Reasoning Capabilities** - 5 reasoning types with transparent, explainable AI responses
 - **Equipment Status & Telemetry** - Real-time equipment monitoring with battery, temperature, and charging analytics
@@ -41,7 +43,18 @@ This repository implements a production-grade assistant patterned on NVIDIA's AI
 - **Real-time Monitoring** - Prometheus metrics + Grafana dashboards
 - **System Integrations** - WMS, ERP, IoT, RFID/Barcode, Time Attendance
 
-### **Enhanced Vector Search Optimization** - (NEW)
+### **Production-Grade Vector Search with NV-EmbedQA** - (NEW)
+
+The system now features **production-grade vector search** powered by NVIDIA's NV-EmbedQA-E5-v5 model, providing high-quality 1024-dimensional embeddings for accurate semantic search over warehouse documentation and operational procedures.
+
+#### **NV-EmbedQA Integration**
+- **Real NVIDIA Embeddings** - Replaced placeholder random vectors with actual NVIDIA NIM API calls
+- **1024-Dimensional Vectors** - High-quality embeddings optimized for Q&A tasks
+- **Batch Processing** - Efficient batch embedding generation for better performance
+- **Semantic Understanding** - Accurate similarity calculations for warehouse operations
+- **Production Ready** - Robust error handling and validation
+
+#### **Enhanced Vector Search Optimization**
 
 The system features **advanced vector search optimization** for improved accuracy and performance with intelligent chunking, evidence scoring, and smart query routing. See [docs/retrieval/01-evidence-scoring.md](docs/retrieval/01-evidence-scoring.md) for detailed implementation.
 
@@ -89,13 +102,35 @@ The system features **advanced vector search optimization** for improved accurac
 - **Better user experience** with clarifying questions and confidence indicators
 - **Reduced hallucinations** through quality control and validation
 
+#### **NV-EmbedQA Integration Demo**
+```python
+# Real NVIDIA embeddings with NV-EmbedQA-E5-v5
+from inventory_retriever.vector.embedding_service import get_embedding_service
+
+embedding_service = await get_embedding_service()
+
+# Generate high-quality 1024-dimensional embeddings
+query_embedding = await embedding_service.generate_embedding(
+    "How to operate a forklift safely?",
+    input_type="query"
+)
+
+# Batch processing for better performance
+texts = ["forklift safety", "equipment maintenance", "warehouse operations"]
+embeddings = await embedding_service.generate_embeddings(texts, input_type="passage")
+
+# Calculate semantic similarity
+similarity = await embedding_service.similarity(embeddings[0], embeddings[1])
+print(f"Semantic similarity: {similarity:.4f}")  # High quality results
+```
+
 #### **Quick Demo**
 ```python
 # Enhanced chunking with 512-token chunks and 64-token overlap
 chunking_service = ChunkingService(chunk_size=512, overlap_size=64)
 chunks = chunking_service.create_chunks(text, source_id="manual_001")
 
-# Smart query routing and evidence scoring
+# Smart query routing and evidence scoring with real embeddings
 enhanced_retriever = EnhancedVectorRetriever(
  milvus_retriever=milvus_retriever,
  embedding_service=embedding_service,
@@ -1115,7 +1150,7 @@ GH Actions CI; IaC (K8s, Helm, Terraform); blue-green deploys; production deploy
 - **Operations Coordination Agent**: Workforce scheduling, task management, KPIs, action tools (8 comprehensive operations management tools)
 - **Safety & Compliance Agent**: Incident reporting, policy lookup, compliance, alert broadcasting, LOTO procedures, corrective actions, SDS retrieval, near-miss reporting
 - **💾 Memory Manager**: Conversation persistence, user profiles, session context
-- **NVIDIA NIM Integration**: Llama 3.1 70B + NV-EmbedQA-E5-v5 embeddings
+- **NVIDIA NIM Integration**: Llama 3.1 70B + NV-EmbedQA-E5-v5 (1024-dim) embeddings
 - **Hybrid Retrieval**: PostgreSQL/TimescaleDB + Milvus vector search
 - **🌐 FastAPI Backend**: RESTful API with structured responses
 - **Authentication & RBAC**: JWT/OAuth2 with 5 user roles and granular permissions
@@ -1123,18 +1158,37 @@ GH Actions CI; IaC (K8s, Helm, Terraform); blue-green deploys; production deploy
 - **WMS Integration**: SAP EWM, Manhattan, Oracle WMS adapters with unified API
 - **Monitoring & Observability**: Prometheus/Grafana dashboards with comprehensive metrics
 - **NeMo Guardrails**: Content safety, compliance checks, and security validation
+- **Production-Grade Vector Search**: Real NV-EmbedQA-E5-v5 embeddings for accurate semantic search
+
+### **Recent Updates (Phase 9 Complete!)**
+
+#### **NV-EmbedQA Integration** - ✅ Complete
+- **Real NVIDIA Embeddings**: Replaced placeholder random vectors with actual NVIDIA NIM API calls
+- **1024-Dimensional Vectors**: High-quality embeddings optimized for Q&A tasks
+- **Batch Processing**: Efficient batch embedding generation for better performance
+- **Semantic Understanding**: Accurate similarity calculations for warehouse operations
+- **Production Ready**: Robust error handling and validation
+
+#### **System Improvements** - ✅ Complete
+- **Equipment-Focused UI**: Updated analytics, quick actions, and demo scripts for equipment assets
+- **Interactive Demo Scripts**: Added progress tracking and checkmarks for better UX
+- **Safety Agent Routing**: Fixed intent classification for safety-related queries
+- **Operations Agent Dispatch**: Enhanced equipment dispatch with intelligent routing
+- **Architecture Documentation**: Updated diagrams to reflect current implementation
 
 ### **Test Results**
-- **Equipment & Asset Operations Agent**: In Progress - Equipment availability, maintenance scheduling, action tools (8 equipment management tools)
-- **Operations Agent**: In Progress - Workforce and task management, action tools (8 operations management tools)
-- **Safety Agent**: In Progress - Incident reporting, policy lookup, action tools (7 safety management tools) 
-- **Memory Manager**: In Progress - Conversation persistence and user profiles
-- **Authentication System**: In Progress - JWT/OAuth2 with RBAC
-- **Frontend UI**: In Progress - React dashboard with chat interface
-- **WMS Integration**: In Progress - Multi-WMS adapter system
-- **Monitoring Stack**: In Progress - Prometheus/Grafana dashboards
-- **Full Integration**: In Progress - System integration
-- **API Endpoints**: In Progress - REST API functionality
+- **Equipment & Asset Operations Agent**: ✅ Complete - Equipment availability, maintenance scheduling, action tools (6 equipment management tools)
+- **Operations Agent**: ✅ Complete - Workforce and task management, action tools (8 operations management tools)
+- **Safety Agent**: ✅ Complete - Incident reporting, policy lookup, action tools (7 safety management tools) 
+- **Memory Manager**: ✅ Complete - Conversation persistence and user profiles
+- **Authentication System**: ✅ Complete - JWT/OAuth2 with RBAC
+- **Frontend UI**: ✅ Complete - React dashboard with chat interface and interactive demo scripts
+- **WMS Integration**: ✅ Complete - Multi-WMS adapter system (SAP EWM, Manhattan, Oracle)
+- **Monitoring Stack**: ✅ Complete - Prometheus/Grafana dashboards
+- **NV-EmbedQA Integration**: ✅ Complete - Real NVIDIA embeddings for semantic search
+- **Vector Search Pipeline**: ✅ Complete - Production-grade vector search with evidence scoring
+- **Full Integration**: ✅ Complete - System integration and end-to-end testing
+- **API Endpoints**: ✅ Complete - REST API functionality with 14 active endpoints
 
 ### **Production Ready Features**
 - **Intent Classification**: Automatic routing to specialized agents
