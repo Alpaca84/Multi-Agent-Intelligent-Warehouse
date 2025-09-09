@@ -71,12 +71,16 @@ class IntentClassifier:
         if any(keyword in message_lower for keyword in cls.SAFETY_KEYWORDS):
             return "safety"
         
+        # Check for equipment dispatch/assignment keywords (high priority)
+        if any(term in message_lower for term in ["dispatch", "assign", "deploy"]) and any(term in message_lower for term in ["forklift", "equipment", "conveyor", "truck", "amr", "agv"]):
+            return "equipment"
+        
         # Check for operations-related keywords (high priority for workflow tasks)
         operations_score = sum(1 for keyword in cls.OPERATIONS_KEYWORDS if keyword in message_lower)
         equipment_score = sum(1 for keyword in cls.EQUIPMENT_KEYWORDS if keyword in message_lower)
         
-        # Prioritize operations if it has more keywords or contains workflow terms
-        if operations_score > 0 and any(term in message_lower for term in ["wave", "order", "create", "dispatch", "pick", "pack"]):
+        # Prioritize operations if it has more keywords or contains workflow terms (but not equipment dispatch)
+        if operations_score > 0 and any(term in message_lower for term in ["wave", "order", "create", "pick", "pack"]) and not any(term in message_lower for term in ["dispatch", "assign", "deploy"]):
             return "operations"
         
         # Check for equipment-related keywords
