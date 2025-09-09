@@ -252,11 +252,11 @@ The Equipment & Asset Operations Agent (EAO) is the core AI agent responsible fo
 - **Collaborates**: With Operations Coordination Agent for task/route planning and equipment allocation, with Safety & Compliance Agent for pre-op checks, incidents, LOTO
 
 #### **Key Intents & Capabilities**
-- **Equipment Assignment**: "assign a forklift to lane B", "who has scanner S-112?"
-- **Equipment Status**: "charger status for Truck-07", "utilization last week"
-- **Maintenance**: "create PM for conveyor C3", "schedule maintenance for FL-03"
+- **Equipment Assignment**: "assign a forklift to Zone B", "who has scanner SCN-01?"
+- **Equipment Status**: "charger status for CHG-01", "utilization last week"
+- **Maintenance**: "create PM for conveyor CONV-01", "schedule maintenance for FL-03"
 - **Asset Tracking**: Real-time equipment location and status monitoring
-- **Equipment Dispatch**: "Dispatch forklift FL-03 to Zone A", "assign equipment to task"
+- **Equipment Dispatch**: "Dispatch forklift FL-01 to Zone A", "assign equipment to task"
 
 #### **Action Tools**
 
@@ -274,7 +274,7 @@ The Equipment & Asset Operations Agent includes **6 core action tools** for equi
 
 #### **Example Equipment Workflow**
 ```
-User Query: "charger status for Truck-07" or "Dispatch forklift FL-03 to Zone A"
+User Query: "charger status for CHG-01" or "Dispatch forklift FL-01 to Zone A"
 Agent Actions:
 1. ✅ get_equipment_status - Check current equipment availability and status
 2. ✅ assign_equipment - Assign equipment to specific task or user
@@ -682,12 +682,12 @@ graph LR
 - **Complete Integration**: Full external system integration for comprehensive warehouse management
 
 ### **Example Queries Now Supported**
-- "charger status for Truck-07" → Equipment status and location
-- "assign a forklift to lane B" → Equipment assignment
+- "charger status for CHG-01" → Equipment status and location
+- "assign a forklift to Zone B" → Equipment assignment
 - "schedule maintenance for FL-03" → Maintenance scheduling
-- "Dispatch forklift FL-03 to Zone A" → Equipment dispatch with intelligent routing
+- "Dispatch forklift FL-01 to Zone A" → Equipment dispatch with intelligent routing
 - "utilization last week" → Equipment utilization analytics
-- "who has scanner S-112?" → Equipment assignment lookup
+- "who has scanner SCN-01?" → Equipment assignment lookup
 
 ---
 
