@@ -175,6 +175,7 @@ Previous Context: {context_str}
 IMPORTANT: For queries about workers, employees, staff, workforce, shifts, or team members, use intent "workforce".
 IMPORTANT: For queries about tasks, work orders, assignments, job status, or "latest tasks", use intent "task_management".
 IMPORTANT: For queries about pick waves, orders, zones, wave creation, or "create a wave", use intent "pick_wave".
+IMPORTANT: For queries about dispatching, assigning, or deploying equipment (forklifts, conveyors, etc.), use intent "equipment_dispatch".
 
 Extract the following information:
 1. Intent: One of ["workforce", "task_management", "equipment", "kpi", "scheduling", "task_assignment", "workload_rebalance", "pick_wave", "optimize_paths", "shift_management", "dock_scheduling", "equipment_dispatch", "publish_kpis", "general"]
@@ -182,8 +183,16 @@ Extract the following information:
    - "task_management": For queries about tasks, assignments, work orders, job status, latest tasks, pending tasks, in-progress tasks
    - "pick_wave": For queries about pick waves, order processing, wave creation, zones, order management
    - "equipment": For queries about machinery, forklifts, conveyors, equipment status
+   - "equipment_dispatch": For queries about dispatching, assigning, or deploying equipment to specific tasks or zones
    - "kpi": For queries about performance metrics, productivity, efficiency
-2. Entities: Extract shift times, employee names, task types, equipment IDs, time periods, etc.
+2. Entities: Extract the following from the query:
+   - equipment_id: Equipment identifier (e.g., "FL-03", "C-01", "Forklift-001")
+   - task_id: Task identifier if mentioned (e.g., "T-123", "TASK-456")
+   - zone: Zone or location (e.g., "Zone A", "Loading Dock", "Warehouse B")
+   - operator: Operator name if mentioned
+   - task_type: Type of task (e.g., "pick operations", "loading", "maintenance")
+   - shift: Shift time if mentioned
+   - employee: Employee name if mentioned
 3. Context: Any additional relevant context
 
 Examples:
@@ -193,6 +202,9 @@ Examples:
 - "We got a 120-line order; create a wave for Zone A" → intent: "pick_wave"
 - "Create a pick wave for orders ORD001, ORD002" → intent: "pick_wave"
 - "Show me equipment status" → intent: "equipment"
+- "Dispatch forklift FL-03 to Zone A for pick operations" → intent: "equipment_dispatch", entities: {"equipment_id": "FL-03", "zone": "Zone A", "task_type": "pick operations"}
+- "Assign conveyor C-01 to task T-123" → intent: "equipment_dispatch", entities: {"equipment_id": "C-01", "task_id": "T-123"}
+- "Deploy forklift FL-05 to loading dock" → intent: "equipment_dispatch", entities: {"equipment_id": "FL-05", "zone": "loading dock"}
 
 Respond in JSON format:
 {{
@@ -472,8 +484,12 @@ Respond in JSON format:
                     "timestamp": datetime.now().isoformat()
                 })
             
-            elif operations_query.intent == "equipment_dispatch" and equipment_id and task_id:
-                # Dispatch equipment
+            elif operations_query.intent == "equipment_dispatch" and equipment_id:
+                # Dispatch equipment - create task_id if not provided
+                if not task_id:
+                    # Generate a task ID for the dispatch operation
+                    task_id = f"TASK_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                
                 dispatch = await self.action_tools.dispatch_equipment(
                     equipment_id=equipment_id,
                     task_id=task_id,

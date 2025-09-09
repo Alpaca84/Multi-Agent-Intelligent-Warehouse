@@ -635,11 +635,25 @@ class OperationsActionTools:
             
             dispatch_id = f"DISP_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             
-            # Get equipment details
+            # Get equipment details from IoT service first
             equipment_details = await self.iot_service.get_equipment_details(equipment_id)
             
+            # Fallback to database if not found in IoT service
             if not equipment_details:
-                raise ValueError(f"Equipment {equipment_id} not found")
+                logger.info(f"Equipment {equipment_id} not found in IoT service, checking database...")
+                from chain_server.agents.inventory.equipment_asset_tools import get_equipment_asset_tools
+                asset_tools = await get_equipment_asset_tools()
+                equipment_status = await asset_tools.get_equipment_status(asset_id=equipment_id)
+                
+                if equipment_status and equipment_status.get("equipment"):
+                    equipment_data = equipment_status["equipment"][0] if equipment_status["equipment"] else {}
+                    equipment_details = {
+                        "type": equipment_data.get("type", "unknown"),
+                        "current_location": equipment_data.get("zone", "unknown"),
+                        "status": equipment_data.get("status", "unknown")
+                    }
+                else:
+                    raise ValueError(f"Equipment {equipment_id} not found in database or IoT service")
             
             # Find operator if not specified
             if not operator:
@@ -658,11 +672,13 @@ class OperationsActionTools:
                 estimated_completion=datetime.now() + timedelta(hours=2)
             )
             
-            # Update equipment status
-            await self.iot_service.update_equipment_status(equipment_id, "in_use", task_id)
-            
-            # Notify operator
-            await self.iot_service.notify_operator(operator, dispatch)
+            # Update equipment status in IoT service if available
+            try:
+                await self.iot_service.update_equipment_status(equipment_id, "in_use", task_id)
+                await self.iot_service.notify_operator(operator, dispatch)
+            except Exception as e:
+                logger.warning(f"Could not update IoT service: {e}")
+                # Continue with dispatch even if IoT update fails
             
             return dispatch
             
