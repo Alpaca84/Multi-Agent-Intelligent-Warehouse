@@ -100,6 +100,39 @@ class EnhancedHybridRetriever:
         
         logger.info("EnhancedHybridRetriever initialized")
     
+    async def initialize(self) -> None:
+        """Initialize the hybrid retriever with all required services."""
+        try:
+            # Import here to avoid circular imports
+            from .structured.sql_retriever import get_sql_retriever
+            from .vector.milvus_retriever import get_milvus_retriever
+            from .vector.embedding_service import get_embedding_service
+            
+            # Initialize services if not provided
+            if not self.sql_retriever:
+                self.sql_retriever = await get_sql_retriever()
+                self.inventory_queries = InventoryQueries(self.sql_retriever)
+            
+            if not self.milvus_retriever:
+                self.milvus_retriever = await get_milvus_retriever()
+            
+            if not self.embedding_service:
+                self.embedding_service = await get_embedding_service()
+            
+            # Re-initialize enhanced vector retriever with services
+            if self.milvus_retriever and self.embedding_service:
+                self.enhanced_vector_retriever = EnhancedVectorRetriever(
+                    milvus_retriever=self.milvus_retriever,
+                    embedding_service=self.embedding_service,
+                    config=RetrievalConfig()
+                )
+            
+            logger.info("EnhancedHybridRetriever fully initialized")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize EnhancedHybridRetriever: {e}")
+            raise
+    
     async def search(self, context: SearchContext) -> EnhancedSearchResponse:
         """
         Perform enhanced hybrid search with optimization.

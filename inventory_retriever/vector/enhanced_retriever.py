@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 class EnhancedSearchResult:
     """Enhanced search result with additional metadata."""
     chunk: Chunk
+    content: str  # Added for easier access to content
     similarity_score: float
     relevance_score: float
     diversity_score: float
@@ -262,6 +263,7 @@ class EnhancedVectorRetriever:
             # Create enhanced result
             enhanced_result = EnhancedSearchResult(
                 chunk=chunk,
+                content=chunk.content,  # Add content field
                 similarity_score=result.score,
                 relevance_score=relevance_score,
                 diversity_score=0.0,  # Will be calculated later

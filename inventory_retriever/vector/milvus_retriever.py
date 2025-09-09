@@ -26,7 +26,7 @@ class MilvusConfig:
     host: str = os.getenv("MILVUS_HOST", "localhost")
     port: str = os.getenv("MILVUS_PORT", "19530")
     collection_name: str = "warehouse_docs"
-    dimension: int = 768  # Default embedding dimension
+    dimension: int = 1024  # NV-EmbedQA-E5-v5 embedding dimension
     index_type: str = "IVF_FLAT"
     metric_type: str = "L2"
 

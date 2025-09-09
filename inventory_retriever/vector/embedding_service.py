@@ -2,7 +2,7 @@
 Embedding Service for Warehouse Operations
 
 Provides text embedding capabilities for semantic search over
-warehouse documentation and operational procedures.
+warehouse documentation and operational procedures using NVIDIA NIM.
 """
 
 import logging
@@ -17,34 +17,66 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingService:
     """
-    Embedding service for generating vector representations of text.
+    Embedding service for generating vector representations of text using NVIDIA NIM.
     
-    This is a placeholder implementation that can be extended to use
-    actual embedding models like OpenAI, HuggingFace, or NVIDIA NIM.
+    Uses NV-EmbedQA-E5-v5 model for high-quality embeddings optimized for Q&A tasks.
     """
     
-    def __init__(self, model_name: str = "default", dimension: int = 768):
+    def __init__(self, model_name: str = "nvidia/nv-embedqa-e5-v5", dimension: int = 1024):
         self.model_name = model_name
         self.dimension = dimension
         self._initialized = False
+        self.nim_client = None
     
     async def initialize(self) -> None:
-        """Initialize the embedding service."""
+        """Initialize the embedding service with NVIDIA NIM client."""
         try:
-            # TODO: Initialize actual embedding model
-            # For now, this is a placeholder
+            # Import here to avoid circular imports
+            from chain_server.services.llm.nim_client import get_nim_client
+            
+            # Initialize NIM client
+            self.nim_client = await get_nim_client()
+            
+            # Test the connection with a simple embedding
+            test_embedding = await self._generate_embedding_with_nim("test")
+            if len(test_embedding) != self.dimension:
+                raise ValueError(f"Expected embedding dimension {self.dimension}, got {len(test_embedding)}")
+            
             self._initialized = True
-            logger.info(f"Embedding service initialized with model: {self.model_name}")
+            logger.info(f"Embedding service initialized with NVIDIA NIM model: {self.model_name}")
+            
         except Exception as e:
             logger.error(f"Failed to initialize embedding service: {e}")
             raise
     
-    async def generate_embedding(self, text: str) -> List[float]:
+    async def _generate_embedding_with_nim(self, text: str, input_type: str = "query") -> List[float]:
+        """Generate embedding using NVIDIA NIM client."""
+        try:
+            if not self.nim_client:
+                raise RuntimeError("NIM client not initialized")
+            
+            response = await self.nim_client.generate_embeddings(
+                texts=[text],
+                model=self.model_name,
+                input_type=input_type
+            )
+            
+            if not response.embeddings or len(response.embeddings) == 0:
+                raise ValueError("No embeddings returned from NIM client")
+            
+            return response.embeddings[0]
+            
+        except Exception as e:
+            logger.error(f"Failed to generate embedding with NIM: {e}")
+            raise
+    
+    async def generate_embedding(self, text: str, input_type: str = "query") -> List[float]:
         """
-        Generate embedding for a single text.
+        Generate embedding for a single text using NVIDIA NIM.
         
         Args:
             text: Input text to embed
+            input_type: Type of input ("query" or "passage")
             
         Returns:
             List of float values representing the embedding
@@ -53,24 +85,23 @@ class EmbeddingService:
             if not self._initialized:
                 await self.initialize()
             
-            # TODO: Replace with actual embedding generation
-            # For now, return a random vector for testing
-            np.random.seed(hash(text) % 2**32)
-            embedding = np.random.normal(0, 1, self.dimension).tolist()
+            # Generate embedding using NVIDIA NIM
+            embedding = await self._generate_embedding_with_nim(text, input_type)
             
-            logger.debug(f"Generated embedding for text: {text[:50]}...")
+            logger.debug(f"Generated embedding for text: {text[:50]}... (dim: {len(embedding)})")
             return embedding
             
         except Exception as e:
             logger.error(f"Failed to generate embedding: {e}")
             raise
     
-    async def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
+    async def generate_embeddings(self, texts: List[str], input_type: str = "query") -> List[List[float]]:
         """
-        Generate embeddings for multiple texts.
+        Generate embeddings for multiple texts using NVIDIA NIM.
         
         Args:
             texts: List of input texts to embed
+            input_type: Type of input ("query" or "passage")
             
         Returns:
             List of embeddings
@@ -79,13 +110,21 @@ class EmbeddingService:
             if not self._initialized:
                 await self.initialize()
             
-            embeddings = []
-            for text in texts:
-                embedding = await self.generate_embedding(text)
-                embeddings.append(embedding)
+            if not self.nim_client:
+                raise RuntimeError("NIM client not initialized")
             
-            logger.info(f"Generated {len(embeddings)} embeddings")
-            return embeddings
+            # Use batch processing for better performance
+            response = await self.nim_client.generate_embeddings(
+                texts=texts,
+                model=self.model_name,
+                input_type=input_type
+            )
+            
+            if not response.embeddings or len(response.embeddings) != len(texts):
+                raise ValueError(f"Expected {len(texts)} embeddings, got {len(response.embeddings) if response.embeddings else 0}")
+            
+            logger.info(f"Generated {len(response.embeddings)} embeddings using NVIDIA NIM")
+            return response.embeddings
             
         except Exception as e:
             logger.error(f"Failed to generate embeddings: {e}")
@@ -137,6 +176,6 @@ async def get_embedding_service() -> EmbeddingService:
     """Get or create the global embedding service instance."""
     global _embedding_service
     if _embedding_service is None:
-        _embedding_service = EmbeddingService()
+        _embedding_service = EmbeddingService(model_name="nvidia/nv-embedqa-e5-v5", dimension=1024)
         await _embedding_service.initialize()
     return _embedding_service
