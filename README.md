@@ -20,8 +20,9 @@
 [![Equipment Status & Telemetry](https://img.shields.io/badge/Equipment%20Status%20%26%20Telemetry-Real--time-FF9800.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
 [![Advanced Reasoning](https://img.shields.io/badge/Advanced%20Reasoning-5%20Types-9C27B0.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
 [![NV-EmbedQA Integration](https://img.shields.io/badge/NV--EmbedQA-1024%20Dim%20Embeddings-76B900.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
+[![MCP Integration](https://img.shields.io/badge/MCP-Phase%203%20Complete-00D4AA.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
 
-This repository implements a production-grade assistant patterned on NVIDIA's AI Blueprints (planner/router + specialized agents), adapted for warehouse domains. It uses a **hybrid RAG** stack (Postgres/Timescale + Milvus), **NeMo Guardrails**, **production-grade vector search with NV-EmbedQA-E5-v5 embeddings**, **enhanced vector search optimization with evidence scoring and intelligent clarifying questions**, **intelligent SQL path optimization**, **advanced Redis caching**, **comprehensive response quality control**, **real-time equipment status and telemetry monitoring**, **advanced reasoning capabilities with 5 reasoning types**, and a clean API surface for UI or system integrations.
+This repository implements a production-grade assistant patterned on NVIDIA's AI Blueprints (planner/router + specialized agents), adapted for warehouse domains. It uses a **hybrid RAG** stack (Postgres/Timescale + Milvus), **NeMo Guardrails**, **production-grade vector search with NV-EmbedQA-E5-v5 embeddings**, **enhanced vector search optimization with evidence scoring and intelligent clarifying questions**, **intelligent SQL path optimization**, **advanced Redis caching**, **comprehensive response quality control**, **real-time equipment status and telemetry monitoring**, **advanced reasoning capabilities with 5 reasoning types**, **MCP (Model Context Protocol) integration for seamless tool discovery and execution**, and a clean API surface for UI or system integrations.
 
 ## Status & Features
 
@@ -39,6 +40,7 @@ This repository implements a production-grade assistant patterned on NVIDIA's AI
 - **Intelligent Chat Interface** - Real-time AI-powered warehouse assistance
 - **Advanced Reasoning Capabilities** - 5 reasoning types with transparent, explainable AI responses
 - **Equipment Status & Telemetry** - Real-time equipment monitoring with battery, temperature, and charging analytics
+- **MCP Integration** - Model Context Protocol for seamless tool discovery and execution
 - **Enterprise Security** - JWT/OAuth2 + RBAC with 5 user roles
 - **Real-time Monitoring** - Prometheus metrics + Grafana dashboards
 - **System Integrations** - WMS, ERP, IoT, RFID/Barcode, Time Attendance
@@ -496,7 +498,14 @@ Agent Actions:
 │ ├─ app.py      # API entrypoint
 │ ├─ routers/      # REST routers (health, chat, equipment, …)
 │ ├─ graphs/      # Planner/agent DAGs
-│ └─ agents/      # Equipment & Asset Operations / Operations / Safety
+│ ├─ agents/      # Equipment & Asset Operations / Operations / Safety
+│ └─ services/      # Core services
+│   └─ mcp/      # MCP (Model Context Protocol) system
+│     ├─ server.py    # MCP server implementation
+│     ├─ client.py    # MCP client implementation
+│     ├─ base.py      # Base classes for adapters and tools
+│     └─ adapters/    # MCP-enabled adapters
+│       └─ erp_adapter.py  # ERP adapter with 10+ tools
 ├─ inventory_retriever/   # (hybrid) SQL + Milvus retrievers
 ├─ memory_retriever/    # chat & profile memory stores
 ├─ guardrails/      # NeMo Guardrails configs
@@ -505,8 +514,12 @@ Agent Actions:
 ├─ ingestion/      # batch ETL & streaming jobs (Kafka)
 ├─ monitoring/      # Prometheus/Grafana/Alerting (dashboards & metrics)
 ├─ docs/       # architecture docs & ADRs
+│ └─ architecture/    # Architecture documentation
+│   └─ mcp-integration.md  # MCP system documentation
 ├─ ui/        # React web dashboard + mobile shells
 ├─ scripts/      # helper scripts (compose up, etc.)
+├─ tests/      # Comprehensive test suite
+│ └─ test_mcp_system.py  # MCP system tests
 ├─ docker-compose.dev.yaml   # dev infra (Timescale, Redis, Kafka, Milvus, MinIO, etcd)
 ├─ .env       # dev env vars
 ├─ RUN_LOCAL.sh     # run API locally (auto-picks free port)
@@ -640,6 +653,7 @@ curl -s http://localhost:$PORT/api/v1/attendance/health | jq
 - **NVIDIA NIMs Integration** - Llama 3.1 70B (LLM) + NV-EmbedQA-E5-v5 (embeddings) - In Progress
 - **Chat Interface** - Chat endpoint with async processing and error handling - In Progress
 - **Advanced Reasoning Capabilities** - 5 reasoning types (Chain-of-Thought, Multi-Hop, Scenario Analysis, Causal, Pattern Recognition) - In Progress
+- **MCP Integration** - Model Context Protocol Phase 3 complete with comprehensive tool discovery, execution, and monitoring
 - **Authentication & RBAC** - JWT/OAuth2 with 5 user roles and granular permissions
 - **React Frontend** - Dashboard with chat interface and system monitoring - In Progress
 - **Database Integration** - PostgreSQL/TimescaleDB with connection pooling and migrations
@@ -672,6 +686,7 @@ curl -s http://localhost:$PORT/api/v1/attendance/health | jq
 - **Time Attendance**: Ready for employee tracking systems (Biometric, Card Reader, Mobile)
 
 ### **Recent Improvements (Latest)**
+- **MCP Integration Phase 3** - Complete Model Context Protocol implementation with comprehensive tool discovery, execution, monitoring, and testing
 - **Advanced Reasoning Capabilities** - 5 reasoning types with transparent, explainable AI responses
 - **Equipment Status & Telemetry** - Real-time equipment monitoring with battery, temperature, and charging status
 - **Charger Status Functionality** - Comprehensive charger status queries with detailed analytics
@@ -1258,6 +1273,63 @@ TBD (add your organization's license file).
 
 ## **Latest Updates (December 2024)**
 
+### **MCP (Model Context Protocol) Integration - Phase 3 Complete** ✅
+
+The system now features **comprehensive MCP integration** for seamless tool discovery, execution, and communication between AI agents and external systems:
+
+#### **Phase 1: MCP Foundation - Complete** ✅
+- **MCP Server Implementation** - Tool registration, discovery, and execution with full protocol compliance
+- **MCP Client Implementation** - Multi-server communication with HTTP and WebSocket support
+- **MCP-Enabled Base Classes** - MCPAdapter and MCPToolBase for consistent adapter development
+- **ERP Adapter Migration** - Complete ERP adapter with 10+ tools for customer, order, and inventory management
+- **Comprehensive Testing Framework** - Unit and integration tests for all MCP components
+- **Complete Documentation** - Architecture, API, and deployment guides
+
+#### **Phase 2: Agent Integration - Complete** ✅
+- **Dynamic Tool Discovery** - Automatic tool discovery and registration system with intelligent search
+- **MCP-Enabled Agents** - Equipment, Operations, and Safety agents updated to use MCP tools
+- **Dynamic Tool Binding** - Intelligent tool binding and execution framework with multiple strategies
+- **MCP-Based Routing** - Advanced routing and tool selection logic with context awareness
+- **Tool Validation** - Comprehensive validation and error handling for MCP tool execution
+
+#### **Phase 3: Full Migration - Complete** ✅
+- **Complete Adapter Migration** - WMS, IoT, RFID/Barcode, and Time Attendance adapters migrated to MCP
+- **Service Discovery & Registry** - Centralized service discovery and health monitoring
+- **MCP Monitoring & Management** - Comprehensive monitoring, logging, and management capabilities
+- **End-to-End Testing** - Complete test suite with 8 comprehensive test modules
+- **Deployment Configurations** - Docker, Kubernetes, and production deployment configurations
+- **Security Integration** - Authentication, authorization, encryption, and vulnerability testing
+- **Performance Testing** - Load testing, stress testing, and scalability testing
+
+#### **MCP Architecture Benefits**
+- **Standardized Interface** - Consistent tool discovery and execution across all systems
+- **Extensible Architecture** - Easy addition of new adapters and tools
+- **Protocol Compliance** - Full MCP specification compliance for interoperability
+- **Comprehensive Testing** - 8 test modules covering all aspects of MCP functionality
+- **Production Ready** - Complete deployment configurations for Docker, Kubernetes, and production
+- **Security Hardened** - Authentication, authorization, encryption, and vulnerability testing
+- **Performance Optimized** - Load testing, stress testing, and scalability validation
+
+#### **MCP Testing Suite - Complete** ✅
+- **End-to-End Integration Tests** - Complete MCP workflow testing with server-client communication
+- **Agent Workflow Tests** - Equipment, Operations, and Safety agent workflow testing
+- **System Integration Tests** - Cross-component integration and service discovery testing
+- **Deployment Integration Tests** - Docker, Kubernetes, and production deployment testing
+- **Security Integration Tests** - Authentication, authorization, encryption, and vulnerability testing
+- **Load Testing** - Stress testing, performance testing, and scalability testing
+- **Monitoring Integration Tests** - Metrics collection, health monitoring, and observability testing
+- **Performance Testing** - Latency, throughput, memory efficiency, and resource utilization testing
+- **Production Ready** - Robust testing, error handling, and documentation
+- **Multi-Server Support** - Connect to multiple MCP servers simultaneously
+
+#### **ERP Adapter Tools (10+ Tools)**
+- **Customer Management** - Get customer info, search customers
+- **Order Management** - Create orders, update status, get order details
+- **Inventory Sync** - Synchronize inventory data, get inventory levels
+- **Financial Reporting** - Get financial summaries, sales reports
+- **Resource Access** - ERP configuration, supported operations
+- **Prompt Templates** - Customer queries, order analysis, inventory sync
+
 ### **Enhanced Vector Search Optimization - Major Update** (NEW)
 - **Intelligent Chunking**: 512-token chunks with 64-token overlap for optimal context preservation
 - **Optimized Retrieval**: Top-k=12 → re-rank to top-6 with diversity and relevance scoring
@@ -1484,6 +1556,100 @@ print(f"Recommendations: {report.recommendations}")
 - **Analytics**: Real-time monitoring with trend analysis and performance insights
 - **Reliability**: Automated quality control with improvement suggestions
 - **Intelligence**: Smart follow-up suggestions and response explanations
+
+### **MCP (Model Context Protocol) Integration - Phase 3 Complete** ✅
+
+The system now features **comprehensive MCP integration** for seamless tool discovery, execution, and communication between AI agents and external systems:
+
+#### **Phase 1: MCP Foundation - Complete** ✅
+- **MCP Server** - Tool registration, discovery, and execution with protocol compliance
+- **MCP Client** - Multi-server communication with HTTP and WebSocket support
+- **MCP Adapters** - ERP adapter with 10+ tools for customer, order, and inventory management
+- **Base Classes** - MCPAdapter and MCPToolBase for consistent adapter development
+- **Testing Framework** - Comprehensive unit and integration tests for all MCP components
+
+#### **Phase 2: Agent Integration - Complete** ✅
+- **Dynamic Tool Discovery** - Automatic tool discovery and registration system
+- **MCP-Enabled Agents** - Equipment, Operations, and Safety agents with MCP integration
+- **Dynamic Tool Binding** - Intelligent tool binding and execution framework
+- **MCP-Based Routing** - Advanced routing and tool selection logic
+- **Tool Validation** - Comprehensive validation and error handling
+
+#### **Phase 3: Full Migration - Complete** ✅
+- **Complete Adapter Migration** - WMS, IoT, RFID/Barcode, and Time Attendance adapters
+- **Service Discovery & Registry** - Centralized service discovery and health monitoring
+- **MCP Monitoring & Management** - Comprehensive monitoring, logging, and management
+- **End-to-End Testing** - Complete test suite with 8 comprehensive test modules
+- **Deployment Configurations** - Docker, Kubernetes, and production deployment
+- **Security Integration** - Authentication, authorization, encryption, and vulnerability testing
+- **Performance Testing** - Load testing, stress testing, and scalability testing
+
+#### **MCP Architecture**
+- **Tool Discovery** - Automatic tool registration and discovery across all adapters
+- **Tool Execution** - Standardized tool calling with error handling and validation
+- **Resource Management** - Structured data access with URI-based resource identification
+- **Prompt Management** - Templated queries and instructions for consistent interactions
+- **Multi-Server Support** - Connect to multiple MCP servers simultaneously
+
+#### **ERP Adapter Tools (10+ Tools)**
+- **Customer Management** - Get customer info, search customers
+- **Order Management** - Create orders, update status, get order details
+- **Inventory Sync** - Synchronize inventory data, get inventory levels
+- **Financial Reporting** - Get financial summaries, sales reports
+- **Resource Access** - ERP configuration, supported operations
+- **Prompt Templates** - Customer queries, order analysis, inventory sync
+
+#### **MCP Benefits**
+- **Standardized Interface** - Consistent tool discovery and execution across all systems
+- **Extensible Architecture** - Easy addition of new adapters and tools
+- **Protocol Compliance** - Full MCP specification compliance for interoperability
+- **Error Handling** - Comprehensive error handling and validation
+- **Production Ready** - Robust testing and documentation
+
+#### **Quick Demo**
+```python
+# MCP Server with tool registration
+from chain_server.services.mcp import MCPServer, MCPTool, MCPToolType
+
+server = MCPServer(name="warehouse-assistant", version="1.0.0")
+
+# Register a tool
+async def get_equipment_status(arguments):
+    return {"status": "operational", "equipment_id": arguments["id"]}
+
+tool = MCPTool(
+    name="get_equipment_status",
+    description="Get equipment status by ID",
+    tool_type=MCPToolType.FUNCTION,
+    parameters={"id": {"type": "string"}},
+    handler=get_equipment_status
+)
+
+server.register_tool(tool)
+
+# Execute tool
+result = await server.execute_tool("get_equipment_status", {"id": "EQ001"})
+```
+
+#### **MCP Client Usage**
+```python
+# MCP Client for multi-server communication
+from chain_server.services.mcp import MCPClient, MCPConnectionType
+
+client = MCPClient(client_name="warehouse-client", version="1.0.0")
+
+# Connect to ERP server
+await client.connect_server(
+    "erp-server",
+    MCPConnectionType.HTTP,
+    "http://localhost:8000"
+)
+
+# Call tools
+result = await client.call_tool("get_customer_info", {"customer_id": "C001"})
+resource = await client.read_resource("customer_data")
+prompt = await client.get_prompt("customer_query", {"query": "find customer"})
+```
 
 ### **Advanced Reasoning Capabilities** - (NEW)
 

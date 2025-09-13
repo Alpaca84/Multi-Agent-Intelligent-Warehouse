@@ -249,7 +249,7 @@ export const safetyAPI = {
 
 export const healthAPI = {
   check: async (): Promise<{ ok: boolean }> => {
-    const response = await api.get('/api/v1/health');
+    const response = await api.get('/api/v1/health/simple');
     return response.data;
   },
 };

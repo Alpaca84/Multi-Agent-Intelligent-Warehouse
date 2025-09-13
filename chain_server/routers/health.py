@@ -32,10 +32,16 @@ def get_uptime() -> str:
 async def check_database_health() -> dict:
     """Check database connectivity."""
     try:
-        # Import here to avoid circular imports
-        from chain_server.services.database import get_database_connection
-        async with get_database_connection() as conn:
-            await conn.execute("SELECT 1")
+        import asyncpg
+        import os
+        from dotenv import load_dotenv
+        
+        load_dotenv()
+        database_url = os.getenv("DATABASE_URL", "postgresql://warehouse:warehousepw@localhost:5435/warehouse")
+        
+        conn = await asyncpg.connect(database_url)
+        await conn.execute("SELECT 1")
+        await conn.close()
         return {"status": "healthy", "message": "Database connection successful"}
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
@@ -67,6 +73,32 @@ async def check_milvus_health() -> dict:
     except Exception as e:
         logger.warning(f"Milvus health check failed: {e}")
         return {"status": "unhealthy", "message": str(e)}
+
+@router.get("/health/simple")
+async def health_simple():
+    """
+    Simple health check endpoint for frontend compatibility.
+    
+    Returns:
+        dict: Simple health status with ok field
+    """
+    try:
+        # Quick database check
+        import asyncpg
+        import os
+        from dotenv import load_dotenv
+        
+        load_dotenv()
+        database_url = os.getenv("DATABASE_URL", "postgresql://warehouse:warehousepw@localhost:5435/warehouse")
+        
+        conn = await asyncpg.connect(database_url)
+        await conn.execute("SELECT 1")
+        await conn.close()
+        
+        return {"ok": True, "status": "healthy"}
+    except Exception as e:
+        logger.error(f"Simple health check failed: {e}")
+        return {"ok": False, "status": "unhealthy", "error": str(e)}
 
 @router.get("/health")
 async def health_check():

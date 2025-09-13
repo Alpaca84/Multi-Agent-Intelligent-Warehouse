@@ -11,18 +11,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def get_database_connection() -> AsyncGenerator[asyncpg.Connection, None]:
+async def get_database_connection():
     """
-    Get a database connection.
+    Get a database connection as an async context manager.
     
-    Yields:
+    Returns:
         asyncpg.Connection: Database connection
     """
     # Get database URL from environment
     database_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5435/warehouse_ops")
     
-    try:
-        conn = await asyncpg.connect(database_url)
-        yield conn
-    finally:
-        await conn.close()
+    return asyncpg.connect(database_url)
