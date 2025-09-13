@@ -38,7 +38,7 @@ class SafetyResponse:
     confidence: float  # Confidence score (0.0 to 1.0)
     actions_taken: List[Dict[str, Any]]  # Actions performed by the agent
     reasoning_chain: Optional[ReasoningChain] = None  # Advanced reasoning chain
-    reasoning_steps: List[Dict[str, Any]] = None  # Individual reasoning steps
+    reasoning_steps: Optional[List[Dict[str, Any]]] = None  # Individual reasoning steps
 
 @dataclass
 class SafetyIncident:

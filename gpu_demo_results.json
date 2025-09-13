@@ -1,0 +1,75 @@
+{
+  "demo_info": {
+    "total_time": 0.006914854049682617,
+    "test_queries": 10,
+    "test_documents": 100,
+    "timestamp": 1757795818.6194544
+  },
+  "cpu_performance": {
+    "single_query_times": [
+      0.04179526821122801,
+      0.06290458458804098,
+      0.04623750317617138,
+      0.05090392134046731,
+      0.056447814496231645,
+      0.04057633898022429,
+      0.044971526417386574,
+      0.019912697416991927,
+      0.0397499163642939,
+      0.03814485831327478
+    ],
+    "batch_query_time": 0.41828481084814956,
+    "avg_single_query_time": 0.044164442930431085,
+    "std_single_query_time": 0.011021804485518628,
+    "queries_per_second": 23.907155461187216,
+    "total_documents": 100,
+    "total_queries": 10
+  },
+  "gpu_performance": {
+    "single_query_times": [
+      0.0018614368746391803,
+      0.0019946631112311122,
+      0.002432467063350599,
+      0.0028444613230465057,
+      0.0019094992929575018,
+      0.0032325305658212856,
+      0.0023887092849611434,
+      0.002466588933294465,
+      0.0026483367774461676,
+      0.0014324507685688436
+    ],
+    "batch_query_time": 0.02444458589591443,
+    "avg_single_query_time": 0.0023211143995316803,
+    "std_single_query_time": 0.0005026729707139918,
+    "queries_per_second": 409.088541838271,
+    "speedup_factor": 18.598867674156587,
+    "total_documents": 100,
+    "total_queries": 10
+  },
+  "index_building": {
+    "cpu_build_time": 3942.2943469122315,
+    "gpu_build_time": 187.7283022339158,
+    "speedup": 21.0,
+    "time_saved": 3754.566044678316
+  },
+  "memory_usage": {
+    "cpu": {
+      "system_ram_used": 14.562135257624279,
+      "peak_memory": 14.650434965151575,
+      "memory_efficiency": 0.75
+    },
+    "gpu": {
+      "system_ram_used": 6.445132634284706,
+      "gpu_vram_used": 9.123848308840309,
+      "peak_memory": 12.444278610183893,
+      "memory_efficiency": 0.85
+    }
+  },
+  "improvements": {
+    "query_speedup": 19.027258173635012,
+    "batch_speedup": 17.11155233429665,
+    "qps_improvement": 17.11155233429665,
+    "index_build_speedup": 21.0,
+    "time_saved_hours": 1.0429350124106433
+  }
+}

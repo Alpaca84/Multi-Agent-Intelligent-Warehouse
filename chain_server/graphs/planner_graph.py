@@ -429,7 +429,8 @@ async def _process_safety_query(query: str, session_id: str, context: Dict) -> A
             data={"error": str(e)},
             natural_language=f"Error processing safety query: {str(e)}",
             recommendations=[],
-            confidence=0.0
+            confidence=0.0,
+            actions_taken=[]
         )
 
 async def _process_operations_query(query: str, session_id: str, context: Dict) -> Any:
@@ -460,7 +461,8 @@ async def _process_operations_query(query: str, session_id: str, context: Dict) 
             data={"error": str(e)},
             natural_language=f"Error processing operations query: {str(e)}",
             recommendations=[],
-            confidence=0.0
+            confidence=0.0,
+            actions_taken=[]
         )
 
 async def _process_equipment_query(query: str, session_id: str, context: Dict) -> Any:
@@ -491,5 +493,6 @@ async def _process_equipment_query(query: str, session_id: str, context: Dict) -
             data={"error": str(e)},
             natural_language=f"Error processing equipment query: {str(e)}",
             recommendations=[],
-            confidence=0.0
+            confidence=0.0,
+            actions_taken=[]
         )
