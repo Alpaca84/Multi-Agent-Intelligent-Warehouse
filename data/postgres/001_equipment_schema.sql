@@ -31,11 +31,9 @@ CREATE TABLE IF NOT EXISTS equipment_assignments (
 -- Equipment telemetry (Timescale hypertable) - updated schema
 CREATE TABLE IF NOT EXISTS equipment_telemetry (
   ts TIMESTAMPTZ NOT NULL,
-  asset_id TEXT NOT NULL,
+  equipment_id TEXT NOT NULL,     -- References equipment_assets.asset_id
   metric TEXT NOT NULL,           -- battery_soc, temp_c, speed, location_x, location_y, etc.
-  value DOUBLE PRECISION NOT NULL,
-  unit TEXT,                      -- %, °C, m/s, m, etc.
-  quality_score DOUBLE PRECISION DEFAULT 1.0 -- data quality indicator
+  value DOUBLE PRECISION NOT NULL
 );
 
 -- Create Timescale hypertable for telemetry
@@ -103,26 +101,26 @@ ON CONFLICT (asset_id) DO UPDATE SET
   updated_at = now();
 
 -- Sample telemetry data (last 24 hours)
-INSERT INTO equipment_telemetry (ts, asset_id, metric, value, unit, quality_score) VALUES
+INSERT INTO equipment_telemetry (ts, equipment_id, metric, value) VALUES
   -- Forklift FL-01 data
-  (now() - interval '1 hour', 'FL-01', 'battery_soc', 85.5, '%', 1.0),
-  (now() - interval '1 hour', 'FL-01', 'temp_c', 22.3, '°C', 1.0),
-  (now() - interval '1 hour', 'FL-01', 'speed', 0.0, 'm/s', 1.0),
-  (now() - interval '1 hour', 'FL-01', 'location_x', 125.5, 'm', 1.0),
-  (now() - interval '1 hour', 'FL-01', 'location_y', 67.2, 'm', 1.0),
+  (now() - interval '1 hour', 'FL-01', 'battery_soc', 85.5),
+  (now() - interval '1 hour', 'FL-01', 'temp_c', 22.3),
+  (now() - interval '1 hour', 'FL-01', 'speed', 0.0),
+  (now() - interval '1 hour', 'FL-01', 'location_x', 125.5),
+  (now() - interval '1 hour', 'FL-01', 'location_y', 67.2),
   
   -- AMR-001 data
-  (now() - interval '30 minutes', 'AMR-001', 'battery_soc', 92.1, '%', 1.0),
-  (now() - interval '30 minutes', 'AMR-001', 'temp_c', 24.1, '°C', 1.0),
-  (now() - interval '30 minutes', 'AMR-001', 'speed', 1.2, 'm/s', 1.0),
-  (now() - interval '30 minutes', 'AMR-001', 'location_x', 89.3, 'm', 1.0),
-  (now() - interval '30 minutes', 'AMR-001', 'location_y', 45.7, 'm', 1.0),
+  (now() - interval '30 minutes', 'AMR-001', 'battery_soc', 92.1),
+  (now() - interval '30 minutes', 'AMR-001', 'temp_c', 24.1),
+  (now() - interval '30 minutes', 'AMR-001', 'speed', 1.2),
+  (now() - interval '30 minutes', 'AMR-001', 'location_x', 89.3),
+  (now() - interval '30 minutes', 'AMR-001', 'location_y', 45.7),
   
   -- Charger CHG-01 data
-  (now() - interval '15 minutes', 'CHG-01', 'temp_c', 28.5, '°C', 1.0),
-  (now() - interval '15 minutes', 'CHG-01', 'voltage', 48.2, 'V', 1.0),
-  (now() - interval '15 minutes', 'CHG-01', 'current', 15.3, 'A', 1.0),
-  (now() - interval '15 minutes', 'CHG-01', 'power', 737.46, 'W', 1.0);
+  (now() - interval '15 minutes', 'CHG-01', 'temp_c', 28.5),
+  (now() - interval '15 minutes', 'CHG-01', 'voltage', 48.2),
+  (now() - interval '15 minutes', 'CHG-01', 'current', 15.3),
+  (now() - interval '15 minutes', 'CHG-01', 'power', 737.46);
 
 -- Sample assignments
 INSERT INTO equipment_assignments (asset_id, task_id, assignee, assignment_type, assigned_at) VALUES
@@ -143,7 +141,7 @@ CREATE INDEX IF NOT EXISTS idx_equipment_assets_status ON equipment_assets(statu
 CREATE INDEX IF NOT EXISTS idx_equipment_assets_zone ON equipment_assets(zone);
 CREATE INDEX IF NOT EXISTS idx_equipment_assignments_asset_id ON equipment_assignments(asset_id);
 CREATE INDEX IF NOT EXISTS idx_equipment_assignments_assignee ON equipment_assignments(assignee);
-CREATE INDEX IF NOT EXISTS idx_equipment_telemetry_asset_id ON equipment_telemetry(asset_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_telemetry_equipment_id ON equipment_telemetry(equipment_id);
 CREATE INDEX IF NOT EXISTS idx_equipment_telemetry_metric ON equipment_telemetry(metric);
 CREATE INDEX IF NOT EXISTS idx_equipment_maintenance_asset_id ON equipment_maintenance(asset_id);
 CREATE INDEX IF NOT EXISTS idx_equipment_performance_asset_id ON equipment_performance(asset_id);
