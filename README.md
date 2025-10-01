@@ -20,9 +20,9 @@
 [![Equipment Status & Telemetry](https://img.shields.io/badge/Equipment%20Status%20%26%20Telemetry-Real--time-FF9800.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
 [![Advanced Reasoning](https://img.shields.io/badge/Advanced%20Reasoning-5%20Types-9C27B0.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
 [![NV-EmbedQA Integration](https://img.shields.io/badge/NV--EmbedQA-1024%20Dim%20Embeddings-76B900.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
-[![MCP Integration](https://img.shields.io/badge/MCP-Phase%203%20Complete-00D4AA.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
+[![MCP Integration](https://img.shields.io/badge/MCP-Implemented%20Not%20Integrated-yellow.svg)](https://github.com/T-DevH/warehouse-operational-assistant)
 
-This repository implements a production-grade assistant patterned on NVIDIA's AI Blueprints (planner/router + specialized agents), adapted for warehouse domains. It uses a **hybrid RAG** stack (Postgres/Timescale + Milvus), **NeMo Guardrails**, **production-grade vector search with NV-EmbedQA-E5-v5 embeddings**, **enhanced vector search optimization with evidence scoring and intelligent clarifying questions**, **intelligent SQL path optimization**, **advanced Redis caching**, **comprehensive response quality control**, **real-time equipment status and telemetry monitoring**, **advanced reasoning capabilities with 5 reasoning types**, **MCP (Model Context Protocol) integration for seamless tool discovery and execution**, and a clean API surface for UI or system integrations.
+This repository implements a production-grade assistant patterned on NVIDIA's AI Blueprints (planner/router + specialized agents), adapted for warehouse domains. It uses a **hybrid RAG** stack (Postgres/Timescale + Milvus), **NeMo Guardrails**, **production-grade vector search with NV-EmbedQA-E5-v5 embeddings**, **enhanced vector search optimization with evidence scoring and intelligent clarifying questions**, **intelligent SQL path optimization**, **advanced Redis caching**, **comprehensive response quality control**, **real-time equipment status and telemetry monitoring**, **advanced reasoning capabilities with 5 reasoning types**, **MCP (Model Context Protocol) framework implemented but not yet integrated into main workflow**, and a clean API surface for UI or system integrations.
 
 ## System Architecture
 
@@ -74,10 +74,35 @@ The system emphasizes modular design, clear separation of concerns, and enterpri
 - **Intelligent Chat Interface** - Real-time AI-powered warehouse assistance
 - **Advanced Reasoning Capabilities** - 5 reasoning types with transparent, explainable AI responses
 - **Equipment Status & Telemetry** - Real-time equipment monitoring with battery, temperature, and charging analytics
-- **MCP Integration** - Model Context Protocol for seamless tool discovery and execution
+- **MCP Framework** - Model Context Protocol framework implemented but not yet integrated into main workflow
 - **Enterprise Security** - JWT/OAuth2 + RBAC with 5 user roles
 - **Real-time Monitoring** - Prometheus metrics + Grafana dashboards
 - **System Integrations** - WMS, ERP, IoT, RFID/Barcode, Time Attendance
+
+### **Current System Status & Known Issues**
+
+**✅ Working Features:**
+- Multi-agent AI system with 3 specialized agents (Inventory, Operations, Safety)
+- Equipment asset management and telemetry monitoring
+- Maintenance schedule tracking and management
+- Real-time equipment status monitoring
+- React frontend with equipment dashboard
+- PostgreSQL/TimescaleDB integration
+- Vector search with Milvus
+- Authentication and basic security
+- API endpoints for equipment, maintenance, and telemetry
+
+**⚠️ Known Issues:**
+- Equipment assignments endpoint returns 404 (workaround: using equipment endpoint for UI)
+- MCP framework implemented but not integrated into main workflow
+- Some database schema documentation discrepancies (fixed in code)
+- Telemetry data requires extended time windows (168+ hours) due to test data age
+- Equipment assignments functionality not working (UI uses equipment endpoint as workaround)
+
+**🔧 In Progress:**
+- MCP integration into main agent workflow
+- Equipment assignments endpoint debugging
+- Enhanced error handling and logging
 
 ### **Production-Grade Vector Search with NV-EmbedQA** - (NEW)
 
@@ -721,7 +746,7 @@ curl -s http://localhost:$PORT/api/v1/attendance/health | jq
 - **NVIDIA NIMs Integration** - Llama 3.1 70B (LLM) + NV-EmbedQA-E5-v5 (embeddings) - In Progress
 - **Chat Interface** - Chat endpoint with async processing and error handling - In Progress
 - **Advanced Reasoning Capabilities** - 5 reasoning types (Chain-of-Thought, Multi-Hop, Scenario Analysis, Causal, Pattern Recognition) - In Progress
-- **MCP Integration** - Model Context Protocol Phase 3 complete with comprehensive tool discovery, execution, and monitoring
+- **MCP Framework** - Model Context Protocol framework implemented but not yet integrated into main workflow
 - **Authentication & RBAC** - JWT/OAuth2 with 5 user roles and granular permissions
 - **React Frontend** - Dashboard with chat interface and system monitoring - In Progress
 - **Database Integration** - PostgreSQL/TimescaleDB with connection pooling and migrations
@@ -755,7 +780,7 @@ curl -s http://localhost:$PORT/api/v1/attendance/health | jq
 
 ### **Recent Improvements (Latest)**
 - **GPU-Accelerated Vector Search** - NVIDIA cuVS integration with 19x performance improvement for warehouse document search
-- **MCP Integration Phase 3** - Complete Model Context Protocol implementation with comprehensive tool discovery, execution, monitoring, and testing
+- **MCP Framework** - Model Context Protocol framework implemented but not yet integrated into main workflow
 - **Advanced Reasoning Capabilities** - 5 reasoning types with transparent, explainable AI responses
 - **Equipment Status & Telemetry** - Real-time equipment monitoring with battery, temperature, and charging status
 - **Charger Status Functionality** - Comprehensive charger status queries with detailed analytics
@@ -1342,11 +1367,11 @@ TBD (add your organization's license file).
 
 ## **Latest Updates (December 2024)**
 
-### **MCP (Model Context Protocol) Integration - Phase 3 Complete** ✅
+### **MCP (Model Context Protocol) Framework - Implemented but Not Integrated** ⚠️
 
-The system now features **comprehensive MCP integration** for seamless tool discovery, execution, and communication between AI agents and external systems:
+The system includes a **comprehensive MCP framework** that has been implemented but is not yet integrated into the main workflow:
 
-#### **Phase 1: MCP Foundation - Complete** ✅
+#### **Phase 1: MCP Foundation - Implemented** ✅
 - **MCP Server Implementation** - Tool registration, discovery, and execution with full protocol compliance
 - **MCP Client Implementation** - Multi-server communication with HTTP and WebSocket support
 - **MCP-Enabled Base Classes** - MCPAdapter and MCPToolBase for consistent adapter development
@@ -1354,21 +1379,21 @@ The system now features **comprehensive MCP integration** for seamless tool disc
 - **Comprehensive Testing Framework** - Unit and integration tests for all MCP components
 - **Complete Documentation** - Architecture, API, and deployment guides
 
-#### **Phase 2: Agent Integration - Complete** ✅
-- **Dynamic Tool Discovery** - Automatic tool discovery and registration system with intelligent search
-- **MCP-Enabled Agents** - Equipment, Operations, and Safety agents updated to use MCP tools
-- **Dynamic Tool Binding** - Intelligent tool binding and execution framework with multiple strategies
-- **MCP-Based Routing** - Advanced routing and tool selection logic with context awareness
-- **Tool Validation** - Comprehensive validation and error handling for MCP tool execution
+#### **Phase 2: Agent Integration - Not Implemented** ❌
+- **Dynamic Tool Discovery** - Framework exists but not integrated into agents
+- **MCP-Enabled Agents** - Equipment, Operations, and Safety agents not yet updated to use MCP tools
+- **Dynamic Tool Binding** - Framework exists but not connected to main workflow
+- **MCP-Based Routing** - Not integrated into main agent routing system
+- **Tool Validation** - Framework exists but not used in main workflow
 
-#### **Phase 3: Full Migration - Complete** ✅
-- **Complete Adapter Migration** - WMS, IoT, RFID/Barcode, and Time Attendance adapters migrated to MCP
-- **Service Discovery & Registry** - Centralized service discovery and health monitoring
-- **MCP Monitoring & Management** - Comprehensive monitoring, logging, and management capabilities
-- **End-to-End Testing** - Complete test suite with 8 comprehensive test modules
-- **Deployment Configurations** - Docker, Kubernetes, and production deployment configurations
-- **Security Integration** - Authentication, authorization, encryption, and vulnerability testing
-- **Performance Testing** - Load testing, stress testing, and scalability testing
+#### **Phase 3: Full Migration - Not Implemented** ❌
+- **Complete Adapter Migration** - WMS, IoT, RFID/Barcode, and Time Attendance adapters not migrated to MCP
+- **Service Discovery & Registry** - Framework exists but not integrated
+- **MCP Monitoring & Management** - Framework exists but not connected to main system
+- **End-to-End Testing** - Test framework exists but not integrated with main workflow
+- **Deployment Configurations** - Framework exists but not used in main deployment
+- **Security Integration** - Framework exists but not integrated with main security system
+- **Performance Testing** - Framework exists but not integrated with main performance monitoring
 
 #### **MCP Architecture Benefits**
 - **Standardized Interface** - Consistent tool discovery and execution across all systems
@@ -1379,17 +1404,17 @@ The system now features **comprehensive MCP integration** for seamless tool disc
 - **Security Hardened** - Authentication, authorization, encryption, and vulnerability testing
 - **Performance Optimized** - Load testing, stress testing, and scalability validation
 
-#### **MCP Testing Suite - Complete** ✅
-- **End-to-End Integration Tests** - Complete MCP workflow testing with server-client communication
-- **Agent Workflow Tests** - Equipment, Operations, and Safety agent workflow testing
-- **System Integration Tests** - Cross-component integration and service discovery testing
-- **Deployment Integration Tests** - Docker, Kubernetes, and production deployment testing
-- **Security Integration Tests** - Authentication, authorization, encryption, and vulnerability testing
-- **Load Testing** - Stress testing, performance testing, and scalability testing
-- **Monitoring Integration Tests** - Metrics collection, health monitoring, and observability testing
-- **Performance Testing** - Latency, throughput, memory efficiency, and resource utilization testing
-- **Production Ready** - Robust testing, error handling, and documentation
-- **Multi-Server Support** - Connect to multiple MCP servers simultaneously
+#### **MCP Testing Suite - Framework Implemented** ⚠️
+- **End-to-End Integration Tests** - Test framework exists but not integrated with main workflow
+- **Agent Workflow Tests** - Test framework exists but agents not using MCP tools
+- **System Integration Tests** - Test framework exists but not connected to main system
+- **Deployment Integration Tests** - Test framework exists but not used in main deployment
+- **Security Integration Tests** - Test framework exists but not integrated with main security
+- **Load Testing** - Test framework exists but not integrated with main performance monitoring
+- **Monitoring Integration Tests** - Test framework exists but not connected to main monitoring
+- **Performance Testing** - Test framework exists but not connected to main system
+- **Framework Ready** - MCP framework is implemented and tested in isolation
+- **Multi-Server Support** - Framework supports multiple MCP servers but not used in main workflow
 
 #### **ERP Adapter Tools (10+ Tools)**
 - **Customer Management** - Get customer info, search customers
@@ -1626,9 +1651,9 @@ print(f"Recommendations: {report.recommendations}")
 - **Reliability**: Automated quality control with improvement suggestions
 - **Intelligence**: Smart follow-up suggestions and response explanations
 
-### **MCP (Model Context Protocol) Integration - Phase 3 Complete** ✅
+### **MCP (Model Context Protocol) Framework - Implemented but Not Integrated** ⚠️
 
-The system now features **comprehensive MCP integration** for seamless tool discovery, execution, and communication between AI agents and external systems:
+The system includes a **comprehensive MCP framework** that has been implemented but is not yet integrated into the main workflow:
 
 #### **Phase 1: MCP Foundation - Complete** ✅
 - **MCP Server** - Tool registration, discovery, and execution with protocol compliance
