@@ -7,7 +7,7 @@ enabling optimal tool selection based on query characteristics, performance metr
 
 import asyncio
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Union
+from typing import Dict, List, Any, Optional, Tuple, Union, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime, timedelta
