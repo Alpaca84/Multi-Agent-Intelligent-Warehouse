@@ -2,7 +2,7 @@
 MCP-Enabled Safety & Compliance Agent
 
 This agent integrates with the Model Context Protocol (MCP) system to provide
-dynamic tool discovery and execution for safety and compliance operations.
+dynamic tool discovery and execution for safety and compliance management.
 """
 
 import logging
@@ -16,9 +16,7 @@ from chain_server.services.llm.nim_client import get_nim_client, LLMResponse
 from inventory_retriever.hybrid_retriever import get_hybrid_retriever, SearchContext
 from memory_retriever.memory_manager import get_memory_manager
 from chain_server.services.mcp.tool_discovery import ToolDiscoveryService, DiscoveredTool, ToolCategory
-from chain_server.services.mcp.tool_binding import ToolBindingService, BindingStrategy, ExecutionMode
-from chain_server.services.mcp.tool_routing import ToolRoutingService, RoutingStrategy, QueryComplexity
-from chain_server.services.mcp.tool_validation import ToolValidationService, ErrorHandlingService
+from chain_server.services.mcp.base import MCPManager
 from .action_tools import get_safety_action_tools, SafetyActionTools
 
 logger = logging.getLogger(__name__)
@@ -30,8 +28,8 @@ class MCPSafetyQuery:
     entities: Dict[str, Any]
     context: Dict[str, Any]
     user_query: str
-    mcp_tools: List[str] = None
-    tool_execution_plan: List[Dict[str, Any]] = None
+    mcp_tools: List[str] = None  # Available MCP tools for this query
+    tool_execution_plan: List[Dict[str, Any]] = None  # Planned tool executions
 
 @dataclass
 class MCPSafetyResponse:
@@ -50,9 +48,9 @@ class MCPSafetyComplianceAgent:
     MCP-enabled Safety & Compliance Agent.
     
     This agent integrates with the Model Context Protocol (MCP) system to provide:
-    - Dynamic tool discovery and execution for safety and compliance
-    - MCP-based tool binding and routing
-    - Enhanced tool selection and validation
+    - Dynamic tool discovery and execution for safety management
+    - MCP-based tool binding and routing for compliance monitoring
+    - Enhanced tool selection and validation for incident reporting
     - Comprehensive error handling and fallback mechanisms
     """
     
@@ -60,11 +58,8 @@ class MCPSafetyComplianceAgent:
         self.nim_client = None
         self.hybrid_retriever = None
         self.safety_tools = None
+        self.mcp_manager = None
         self.tool_discovery = None
-        self.tool_binding = None
-        self.tool_routing = None
-        self.tool_validation = None
-        self.error_handling = None
         self.conversation_context = {}
         self.mcp_tools_cache = {}
         self.tool_execution_history = []
@@ -77,11 +72,8 @@ class MCPSafetyComplianceAgent:
             self.safety_tools = await get_safety_action_tools()
             
             # Initialize MCP components
+            self.mcp_manager = MCPManager()
             self.tool_discovery = ToolDiscoveryService()
-            self.tool_binding = ToolBindingService(self.tool_discovery)
-            self.tool_routing = ToolRoutingService(self.tool_discovery, self.tool_binding)
-            self.tool_validation = ToolValidationService(self.tool_discovery)
-            self.error_handling = ErrorHandlingService(self.tool_discovery)
             
             # Start tool discovery
             await self.tool_discovery.start_discovery()
@@ -113,22 +105,24 @@ class MCPSafetyComplianceAgent:
         self,
         query: str,
         session_id: str = "default",
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        mcp_results: Optional[Any] = None
     ) -> MCPSafetyResponse:
         """
-        Process a safety/compliance query with MCP integration.
+        Process a safety and compliance query with MCP integration.
         
         Args:
-            query: User's safety/compliance query
+            query: User's safety query
             session_id: Session identifier for context
             context: Additional context
+            mcp_results: Optional MCP execution results from planner graph
             
         Returns:
             MCPSafetyResponse with MCP tool execution results
         """
         try:
             # Initialize if needed
-            if not self.nim_client or not self.tool_discovery:
+            if not self.nim_client or not self.hybrid_retriever or not self.tool_discovery:
                 await self.initialize()
             
             # Update conversation context
@@ -142,36 +136,23 @@ class MCPSafetyComplianceAgent:
             # Parse query and identify intent
             parsed_query = await self._parse_safety_query(query, context)
             
-            # Create routing context
-            routing_context = await self._create_routing_context(parsed_query, session_id)
-            
-            # Route tools using MCP routing service
-            routing_decision = await self.tool_routing.route_tools(
-                routing_context,
-                strategy=RoutingStrategy.ACCURACY_OPTIMIZED,  # Safety requires high accuracy
-                max_tools=5
-            )
-            
-            # Bind tools to agent
-            bindings = await self.tool_binding.bind_tools(
-                agent_id="safety_agent",
-                query=query,
-                intent=parsed_query.intent,
-                entities=parsed_query.entities,
-                context=parsed_query.context,
-                strategy=BindingStrategy.SEMANTIC_MATCH,
-                max_tools=5
-            )
-            
-            # Create execution plan
-            execution_plan = await self.tool_binding.create_execution_plan(
-                routing_context,
-                bindings,
-                routing_decision.execution_mode
-            )
-            
-            # Execute tools and gather results
-            tool_results = await self._execute_tool_plan(execution_plan)
+            # Use MCP results if provided, otherwise discover tools
+            if mcp_results and hasattr(mcp_results, 'tool_results'):
+                # Use results from MCP planner graph
+                tool_results = mcp_results.tool_results
+                parsed_query.mcp_tools = list(tool_results.keys()) if tool_results else []
+                parsed_query.tool_execution_plan = []
+            else:
+                # Discover available MCP tools for this query
+                available_tools = await self._discover_relevant_tools(parsed_query)
+                parsed_query.mcp_tools = [tool.tool_id for tool in available_tools]
+                
+                # Create tool execution plan
+                execution_plan = await self._create_tool_execution_plan(parsed_query, available_tools)
+                parsed_query.tool_execution_plan = execution_plan
+                
+                # Execute tools and gather results
+                tool_results = await self._execute_tool_plan(execution_plan)
             
             # Generate response using LLM with tool results
             response = await self._generate_response_with_tools(parsed_query, tool_results)
@@ -200,19 +181,19 @@ class MCPSafetyComplianceAgent:
         try:
             # Use LLM to parse the query
             parse_prompt = f"""
-            Parse this safety/compliance query and extract:
-            1. Intent (incident_logging, safety_checklist, alert_broadcast, loto_request, corrective_action, sds_retrieval, near_miss_capture)
-            2. Entities (incident_id, severity, location, equipment_id, worker_id, etc.)
-            3. Context (urgency, priority, safety_level, compliance_requirements)
+            Parse this safety and compliance query and extract:
+            1. Intent (incident_reporting, compliance_check, safety_audit, hazard_identification, policy_lookup, training_tracking)
+            2. Entities (incident_id, hazard_type, location, policy_id, training_id, etc.)
+            3. Context (priority, urgency, specific requirements)
             
             Query: "{query}"
             Context: {context or {}}
             
             Return JSON format:
             {{
-                "intent": "incident_logging",
-                "entities": {{"incident_id": "INC001", "severity": "high"}},
-                "context": {{"urgency": "immediate", "priority": "critical"}}
+                "intent": "incident_reporting",
+                "entities": {{"incident_type": "safety", "location": "Zone A"}},
+                "context": {{"priority": "high", "severity": "critical"}}
             }}
             """
             
@@ -224,13 +205,13 @@ class MCPSafetyComplianceAgent:
             except json.JSONDecodeError:
                 # Fallback parsing
                 parsed_data = {
-                    "intent": "incident_logging",
+                    "intent": "incident_reporting",
                     "entities": {},
                     "context": {}
                 }
             
             return MCPSafetyQuery(
-                intent=parsed_data.get("intent", "incident_logging"),
+                intent=parsed_data.get("intent", "incident_reporting"),
                 entities=parsed_data.get("entities", {}),
                 context=parsed_data.get("context", {}),
                 user_query=query
@@ -239,60 +220,196 @@ class MCPSafetyComplianceAgent:
         except Exception as e:
             logger.error(f"Error parsing safety query: {e}")
             return MCPSafetyQuery(
-                intent="incident_logging",
+                intent="incident_reporting",
                 entities={},
                 context={},
                 user_query=query
             )
     
-    async def _create_routing_context(self, query: MCPSafetyQuery, session_id: str) -> Any:
-        """Create routing context for tool routing."""
-        from chain_server.services.mcp.tool_routing import RoutingContext, QueryComplexity
-        
-        # Analyze query complexity
-        complexity = QueryComplexity.MODERATE
-        if len(query.user_query.split()) > 15:
-            complexity = QueryComplexity.COMPLEX
-        elif len(query.user_query.split()) < 5:
-            complexity = QueryComplexity.SIMPLE
-        
-        # Safety queries often require high priority
-        priority = 5 if query.context.get("urgency") == "immediate" else 3
-        
-        return RoutingContext(
-            query=query.user_query,
-            intent=query.intent,
-            entities=query.entities,
-            user_context=query.context,
-            session_id=session_id,
-            agent_id="safety_agent",
-            priority=priority,
-            complexity=complexity,
-            required_capabilities=["safety_management", "incident_handling", "compliance_monitoring"]
-        )
-    
-    async def _execute_tool_plan(self, execution_plan: Any) -> Dict[str, Any]:
-        """Execute the tool execution plan."""
+    async def _discover_relevant_tools(self, query: MCPSafetyQuery) -> List[DiscoveredTool]:
+        """Discover MCP tools relevant to the safety query."""
         try:
-            results = await self.tool_binding.execute_plan(execution_plan)
+            # Search for tools based on query intent and entities
+            search_terms = [query.intent]
             
-            # Convert to dictionary format
-            tool_results = {}
-            for result in results:
-                tool_results[result.tool_id] = {
-                    "tool_name": result.tool_name,
-                    "success": result.success,
-                    "result": result.result,
-                    "error": result.error,
-                    "execution_time": result.execution_time,
-                    "metadata": result.metadata
-                }
+            # Add entity-based search terms
+            for entity_type, entity_value in query.entities.items():
+                search_terms.append(f"{entity_type}_{entity_value}")
             
-            return tool_results
+            # Search for tools
+            relevant_tools = []
+            
+            # Search by category based on intent
+            category_mapping = {
+                "incident_reporting": ToolCategory.SAFETY,
+                "compliance_check": ToolCategory.SAFETY,
+                "safety_audit": ToolCategory.SAFETY,
+                "hazard_identification": ToolCategory.SAFETY,
+                "policy_lookup": ToolCategory.DATA_ACCESS,
+                "training_tracking": ToolCategory.SAFETY
+            }
+            
+            intent_category = category_mapping.get(query.intent, ToolCategory.SAFETY)
+            category_tools = await self.tool_discovery.get_tools_by_category(intent_category)
+            relevant_tools.extend(category_tools)
+            
+            # Search by keywords
+            for term in search_terms:
+                keyword_tools = await self.tool_discovery.search_tools(term)
+                relevant_tools.extend(keyword_tools)
+            
+            # Remove duplicates and sort by relevance
+            unique_tools = {}
+            for tool in relevant_tools:
+                if tool.tool_id not in unique_tools:
+                    unique_tools[tool.tool_id] = tool
+            
+            # Sort by usage count and success rate
+            sorted_tools = sorted(
+                unique_tools.values(),
+                key=lambda t: (t.usage_count, t.success_rate),
+                reverse=True
+            )
+            
+            return sorted_tools[:10]  # Return top 10 most relevant tools
             
         except Exception as e:
-            logger.error(f"Error executing tool plan: {e}")
-            return {}
+            logger.error(f"Error discovering relevant tools: {e}")
+            return []
+    
+    async def _create_tool_execution_plan(self, query: MCPSafetyQuery, tools: List[DiscoveredTool]) -> List[Dict[str, Any]]:
+        """Create a plan for executing MCP tools."""
+        try:
+            execution_plan = []
+            
+            # Create execution steps based on query intent
+            if query.intent == "incident_reporting":
+                # Look for safety tools
+                safety_tools = [t for t in tools if t.category == ToolCategory.SAFETY]
+                for tool in safety_tools[:3]:  # Limit to 3 tools
+                    execution_plan.append({
+                        "tool_id": tool.tool_id,
+                        "tool_name": tool.name,
+                        "arguments": self._prepare_tool_arguments(tool, query),
+                        "priority": 1,
+                        "required": True
+                    })
+            
+            elif query.intent == "compliance_check":
+                # Look for safety and data access tools
+                compliance_tools = [t for t in tools if t.category in [ToolCategory.SAFETY, ToolCategory.DATA_ACCESS]]
+                for tool in compliance_tools[:2]:
+                    execution_plan.append({
+                        "tool_id": tool.tool_id,
+                        "tool_name": tool.name,
+                        "arguments": self._prepare_tool_arguments(tool, query),
+                        "priority": 1,
+                        "required": True
+                    })
+            
+            elif query.intent == "safety_audit":
+                # Look for safety tools
+                audit_tools = [t for t in tools if t.category == ToolCategory.SAFETY]
+                for tool in audit_tools[:3]:
+                    execution_plan.append({
+                        "tool_id": tool.tool_id,
+                        "tool_name": tool.name,
+                        "arguments": self._prepare_tool_arguments(tool, query),
+                        "priority": 1,
+                        "required": True
+                    })
+            
+            elif query.intent == "hazard_identification":
+                # Look for safety tools
+                hazard_tools = [t for t in tools if t.category == ToolCategory.SAFETY]
+                for tool in hazard_tools[:2]:
+                    execution_plan.append({
+                        "tool_id": tool.tool_id,
+                        "tool_name": tool.name,
+                        "arguments": self._prepare_tool_arguments(tool, query),
+                        "priority": 1,
+                        "required": True
+                    })
+            
+            elif query.intent == "policy_lookup":
+                # Look for data access tools
+                policy_tools = [t for t in tools if t.category == ToolCategory.DATA_ACCESS]
+                for tool in policy_tools[:2]:
+                    execution_plan.append({
+                        "tool_id": tool.tool_id,
+                        "tool_name": tool.name,
+                        "arguments": self._prepare_tool_arguments(tool, query),
+                        "priority": 1,
+                        "required": True
+                    })
+            
+            # Sort by priority
+            execution_plan.sort(key=lambda x: x["priority"])
+            
+            return execution_plan
+            
+        except Exception as e:
+            logger.error(f"Error creating tool execution plan: {e}")
+            return []
+    
+    def _prepare_tool_arguments(self, tool: DiscoveredTool, query: MCPSafetyQuery) -> Dict[str, Any]:
+        """Prepare arguments for tool execution based on query entities."""
+        arguments = {}
+        
+        # Map query entities to tool parameters
+        for param_name, param_schema in tool.parameters.items():
+            if param_name in query.entities:
+                arguments[param_name] = query.entities[param_name]
+            elif param_name == "query" or param_name == "search_term":
+                arguments[param_name] = query.user_query
+            elif param_name == "context":
+                arguments[param_name] = query.context
+            elif param_name == "intent":
+                arguments[param_name] = query.intent
+        
+        return arguments
+    
+    async def _execute_tool_plan(self, execution_plan: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Execute the tool execution plan."""
+        results = {}
+        
+        for step in execution_plan:
+            try:
+                tool_id = step["tool_id"]
+                tool_name = step["tool_name"]
+                arguments = step["arguments"]
+                
+                logger.info(f"Executing MCP tool: {tool_name} with arguments: {arguments}")
+                
+                # Execute the tool
+                result = await self.tool_discovery.execute_tool(tool_id, arguments)
+                
+                results[tool_id] = {
+                    "tool_name": tool_name,
+                    "success": True,
+                    "result": result,
+                    "execution_time": datetime.utcnow().isoformat()
+                }
+                
+                # Record in execution history
+                self.tool_execution_history.append({
+                    "tool_id": tool_id,
+                    "tool_name": tool_name,
+                    "arguments": arguments,
+                    "result": result,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                
+            except Exception as e:
+                logger.error(f"Error executing tool {step['tool_name']}: {e}")
+                results[step["tool_id"]] = {
+                    "tool_name": step["tool_name"],
+                    "success": False,
+                    "error": str(e),
+                    "execution_time": datetime.utcnow().isoformat()
+                }
+        
+        return results
     
     async def _generate_response_with_tools(
         self, 
@@ -323,18 +440,17 @@ class MCPSafetyComplianceAgent:
             Generate a response that includes:
             1. Natural language explanation of the results
             2. Structured data summary
-            3. Actionable safety recommendations
-            4. Compliance guidance
-            5. Confidence assessment
+            3. Actionable recommendations
+            4. Confidence assessment
             
             Return JSON format:
             {{
-                "response_type": "safety_compliance",
-                "data": {{"incidents": [], "checklists": [], "alerts": []}},
+                "response_type": "safety_info",
+                "data": {{"incidents": [], "compliance": {{}}, "hazards": []}},
                 "natural_language": "Based on the tool results...",
-                "recommendations": ["Safety recommendation 1", "Compliance action 2"],
+                "recommendations": ["Recommendation 1", "Recommendation 2"],
                 "confidence": 0.85,
-                "actions_taken": [{{"action": "tool_execution", "tool": "log_incident"}}]
+                "actions_taken": [{{"action": "tool_execution", "tool": "report_incident"}}]
             }}
             """
             
@@ -346,7 +462,7 @@ class MCPSafetyComplianceAgent:
             except json.JSONDecodeError:
                 # Fallback response
                 response_data = {
-                    "response_type": "safety_compliance",
+                    "response_type": "safety_info",
                     "data": {"results": successful_results},
                     "natural_language": f"Based on the available data, here's what I found regarding your safety query: {query.user_query}",
                     "recommendations": ["Please review the safety status and take appropriate action if needed."],
@@ -355,7 +471,7 @@ class MCPSafetyComplianceAgent:
                 }
             
             return MCPSafetyResponse(
-                response_type=response_data.get("response_type", "safety_compliance"),
+                response_type=response_data.get("response_type", "safety_info"),
                 data=response_data.get("data", {}),
                 natural_language=response_data.get("natural_language", ""),
                 recommendations=response_data.get("recommendations", []),
@@ -408,3 +524,14 @@ class MCPSafetyComplianceAgent:
             "conversation_contexts": len(self.conversation_context),
             "mcp_discovery_status": self.tool_discovery.get_discovery_status() if self.tool_discovery else None
         }
+
+# Global MCP safety agent instance
+_mcp_safety_agent = None
+
+async def get_mcp_safety_agent() -> MCPSafetyComplianceAgent:
+    """Get the global MCP safety agent instance."""
+    global _mcp_safety_agent
+    if _mcp_safety_agent is None:
+        _mcp_safety_agent = MCPSafetyComplianceAgent()
+        await _mcp_safety_agent.initialize()
+    return _mcp_safety_agent

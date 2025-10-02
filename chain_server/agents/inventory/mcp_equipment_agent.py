@@ -108,7 +108,8 @@ class MCPEquipmentAssetOperationsAgent:
         self,
         query: str,
         session_id: str = "default",
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        mcp_results: Optional[Any] = None
     ) -> MCPEquipmentResponse:
         """
         Process an equipment/asset operations query with MCP integration.
@@ -117,6 +118,7 @@ class MCPEquipmentAssetOperationsAgent:
             query: User's equipment/asset query
             session_id: Session identifier for context
             context: Additional context
+            mcp_results: Optional MCP execution results from planner graph
             
         Returns:
             MCPEquipmentResponse with MCP tool execution results
@@ -137,16 +139,23 @@ class MCPEquipmentAssetOperationsAgent:
             # Parse query and identify intent
             parsed_query = await self._parse_equipment_query(query, context)
             
-            # Discover available MCP tools for this query
-            available_tools = await self._discover_relevant_tools(parsed_query)
-            parsed_query.mcp_tools = [tool.tool_id for tool in available_tools]
-            
-            # Create tool execution plan
-            execution_plan = await self._create_tool_execution_plan(parsed_query, available_tools)
-            parsed_query.tool_execution_plan = execution_plan
-            
-            # Execute tools and gather results
-            tool_results = await self._execute_tool_plan(execution_plan)
+            # Use MCP results if provided, otherwise discover tools
+            if mcp_results and hasattr(mcp_results, 'tool_results'):
+                # Use results from MCP planner graph
+                tool_results = mcp_results.tool_results
+                parsed_query.mcp_tools = list(tool_results.keys()) if tool_results else []
+                parsed_query.tool_execution_plan = []
+            else:
+                # Discover available MCP tools for this query
+                available_tools = await self._discover_relevant_tools(parsed_query)
+                parsed_query.mcp_tools = [tool.tool_id for tool in available_tools]
+                
+                # Create tool execution plan
+                execution_plan = await self._create_tool_execution_plan(parsed_query, available_tools)
+                parsed_query.tool_execution_plan = execution_plan
+                
+                # Execute tools and gather results
+                tool_results = await self._execute_tool_plan(execution_plan)
             
             # Generate response using LLM with tool results
             response = await self._generate_response_with_tools(parsed_query, tool_results)
@@ -519,3 +528,14 @@ class MCPEquipmentAssetOperationsAgent:
             "conversation_contexts": len(self.conversation_context),
             "mcp_discovery_status": self.tool_discovery.get_discovery_status() if self.tool_discovery else None
         }
+
+# Global MCP equipment agent instance
+_mcp_equipment_agent = None
+
+async def get_mcp_equipment_agent() -> MCPEquipmentAssetOperationsAgent:
+    """Get the global MCP equipment agent instance."""
+    global _mcp_equipment_agent
+    if _mcp_equipment_agent is None:
+        _mcp_equipment_agent = MCPEquipmentAssetOperationsAgent()
+        await _mcp_equipment_agent.initialize()
+    return _mcp_equipment_agent
