@@ -141,6 +141,76 @@ async def get_all_equipment(
         logger.error(f"Failed to get equipment assets: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve equipment assets")
 
+@router.get("/equipment/assignments/test")
+async def test_assignments():
+    """Test assignments endpoint."""
+    return {"message": "Assignments endpoint is working"}
+
+@router.get("/equipment/assignments", response_model=List[EquipmentAssignment])
+async def get_equipment_assignments(
+    asset_id: Optional[str] = None,
+    assignee: Optional[str] = None,
+    active_only: bool = True
+):
+    """Get equipment assignments."""
+    try:
+        await sql_retriever.initialize()
+        
+        # Build the query based on parameters
+        query_parts = ["SELECT id, asset_id, task_id, assignee, assignment_type, assigned_at, released_at, notes FROM equipment_assignments"]
+        params = []
+        param_count = 0
+        
+        conditions = []
+        
+        if asset_id:
+            param_count += 1
+            conditions.append(f"asset_id = ${param_count}")
+            params.append(asset_id)
+            
+        if assignee:
+            param_count += 1
+            conditions.append(f"assignee = ${param_count}")
+            params.append(assignee)
+            
+        if active_only:
+            conditions.append("released_at IS NULL")
+            
+        if conditions:
+            query_parts.append("WHERE " + " AND ".join(conditions))
+            
+        query_parts.append("ORDER BY assigned_at DESC")
+        
+        query = " ".join(query_parts)
+        
+        logger.info(f"Executing assignments query: {query}")
+        logger.info(f"Query parameters: {params}")
+        
+        # Execute the query
+        results = await sql_retriever.execute_query(query, tuple(params))
+        
+        # Convert results to EquipmentAssignment objects
+        assignments = []
+        for row in results:
+            assignment = EquipmentAssignment(
+                id=row['id'],
+                asset_id=row['asset_id'],
+                task_id=row['task_id'],
+                assignee=row['assignee'],
+                assignment_type=row['assignment_type'],
+                assigned_at=row['assigned_at'].isoformat() if row['assigned_at'] else None,
+                released_at=row['released_at'].isoformat() if row['released_at'] else None,
+                notes=row['notes']
+            )
+            assignments.append(assignment)
+            
+        logger.info(f"Found {len(assignments)} assignments")
+        return assignments
+        
+    except Exception as e:
+        logger.error(f"Failed to get equipment assignments: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve equipment assignments: {str(e)}")
+
 @router.get("/equipment/{asset_id}", response_model=EquipmentAsset)
 async def get_equipment_by_id(asset_id: str):
     """Get a specific equipment asset by asset_id."""
@@ -362,22 +432,3 @@ async def get_maintenance_schedule(
         logger.error(f"Failed to get maintenance schedule: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve maintenance schedule")
 
-@router.get("/equipment/assignments/test")
-async def test_assignments():
-    """Test assignments endpoint."""
-    return {"message": "Assignments endpoint is working"}
-
-@router.get("/equipment/assignments", response_model=List[EquipmentAssignment])
-async def get_equipment_assignments(
-    asset_id: Optional[str] = None,
-    assignee: Optional[str] = None,
-    active_only: bool = True
-):
-    """Get equipment assignments."""
-    try:
-        # Return empty list for now - this will allow UI to load equipment dropdown
-        return []
-        
-    except Exception as e:
-        logger.error(f"Failed to get equipment assignments: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve equipment assignments: {str(e)}")
