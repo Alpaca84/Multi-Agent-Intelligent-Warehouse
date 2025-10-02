@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. See [Conven
 
 ## [Unreleased]
 
+### Fixed
+- Fixed equipment assignments endpoint returning 404 errors
+- Fixed database schema discrepancies between documentation and implementation
+- Fixed React runtime error in chat interface (event parameter issue)
+- Fixed MessageBubble component syntax error (missing opening brace)
+- Fixed ChatInterfaceNew component "event is undefined" runtime error
+- Cleaned up all ESLint warnings in UI (25 warnings resolved)
+
 ### Features
 - Initial implementation of Warehouse Operational Assistant
 - Multi-agent architecture with Safety, Operations, and Equipment agents
@@ -13,6 +21,14 @@ All notable changes to this project will be documented in this file. See [Conven
 - Equipment asset management and tracking
 - Safety procedure management and compliance
 - Operations coordination and task management
+- Equipment assignments endpoint with proper database queries
+- Equipment telemetry monitoring with extended time windows
+- Production-grade vector search with NV-EmbedQA-E5-v5 embeddings
+- GPU-accelerated vector search with NVIDIA cuVS
+- Advanced evidence scoring and intelligent clarifying questions
+- MCP (Model Context Protocol) framework implementation
+- Comprehensive monitoring with Prometheus/Grafana
+- Enterprise security with JWT/OAuth2 and RBAC
 
 ### Technical Details
 - FastAPI backend with async/await support

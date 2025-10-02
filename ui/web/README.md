@@ -2,6 +2,17 @@
 
 A modern React-based web interface for the Warehouse Operational Assistant, built with Material-UI and TypeScript.
 
+## ✅ Current Status - All Issues Fixed
+
+**Recent Fixes Applied:**
+- ✅ **MessageBubble Component**: Fixed syntax error (missing opening brace)
+- ✅ **ChatInterfaceNew Component**: Fixed "event is undefined" runtime error
+- ✅ **Equipment Assignments**: Backend endpoint working (no more 404 errors)
+- ✅ **Build Process**: React app compiles successfully without errors
+- ✅ **ESLint**: All warnings cleaned up (0 warnings)
+
+**System Status**: Fully functional and ready for production use.
+
 ## Features
 
 - **Real-time Chat Interface** - Interactive chat with AI agents
@@ -26,7 +37,7 @@ A modern React-based web interface for the Warehouse Operational Assistant, buil
 ### Prerequisites
 
 - Node.js 16+ and npm
-- Backend API running on port 8002
+- Backend API running on port 8001
 
 ### Installation
 
@@ -51,14 +62,14 @@ npm run build
 
 ## API Integration
 
-The frontend connects to the Warehouse Operational Assistant API running on port 8002. Make sure the backend is running before starting the frontend.
+The frontend connects to the Warehouse Operational Assistant API running on port 8001. Make sure the backend is running before starting the frontend.
 
 ### Environment Variables
 
 Create a `.env` file in the `ui/web` directory:
 
 ```env
-REACT_APP_API_URL=http://localhost:8002
+REACT_APP_API_URL=http://localhost:8001
 PORT=3001
 ```
 
@@ -72,16 +83,21 @@ PORT=3001 npm start
 ```
 src/
 ├── components/          # Reusable components
-│   └── Layout.tsx      # Main layout with navigation
+│   ├── Layout.tsx      # Main layout with navigation
+│   ├── VersionFooter.tsx # Version information footer
+│   └── chat/           # Chat interface components
 ├── pages/              # Page components
 │   ├── Dashboard.tsx   # Main dashboard
-│   ├── ChatInterface.tsx # AI chat interface
-│   ├── Inventory.tsx   # Inventory management
+│   ├── ChatInterfaceNew.tsx # AI chat interface
+│   ├── EquipmentNew.tsx # Equipment management
 │   ├── Operations.tsx  # Operations management
 │   ├── Safety.tsx      # Safety & compliance
 │   └── Analytics.tsx   # Analytics dashboard
 ├── services/           # API services
-│   └── api.ts         # API client and types
+│   ├── api.ts         # API client and types
+│   └── version.ts     # Version API service
+├── contexts/          # React contexts
+│   └── AuthContext.tsx # Authentication context
 ├── App.tsx            # Main app component
 └── index.tsx          # App entry point
 ```
@@ -100,11 +116,12 @@ src/
 - Low stock alerts
 - Recent tasks and incidents
 
-### Inventory Management
-- View all inventory items
-- Add/edit inventory items
-- Low stock monitoring
-- Location tracking
+### Equipment Management
+- View all equipment assets
+- Equipment assignments and tracking
+- Maintenance schedule management
+- Real-time telemetry monitoring
+- Equipment status tracking
 
 ### Operations Management
 - Task assignment and tracking

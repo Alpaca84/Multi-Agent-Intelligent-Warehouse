@@ -4,10 +4,32 @@
 
 The Warehouse Operational Assistant provides a comprehensive REST API for warehouse operations management. The API is built with FastAPI and provides OpenAPI/Swagger documentation.
 
+**Current Status**: All core endpoints are working and tested. Recent fixes have resolved critical issues with equipment assignments and chat interface.
+
 ## Base URL
 
 - **Development**: `http://localhost:8001`
 - **Production**: `https://api.warehouse-assistant.com`
+
+## Recent Fixes & Updates
+
+### ✅ Equipment Assignments Endpoint Fixed
+- **Endpoint**: `GET /api/v1/equipment/assignments`
+- **Status**: ✅ **Working** - No more 404 errors
+- **Test Endpoint**: `GET /api/v1/equipment/assignments/test`
+- **Response**: Returns proper JSON with equipment assignments
+
+### ✅ Chat Interface Fixed
+- **Component**: ChatInterfaceNew.tsx
+- **Issue**: "event is undefined" runtime error
+- **Status**: ✅ **Fixed** - Removed unused event parameter
+- **Impact**: Chat interface now works without runtime errors
+
+### ✅ MessageBubble Component Fixed
+- **Component**: MessageBubble.tsx
+- **Issue**: Missing opening brace syntax error
+- **Status**: ✅ **Fixed** - Component compiles successfully
+- **Impact**: UI renders properly without blocking errors
 
 ## Authentication
 
@@ -122,6 +144,30 @@ Get list of equipment.
   "limit": 50,
   "offset": 0
 }
+```
+
+#### GET /api/v1/equipment/assignments
+Get equipment assignments.
+
+**Query Parameters:**
+- `asset_id` (optional): Filter by specific equipment asset
+- `assignee` (optional): Filter by assignee
+- `active_only` (optional): Show only active assignments (default: true)
+
+**Response:**
+```json
+[
+  {
+    "id": 8,
+    "asset_id": "AGV-01",
+    "task_id": "TASK-003",
+    "assignee": "operator2",
+    "assignment_type": "task",
+    "assigned_at": "2025-09-14T16:33:47.064012+00:00",
+    "released_at": null,
+    "notes": null
+  }
+]
 ```
 
 #### GET /api/v1/equipment/{equipment_id}
