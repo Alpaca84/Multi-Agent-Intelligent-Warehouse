@@ -192,7 +192,13 @@ Return JSON format:
     "context": {"priority": "high", "shift": "morning"}
 }
 
-Intent options: workforce_management, task_assignment, shift_planning, kpi_analysis, performance_monitoring, resource_allocation
+Intent options: workforce_management, task_assignment, shift_planning, kpi_analysis, performance_monitoring, resource_allocation, wave_creation, order_management, workflow_optimization
+
+Examples:
+- "Create a wave for orders 1001-1010" → {"intent": "wave_creation", "entities": {"order_range": "1001-1010", "zone": "A"}, "context": {"priority": "normal"}}
+- "Assign workers to Zone A" → {"intent": "workforce_management", "entities": {"zone": "A"}, "context": {"priority": "normal"}}
+- "Schedule pick operations" → {"intent": "task_assignment", "entities": {"operation_type": "pick"}, "context": {"priority": "normal"}}
+
 Return only valid JSON."""
                 },
                 {
@@ -430,9 +436,16 @@ Return JSON format:
     "actions_taken": [{"action": "tool_execution", "tool": "get_workforce_status"}]
 }
 
+Response types based on intent:
+- wave_creation: "wave_creation" with wave details and order information
+- order_management: "order_management" with order status and processing info
+- workforce_management: "workforce_management" with worker assignments and status
+- task_assignment: "task_assignment" with task details and assignments
+- workflow_optimization: "workflow_optimization" with optimization recommendations
+
 Include:
 1. Natural language explanation of results
-2. Structured data summary
+2. Structured data summary appropriate for the intent
 3. Actionable recommendations
 4. Confidence assessment
 Return only valid JSON."""
