@@ -183,22 +183,26 @@ class MCPEquipmentAssetOperationsAgent:
         """Parse equipment query and extract intent and entities."""
         try:
             # Use LLM to parse the query
-            parse_prompt = f"""
-            Parse this equipment/asset operations query and extract:
-            1. Intent (equipment_lookup, assignment, utilization, maintenance, availability, telemetry, safety)
-            2. Entities (equipment_id, equipment_type, zone, status, etc.)
-            3. Context (priority, urgency, specific requirements)
-            
-            Query: "{query}"
-            Context: {context or {}}
-            
-            Return JSON format:
-            {{
-                "intent": "equipment_lookup",
-                "entities": {{"equipment_id": "EQ001", "equipment_type": "forklift"}},
-                "context": {{"priority": "high", "zone": "A"}}
-            }}
-            """
+            parse_prompt = [
+                {
+                    "role": "system",
+                    "content": """You are an equipment operations expert. Parse warehouse queries and extract intent, entities, and context.
+
+Return JSON format:
+{
+    "intent": "equipment_lookup",
+    "entities": {"equipment_id": "EQ001", "equipment_type": "forklift"},
+    "context": {"priority": "high", "zone": "A"}
+}
+
+Intent options: equipment_lookup, assignment, utilization, maintenance, availability, telemetry, safety
+Return only valid JSON."""
+                },
+                {
+                    "role": "user",
+                    "content": f"Query: \"{query}\"\nContext: {context or {}}"
+                }
+            ]
             
             response = await self.nim_client.generate_response(parse_prompt)
             
@@ -427,36 +431,42 @@ class MCPEquipmentAssetOperationsAgent:
             failed_results = {k: v for k, v in tool_results.items() if not v.get("success", False)}
             
             # Create response prompt
-            response_prompt = f"""
-            You are an Equipment & Asset Operations Agent. Generate a comprehensive response based on the user query and tool execution results.
-            
-            User Query: "{query.user_query}"
-            Intent: {query.intent}
-            Entities: {query.entities}
-            Context: {query.context}
-            
-            Tool Execution Results:
-            {json.dumps(successful_results, indent=2)}
-            
-            Failed Tool Executions:
-            {json.dumps(failed_results, indent=2)}
-            
-            Generate a response that includes:
-            1. Natural language explanation of the results
-            2. Structured data summary
-            3. Actionable recommendations
-            4. Confidence assessment
-            
-            Return JSON format:
-            {{
-                "response_type": "equipment_info",
-                "data": {{"equipment": [], "status": "operational"}},
-                "natural_language": "Based on the tool results...",
-                "recommendations": ["Recommendation 1", "Recommendation 2"],
-                "confidence": 0.85,
-                "actions_taken": [{{"action": "tool_execution", "tool": "get_equipment_status"}}]
-            }}
-            """
+            response_prompt = [
+                {
+                    "role": "system",
+                    "content": """You are an Equipment & Asset Operations Agent. Generate comprehensive responses based on user queries and tool execution results.
+
+Return JSON format:
+{
+    "response_type": "equipment_info",
+    "data": {"equipment": [], "status": "operational"},
+    "natural_language": "Based on the tool results...",
+    "recommendations": ["Recommendation 1", "Recommendation 2"],
+    "confidence": 0.85,
+    "actions_taken": [{"action": "tool_execution", "tool": "get_equipment_status"}]
+}
+
+Include:
+1. Natural language explanation of results
+2. Structured data summary
+3. Actionable recommendations
+4. Confidence assessment
+Return only valid JSON."""
+                },
+                {
+                    "role": "user",
+                    "content": f"""User Query: "{query.user_query}"
+Intent: {query.intent}
+Entities: {query.entities}
+Context: {query.context}
+
+Tool Execution Results:
+{json.dumps(successful_results, indent=2)}
+
+Failed Tool Executions:
+{json.dumps(failed_results, indent=2)}"""
+                }
+            ]
             
             response = await self.nim_client.generate_response(response_prompt)
             
