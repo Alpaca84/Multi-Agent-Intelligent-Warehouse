@@ -442,6 +442,8 @@ Return only valid JSON."""
                     "role": "system",
                     "content": """You are an Equipment & Asset Operations Agent. Generate comprehensive responses based on user queries and tool execution results.
 
+IMPORTANT: You MUST return ONLY valid JSON. Do not include any text before or after the JSON.
+
 Return JSON format:
 {
     "response_type": "equipment_info",
@@ -454,17 +456,30 @@ Return JSON format:
 
 Response types based on intent:
 - equipment_lookup: "equipment_info" with equipment details
-- equipment_dispatch: "equipment_dispatch" with dispatch status and location
+- equipment_dispatch: "equipment_dispatch" with dispatch status, location, and equipment details
 - equipment_assignment: "equipment_assignment" with assignment details
 - equipment_maintenance: "equipment_maintenance" with maintenance status
 - equipment_availability: "equipment_availability" with availability status
 
-Include:
-1. Natural language explanation of results
-2. Structured data summary appropriate for the intent
-3. Actionable recommendations
-4. Confidence assessment
-Return only valid JSON."""
+For equipment_dispatch intent, generate specific dispatch information:
+{
+    "response_type": "equipment_dispatch",
+    "data": {
+        "equipment_id": "FL-02",
+        "equipment_type": "forklift",
+        "destination": "Zone A",
+        "operation": "pick operations",
+        "status": "dispatched",
+        "dispatch_time": "2024-01-15T17:15:00Z",
+        "estimated_arrival": "2024-01-15T17:20:00Z"
+    },
+    "natural_language": "Forklift FL-02 has been successfully dispatched to Zone A for pick operations. Estimated arrival time is 5 minutes.",
+    "recommendations": ["Monitor forklift FL-02 progress to Zone A", "Ensure Zone A is ready for pick operations"],
+    "confidence": 0.9,
+    "actions_taken": [{"action": "dispatch_equipment", "equipment_id": "FL-02", "destination": "Zone A"}]
+}
+
+CRITICAL: Return ONLY the JSON object, no other text."""
                 },
                 {
                     "role": "user",
@@ -486,7 +501,9 @@ Failed Tool Executions:
             # Parse JSON response
             try:
                 response_data = json.loads(response.content)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse LLM response as JSON: {e}")
+                logger.warning(f"Raw LLM response: {response.content}")
                 # Fallback response
                 response_data = {
                     "response_type": "equipment_info",
