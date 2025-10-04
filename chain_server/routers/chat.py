@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import logging
-from chain_server.graphs.planner_graph import process_warehouse_query
+from chain_server.graphs.mcp_integrated_planner_graph import get_mcp_planner_graph
 from chain_server.services.guardrails.guardrails_service import guardrails_service
 
 logger = logging.getLogger(__name__)
@@ -48,9 +48,10 @@ async def chat(req: ChatRequest):
                 confidence=input_safety.confidence
             )
         
-        # Process the query through the planner graph with error handling
+        # Process the query through the MCP planner graph with error handling
         try:
-            result = await process_warehouse_query(
+            mcp_planner = await get_mcp_planner_graph()
+            result = await mcp_planner.process_warehouse_query(
                 message=req.message,
                 session_id=req.session_id or "default",
                 context=req.context
@@ -81,7 +82,7 @@ async def chat(req: ChatRequest):
             )
         
         # Extract structured response if available
-        structured_response = result.get("context", {}).get("structured_response", {})
+        structured_response = result.get("structured_response", {})
         
         return ChatResponse(
             reply=result["response"],
@@ -89,7 +90,7 @@ async def chat(req: ChatRequest):
             intent=result["intent"],
             session_id=result["session_id"],
             context=result.get("context"),
-            structured_data=structured_response.get("structured_data"),
+            structured_data=structured_response.get("data"),
             recommendations=structured_response.get("recommendations"),
             confidence=structured_response.get("confidence"),
             actions_taken=structured_response.get("actions_taken")

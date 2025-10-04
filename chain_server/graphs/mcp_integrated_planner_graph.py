@@ -477,7 +477,26 @@ class MCPPlannerGraph:
                 agent_response = agent_responses[routing_decision]
                 
                 # Handle MCP response format
-                if isinstance(agent_response, dict) and "natural_language" in agent_response:
+                if hasattr(agent_response, "natural_language"):
+                    # Convert dataclass to dict
+                    if hasattr(agent_response, "__dict__"):
+                        agent_response_dict = agent_response.__dict__
+                    else:
+                        # Use asdict for dataclasses
+                        from dataclasses import asdict
+                        agent_response_dict = asdict(agent_response)
+                    
+                    final_response = agent_response_dict["natural_language"]
+                    # Store structured data in context for API response
+                    state["context"]["structured_response"] = agent_response_dict
+                    
+                    # Add MCP tool information to context
+                    if "mcp_tools_used" in agent_response_dict:
+                        state["context"]["mcp_tools_used"] = agent_response_dict["mcp_tools_used"]
+                    if "tool_execution_results" in agent_response_dict:
+                        state["context"]["tool_execution_results"] = agent_response_dict["tool_execution_results"]
+                    
+                elif isinstance(agent_response, dict) and "natural_language" in agent_response:
                     final_response = agent_response["natural_language"]
                     # Store structured data in context for API response
                     state["context"]["structured_response"] = agent_response
@@ -552,13 +571,19 @@ class MCPPlannerGraph:
             # Run the graph asynchronously
             result = await self.graph.ainvoke(initial_state)
             
+            # Ensure structured response is properly included
+            context = result.get("context", {})
+            structured_response = context.get("structured_response", {})
+            
+            
             return {
                 "response": result.get("final_response", "No response generated"),
                 "intent": result.get("user_intent", "unknown"),
                 "route": result.get("routing_decision", "unknown"),
                 "session_id": session_id,
-                "context": result.get("context", {}),
-                "mcp_tools_used": result.get("context", {}).get("mcp_tools_used", []),
+                "context": context,
+                "structured_response": structured_response,  # Explicitly include structured response
+                "mcp_tools_used": context.get("mcp_tools_used", []),
                 "available_tools": result.get("available_tools", [])
             }
             
