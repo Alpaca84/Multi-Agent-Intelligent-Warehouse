@@ -43,8 +43,8 @@ import {
   Dashboard as DashboardIcon,
   ArrowBack as ArrowBackIcon,
   CheckCircle as CheckCircleIcon,
-  Docker as DockerIcon,
-  Kubernetes as KubernetesIcon,
+  Storage as DockerIcon,
+  AccountTree as KubernetesIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
