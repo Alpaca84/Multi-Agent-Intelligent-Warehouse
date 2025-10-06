@@ -5,7 +5,8 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: warehouse-prometheus
-    network_mode: host
+    ports:
+      - "9090:9090"
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/prometheus/rules:/etc/prometheus/rules
@@ -18,6 +19,8 @@ services:
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
+    networks:
+      - monitoring
     restart: unless-stopped
 
   # Grafana - Visualization and dashboards
