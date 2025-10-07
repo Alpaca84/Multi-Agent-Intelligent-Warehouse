@@ -5,11 +5,11 @@ This repository uses GitHub Dependabot to automatically manage dependency update
 
 ## Configuration Features
 
-### 🔄 Auto-Merge Strategy
-- **Security Updates**: Automatically merged for critical security patches
-- **Patch Updates**: Automatically merged for bug fixes (patch versions)
+### 🔄 Update Strategy
+- **Security Updates**: Manual review required (GitHub will alert you)
+- **Patch Updates**: Manual review required for bug fixes (patch versions)
 - **Minor Updates**: Manual review required
-- **Major Updates**: Manual review required with special attention to breaking changes
+- **Major Updates**: Blocked for critical packages, manual review for others
 
 ### 📅 Update Schedule
 - **Python/NPM/Docker/GitHub Actions**: Weekly updates (Mondays at 9:00 AM)
@@ -39,17 +39,14 @@ Major version updates are ignored for critical packages to prevent breaking chan
 
 ## How to Handle Dependabot PRs
 
-### ✅ Auto-Merged Updates
-These updates are automatically merged:
-- Security patches
-- Bug fixes (patch versions)
-- Docker image patches
-- GitHub Actions patches
-
 ### 🔍 Manual Review Required
-These updates require manual review:
+All updates require manual review for safety:
+- Security patches (GitHub will alert you)
+- Bug fixes (patch versions)
 - Minor version updates
-- Major version updates
+- Major version updates (blocked for critical packages)
+- Docker image updates
+- GitHub Actions updates
 - Helm chart updates
 
 ### 📋 Review Checklist
@@ -78,11 +75,12 @@ When reviewing Dependabot PRs:
 ## Emergency Procedures
 
 ### 🚨 Security Updates
-Security updates are automatically merged but should be monitored:
+Security updates require immediate attention:
 1. Check security advisory details
 2. Verify the fix addresses the vulnerability
 3. Test the application thoroughly
 4. Deploy to production quickly
+5. Monitor for any issues after deployment
 
 ### 🔄 Rollback Strategy
 If an update causes issues:

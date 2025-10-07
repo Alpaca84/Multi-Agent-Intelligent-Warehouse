@@ -19,16 +19,6 @@ updates:
       - "dependencies"
       - "python"
       - "backend"
-    # Auto-merge for security updates and patch versions
-    auto-merge:
-      enabled: true
-      labels:
-        - "dependencies"
-        - "security"
-      # Only auto-merge patch updates and security fixes
-      match:
-        dependency-type: "all"
-        update-type: "security:patch"
     # Ignore major version updates for critical packages
     ignore:
       - dependency-name: "fastapi"
@@ -57,15 +47,6 @@ updates:
       - "dependencies"
       - "javascript"
       - "frontend"
-    # Auto-merge for security updates and patch versions
-    auto-merge:
-      enabled: true
-      labels:
-        - "dependencies"
-        - "security"
-      match:
-        dependency-type: "all"
-        update-type: "security:patch"
     # Ignore major version updates for critical packages
     ignore:
       - dependency-name: "react"
@@ -98,15 +79,6 @@ updates:
       - "dependencies"
       - "docker"
       - "infrastructure"
-    # Auto-merge for patch updates
-    auto-merge:
-      enabled: true
-      labels:
-        - "dependencies"
-        - "docker"
-      match:
-        dependency-type: "all"
-        update-type: "version-update:semver-patch"
 
   # GitHub Actions - CI/CD workflows
   - package-ecosystem: "github-actions"
@@ -127,15 +99,6 @@ updates:
       - "dependencies"
       - "github-actions"
       - "ci-cd"
-    # Auto-merge for patch updates
-    auto-merge:
-      enabled: true
-      labels:
-        - "dependencies"
-        - "github-actions"
-      match:
-        dependency-type: "all"
-        update-type: "version-update:semver-patch"
 
   # Helm Charts - Kubernetes deployments
   - package-ecosystem: "helm"
@@ -156,6 +119,3 @@ updates:
       - "dependencies"
       - "helm"
       - "kubernetes"
-    # Manual review for Helm updates
-    auto-merge:
-      enabled: false
