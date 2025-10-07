@@ -62,12 +62,25 @@ class IntentClassifier:
         "issues", "problem", "concern", "violation", "breach"
     ]
     
+    DOCUMENT_KEYWORDS = [
+        "document", "upload", "scan", "extract", "process", "pdf", "image", 
+        "invoice", "receipt", "bol", "bill of lading", "purchase order", "po",
+        "quality", "validation", "approve", "review", "ocr", "text extraction",
+        "file", "photo", "picture", "documentation", "paperwork", "neural",
+        "nemo", "retriever", "parse", "vision", "multimodal", "document processing",
+        "document analytics", "document search", "document status"
+    ]
+    
     @classmethod
     def classify_intent(cls, message: str) -> str:
         """Classify user intent based on message content."""
         message_lower = message.lower()
         
-        # Check for safety-related keywords first (highest priority)
+        # Check for document-related keywords first (high priority)
+        if any(keyword in message_lower for keyword in cls.DOCUMENT_KEYWORDS):
+            return "document"
+        
+        # Check for safety-related keywords (highest priority)
         if any(keyword in message_lower for keyword in cls.SAFETY_KEYWORDS):
             return "safety"
         
@@ -248,6 +261,47 @@ async def safety_agent(state: WarehouseState) -> WarehouseState:
     
     return state
 
+async def document_agent(state: WarehouseState) -> WarehouseState:
+    """Handle document-related queries using the Document Extraction Agent."""
+    try:
+        # Get the latest user message
+        if not state["messages"]:
+            state["agent_responses"]["document"] = "No message to process"
+            return state
+            
+        latest_message = state["messages"][-1]
+        if isinstance(latest_message, HumanMessage):
+            message_text = latest_message.content
+        else:
+            message_text = str(latest_message.content)
+        
+        # Get session ID from context
+        session_id = state.get("session_id", "default")
+        
+        # Process with Document Extraction Agent
+        response = await _process_document_query(
+            query=message_text,
+            session_id=session_id,
+            context=state.get("context", {})
+        )
+        
+        # Store the response dict directly
+        state["agent_responses"]["document"] = response
+        
+        logger.info(f"Document agent processed request with confidence: {response.get('confidence', 0)}")
+        
+    except Exception as e:
+        logger.error(f"Error in document agent: {e}")
+        state["agent_responses"]["document"] = {
+            "natural_language": f"Error processing document request: {str(e)}",
+            "structured_data": {"error": str(e)},
+            "recommendations": [],
+            "confidence": 0.0,
+            "response_type": "error"
+        }
+    
+    return state
+
 def general_agent(state: WarehouseState) -> WarehouseState:
     """Handle general queries that don't fit specific categories."""
     try:
@@ -315,6 +369,7 @@ def create_planner_graph() -> StateGraph:
     workflow.add_node("equipment", equipment_agent)
     workflow.add_node("operations", operations_agent)
     workflow.add_node("safety", safety_agent)
+    workflow.add_node("document", document_agent)
     workflow.add_node("general", general_agent)
     workflow.add_node("synthesize", synthesize_response)
     
@@ -329,6 +384,7 @@ def create_planner_graph() -> StateGraph:
             "equipment": "equipment",
             "operations": "operations", 
             "safety": "safety",
+            "document": "document",
             "general": "general"
         }
     )
@@ -337,6 +393,7 @@ def create_planner_graph() -> StateGraph:
     workflow.add_edge("equipment", "synthesize")
     workflow.add_edge("operations", "synthesize")
     workflow.add_edge("safety", "synthesize")
+    workflow.add_edge("document", "synthesize")
     workflow.add_edge("general", "synthesize")
     
     # Add edge from synthesis to end
@@ -395,6 +452,47 @@ async def process_warehouse_query(
             "session_id": session_id,
             "context": {}
         }
+
+async def _process_document_query(query: str, session_id: str, context: Dict) -> Any:
+    """Async document agent processing."""
+    try:
+        from chain_server.agents.document.mcp_document_agent import get_mcp_document_agent
+        
+        # Get document agent
+        document_agent = await get_mcp_document_agent()
+        
+        # Process query
+        response = await document_agent.process_query(
+            query=query,
+            session_id=session_id,
+            context=context
+        )
+        
+        # Convert DocumentResponse to dict
+        if hasattr(response, '__dict__'):
+            return response.__dict__
+        else:
+            return {
+                "response_type": getattr(response, 'response_type', 'unknown'),
+                "data": getattr(response, 'data', {}),
+                "natural_language": getattr(response, 'natural_language', ''),
+                "recommendations": getattr(response, 'recommendations', []),
+                "confidence": getattr(response, 'confidence', 0.0),
+                "actions_taken": getattr(response, 'actions_taken', [])
+            }
+        
+    except Exception as e:
+        logger.error(f"Document processing failed: {e}")
+        # Return a fallback response
+        from chain_server.agents.document.models.document_models import DocumentResponse
+        return DocumentResponse(
+            response_type="error",
+            data={"error": str(e)},
+            natural_language=f"Error processing document query: {str(e)}",
+            recommendations=[],
+            confidence=0.0,
+            actions_taken=[]
+        )
 
 # Legacy function for backward compatibility
 def route_intent(text: str) -> str:

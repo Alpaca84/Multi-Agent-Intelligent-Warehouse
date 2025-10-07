@@ -28,6 +28,7 @@ import {
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon,
   Article as DocumentationIcon,
+  Description as DocumentIcon,
   Logout,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -45,6 +46,7 @@ const menuItems = [
   { text: 'Equipment & Assets', icon: <EquipmentIcon />, path: '/equipment' },
   { text: 'Operations', icon: <OperationsIcon />, path: '/operations' },
   { text: 'Safety', icon: <SafetyIcon />, path: '/safety' },
+  { text: 'Document Extraction', icon: <DocumentIcon />, path: '/documents' },
   { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
   { text: 'Documentation', icon: <DocumentationIcon />, path: '/documentation' },
   { text: 'MCP Testing', icon: <SettingsIcon />, path: '/mcp-test' },

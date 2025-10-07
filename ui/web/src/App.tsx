@@ -12,6 +12,7 @@ import Operations from './pages/Operations';
 import Safety from './pages/Safety';
 import Analytics from './pages/Analytics';
 import Documentation from './pages/Documentation';
+import DocumentExtraction from './pages/DocumentExtraction';
 import MCPIntegrationGuide from './pages/MCPIntegrationGuide';
 import APIReference from './pages/APIReference';
 import DeploymentGuide from './pages/DeploymentGuide';
@@ -36,6 +37,7 @@ function App() {
                     <Route path="/equipment" element={<Equipment />} />
                     <Route path="/operations" element={<Operations />} />
                     <Route path="/safety" element={<Safety />} />
+                    <Route path="/documents" element={<DocumentExtraction />} />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/documentation" element={<Documentation />} />
                     <Route path="/documentation/mcp-integration" element={<MCPIntegrationGuide />} />
