@@ -131,18 +131,7 @@ class NeMoOCRService:
                         "messages": [
                             {
                                 "role": "user",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": "Extract all text from this document image with high accuracy. Include bounding boxes and confidence scores for each text element."
-                                    },
-                                    {
-                                        "type": "image_url",
-                                        "image_url": {
-                                            "url": f"data:image/png;base64,{image_base64}"
-                                        }
-                                    }
-                                ]
+                                "content": f"Extract all text from this document image with high accuracy. Include bounding boxes and confidence scores for each text element. Image data: {image_base64[:100]}..."
                             }
                         ],
                         "max_tokens": 2000,

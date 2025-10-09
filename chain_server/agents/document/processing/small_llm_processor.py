@@ -72,17 +72,21 @@ class SmallLLMProcessor:
             Structured data extracted from the document
         """
         try:
-            logger.info(f"Processing document with Small LLM (Nano VL 8B)")
+            logger.info(f"Processing document with Small LLM (Llama 3.1 70B)")
             
-            # Prepare multimodal input
-            multimodal_input = await self._prepare_multimodal_input(images, ocr_text, document_type)
-            
-            # Process with vision-language model
+            # Try multimodal processing first, fallback to text-only if it fails
             if not self.api_key:
                 # Mock implementation for development
                 result = await self._mock_llm_processing(document_type)
             else:
-                result = await self._call_nano_vl_api(multimodal_input)
+                try:
+                    # Try multimodal processing with vision-language model
+                    multimodal_input = await self._prepare_multimodal_input(images, ocr_text, document_type)
+                    result = await self._call_nano_vl_api(multimodal_input)
+                except Exception as multimodal_error:
+                    logger.warning(f"Multimodal processing failed, falling back to text-only: {multimodal_error}")
+                    # Fallback to text-only processing
+                    result = await self._call_text_only_api(ocr_text, document_type)
             
             # Post-process results
             structured_data = await self._post_process_results(result, document_type)
@@ -90,9 +94,9 @@ class SmallLLMProcessor:
             return {
                 "structured_data": structured_data,
                 "confidence": result.get("confidence", 0.8),
-                "model_used": "Llama-Nemotron-Nano-VL-8B",
+                "model_used": "Llama-3.1-70B-Instruct",
                 "processing_timestamp": datetime.now().isoformat(),
-                "multimodal_processed": True
+                "multimodal_processed": False  # Always text-only for now
             }
             
         except Exception as e:
@@ -231,6 +235,77 @@ class SmallLLMProcessor:
         }}
         """
     
+    async def _call_text_only_api(self, ocr_text: str, document_type: str) -> Dict[str, Any]:
+        """Call Llama 3.1 70B API with text-only input."""
+        try:
+            # Create a text-only prompt for document processing
+            prompt = f"""
+            Analyze the following {document_type} document text and extract structured data:
+
+            Document Text:
+            {ocr_text}
+
+            Please extract the following information in JSON format:
+            - invoice_number (if applicable)
+            - vendor/supplier name
+            - total_amount
+            - date
+            - line_items (array of items with description, quantity, price, total)
+            - any other relevant fields
+
+            Return only valid JSON without any additional text.
+            """
+            
+            messages = [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+            
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "meta/llama-3.1-70b-instruct",
+                        "messages": messages,
+                        "max_tokens": 2000,
+                        "temperature": 0.1
+                    }
+                )
+                response.raise_for_status()
+                
+                result = response.json()
+                
+                # Extract response content from chat completions
+                content = result["choices"][0]["message"]["content"]
+                
+                # Try to parse JSON response
+                try:
+                    parsed_content = json.loads(content)
+                    return {
+                        "structured_data": parsed_content,
+                        "confidence": 0.85,
+                        "raw_response": content,
+                        "processing_method": "text_only"
+                    }
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, return the raw content
+                    return {
+                        "structured_data": {"raw_text": content},
+                        "confidence": 0.7,
+                        "raw_response": content,
+                        "processing_method": "text_only"
+                    }
+                
+        except Exception as e:
+            logger.error(f"Text-only API call failed: {e}")
+            raise
+
     async def _call_nano_vl_api(self, multimodal_input: Dict[str, Any]) -> Dict[str, Any]:
         """Call Llama Nemotron Nano VL 8B API."""
         try:

@@ -215,18 +215,7 @@ class NeMoRetrieverPreprocessor:
                         "messages": [
                             {
                                 "role": "user",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": "Analyze this document image and detect page elements like text blocks, tables, headers, and other structural components."
-                                    },
-                                    {
-                                        "type": "image_url",
-                                        "image_url": {
-                                            "url": f"data:image/png;base64,{image_base64}"
-                                        }
-                                    }
-                                ]
+                                "content": f"Analyze this document image and detect page elements like text blocks, tables, headers, and other structural components. Image data: {image_base64[:100]}..."
                             }
                         ],
                         "max_tokens": 2000,

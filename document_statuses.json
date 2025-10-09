@@ -1990,5 +1990,75 @@
     "upload_time": "2025-10-08T22:35:44.103770",
     "estimated_completion": 1759988204.103771,
     "error_message": "Client error '400 Bad Request' for url 'https://integrate.api.nvidia.com/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+  },
+  "9d6cf7bf-0bd3-4932-aa0a-e1ec670e6d8f": {
+    "status": "completed",
+    "current_stage": "Completed",
+    "progress": 100.0,
+    "stages": [
+      {
+        "name": "preprocessing",
+        "status": "completed",
+        "started_at": "2025-10-08T23:15:01.290659"
+      },
+      {
+        "name": "ocr_extraction",
+        "status": "completed",
+        "started_at": "2025-10-08T23:15:13.498634"
+      },
+      {
+        "name": "llm_processing",
+        "status": "completed",
+        "started_at": "2025-10-08T23:15:25.555151"
+      },
+      {
+        "name": "validation",
+        "status": "completed",
+        "started_at": "2025-10-08T23:15:37.633199"
+      },
+      {
+        "name": "routing",
+        "status": "processing",
+        "started_at": "2025-10-08T23:15:49.692572"
+      }
+    ],
+    "upload_time": "2025-10-08T23:15:01.290664",
+    "estimated_completion": 1759990561.290665,
+    "error_message": "Client error '400 Bad Request' for url 'https://integrate.api.nvidia.com/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+  },
+  "080f1069-a9c8-427d-8f5e-a99e87a1a8f4": {
+    "status": "completed",
+    "current_stage": "Completed",
+    "progress": 100.0,
+    "stages": [
+      {
+        "name": "preprocessing",
+        "status": "completed",
+        "started_at": "2025-10-08T23:17:28.888791"
+      },
+      {
+        "name": "ocr_extraction",
+        "status": "completed",
+        "started_at": null
+      },
+      {
+        "name": "llm_processing",
+        "status": "completed",
+        "started_at": "2025-10-08T23:17:53.380672"
+      },
+      {
+        "name": "validation",
+        "status": "completed",
+        "started_at": null
+      },
+      {
+        "name": "routing",
+        "status": "processing",
+        "started_at": "2025-10-08T23:18:17.390844"
+      }
+    ],
+    "upload_time": "2025-10-08T23:17:28.888795",
+    "estimated_completion": 1759990708.888795,
+    "error_message": "'content'"
   }
 }
