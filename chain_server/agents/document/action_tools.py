@@ -76,6 +76,9 @@ class DocumentActionTools:
                 "estimated_completion": datetime.now().timestamp() + 60
             }
             
+            logger.info(f"Initialized document status for {document_id}")
+            logger.info(f"Document statuses now: {list(self.document_statuses.keys())}")
+            
             # Create document record (in real implementation, this would save to database)
             document_record = {
                 "id": document_id,
@@ -131,9 +134,8 @@ class DocumentActionTools:
                 "document_id": document_id,
                 "status": status["status"],
                 "current_stage": status["current_stage"],
-                "progress_percentage": status["progress_percentage"],
-                "stages_completed": status["stages_completed"],
-                "stages_pending": status["stages_pending"],
+                "progress": status["progress"],
+                "stages": status["stages"],
                 "estimated_completion": status.get("estimated_completion"),
                 "error_message": status.get("error_message")
             }
@@ -357,7 +359,11 @@ class DocumentActionTools:
     
     async def _get_processing_status(self, document_id: str) -> Dict[str, Any]:
         """Get processing status with progressive updates."""
+        logger.info(f"Getting processing status for document: {document_id}")
+        logger.info(f"Available document statuses: {list(self.document_statuses.keys())}")
+        
         if document_id not in self.document_statuses:
+            logger.warning(f"Document {document_id} not found in status tracking")
             return {
                 "status": ProcessingStage.FAILED,
                 "current_stage": "Unknown",

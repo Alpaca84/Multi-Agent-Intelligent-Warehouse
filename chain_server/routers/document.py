@@ -151,19 +151,19 @@ async def get_document_status(
             return DocumentProcessingResponse(
                 document_id=document_id,
                 status=result["status"],
-                progress=result["progress_percentage"],
+                progress=result["progress"],
                 current_stage=result["current_stage"],
                 stages=[
                     {
-                        "stage_name": stage,
-                        "status": "completed" if stage in result["stages_completed"] else "pending",
-                        "started_at": None,
-                        "completed_at": None,
-                        "processing_time_ms": None,
-                        "error_message": None,
-                        "metadata": {}
+                        "stage_name": stage["name"].lower().replace(" ", "_"),
+                        "status": stage["status"],
+                        "started_at": stage.get("started_at"),
+                        "completed_at": stage.get("completed_at"),
+                        "processing_time_ms": stage.get("processing_time_ms"),
+                        "error_message": stage.get("error_message"),
+                        "metadata": stage.get("metadata", {})
                     }
-                    for stage in ["preprocessing", "ocr_extraction", "llm_processing", "validation", "routing"]
+                    for stage in result["stages"]
                 ],
                 estimated_completion=datetime.fromtimestamp(result.get("estimated_completion", 0)) if result.get("estimated_completion") else None
             )
