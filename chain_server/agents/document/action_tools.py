@@ -35,7 +35,7 @@ class DocumentActionTools:
         """Initialize document processing tools."""
         try:
             self.nim_client = await get_nim_client()
-            await self._load_status_data()  # Load persistent status data
+            self._load_status_data()  # Load persistent status data (not async)
             logger.info("Document Action Tools initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Document Action Tools: {e}")
@@ -49,11 +49,17 @@ class DocumentActionTools:
                     data = json.load(f)
                     # Convert datetime strings back to datetime objects
                     for doc_id, status_info in data.items():
-                        if 'upload_time' in status_info:
-                            status_info['upload_time'] = datetime.fromisoformat(status_info['upload_time'])
+                        if 'upload_time' in status_info and isinstance(status_info['upload_time'], str):
+                            try:
+                                status_info['upload_time'] = datetime.fromisoformat(status_info['upload_time'])
+                            except ValueError:
+                                logger.warning(f"Invalid datetime format for upload_time in {doc_id}")
                         for stage in status_info.get('stages', []):
-                            if stage.get('started_at'):
-                                stage['started_at'] = datetime.fromisoformat(stage['started_at'])
+                            if stage.get('started_at') and isinstance(stage['started_at'], str):
+                                try:
+                                    stage['started_at'] = datetime.fromisoformat(stage['started_at'])
+                                except ValueError:
+                                    logger.warning(f"Invalid datetime format for started_at in {doc_id}")
                     self.document_statuses = data
                     logger.info(f"Loaded {len(self.document_statuses)} document statuses from persistent storage")
             else:
@@ -70,10 +76,14 @@ class DocumentActionTools:
             for doc_id, status_info in self.document_statuses.items():
                 data_to_save[doc_id] = status_info.copy()
                 if 'upload_time' in data_to_save[doc_id]:
-                    data_to_save[doc_id]['upload_time'] = data_to_save[doc_id]['upload_time'].isoformat()
+                    upload_time = data_to_save[doc_id]['upload_time']
+                    if hasattr(upload_time, 'isoformat'):
+                        data_to_save[doc_id]['upload_time'] = upload_time.isoformat()
                 for stage in data_to_save[doc_id].get('stages', []):
                     if stage.get('started_at'):
-                        stage['started_at'] = stage['started_at'].isoformat()
+                        started_at = stage['started_at']
+                        if hasattr(started_at, 'isoformat'):
+                            stage['started_at'] = started_at.isoformat()
             
             with open(self.status_file, 'w') as f:
                 json.dump(data_to_save, f, indent=2)
