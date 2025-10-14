@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from chain_server.services.mcp.base import MCPAdapter, AdapterConfig, AdapterType, MCPTool, ToolType
+from chain_server.services.mcp.base import MCPAdapter, AdapterConfig, AdapterType, MCPTool, MCPToolType
 from chain_server.agents.operations.action_tools import get_operations_action_tools
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class OperationsMCPAdapter(MCPAdapter):
         self.tools["create_task"] = MCPTool(
             name="create_task",
             description="Create a new task for warehouse operations",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {
@@ -131,7 +131,7 @@ class OperationsMCPAdapter(MCPAdapter):
         self.tools["assign_task"] = MCPTool(
             name="assign_task",
             description="Assign a task to a worker",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {
@@ -157,7 +157,7 @@ class OperationsMCPAdapter(MCPAdapter):
         self.tools["get_task_status"] = MCPTool(
             name="get_task_status",
             description="Get status of tasks",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {
@@ -186,7 +186,7 @@ class OperationsMCPAdapter(MCPAdapter):
         self.tools["get_workforce_status"] = MCPTool(
             name="get_workforce_status",
             description="Get workforce status and availability",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {

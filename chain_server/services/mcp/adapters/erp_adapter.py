@@ -12,7 +12,7 @@ from datetime import datetime
 import json
 
 from ..base import MCPAdapter, AdapterConfig, AdapterType, ToolConfig, ToolCategory, MCPConnectionType
-from ...erp.base import ERPAdapter as BaseERPAdapter
+from adapters.erp.base import BaseERPAdapter
 
 logger = logging.getLogger(__name__)
 

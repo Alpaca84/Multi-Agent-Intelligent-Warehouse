@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from chain_server.services.mcp.base import MCPAdapter, AdapterConfig, AdapterType, MCPTool, ToolType
+from chain_server.services.mcp.base import MCPAdapter, AdapterConfig, AdapterType, MCPTool, MCPToolType
 from chain_server.agents.safety.action_tools import get_safety_action_tools
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class SafetyMCPAdapter(MCPAdapter):
         self.tools["log_incident"] = MCPTool(
             name="log_incident",
             description="Log a safety incident",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {
@@ -132,7 +132,7 @@ class SafetyMCPAdapter(MCPAdapter):
         self.tools["start_checklist"] = MCPTool(
             name="start_checklist",
             description="Start a safety checklist",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {
@@ -158,7 +158,7 @@ class SafetyMCPAdapter(MCPAdapter):
         self.tools["broadcast_alert"] = MCPTool(
             name="broadcast_alert",
             description="Broadcast a safety alert",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {
@@ -185,7 +185,7 @@ class SafetyMCPAdapter(MCPAdapter):
         self.tools["get_safety_procedures"] = MCPTool(
             name="get_safety_procedures",
             description="Get safety procedures and policies",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {

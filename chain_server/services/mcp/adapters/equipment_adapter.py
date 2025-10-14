@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from chain_server.services.mcp.base import MCPAdapter, AdapterConfig, AdapterType, MCPTool, ToolType
+from chain_server.services.mcp.base import MCPAdapter, AdapterConfig, AdapterType, MCPTool, MCPToolType
 from chain_server.agents.inventory.equipment_asset_tools import get_equipment_asset_tools
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class EquipmentMCPAdapter(MCPAdapter):
         self.tools["get_equipment_status"] = MCPTool(
             name="get_equipment_status",
             description="Get equipment status and availability information",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {
@@ -126,7 +126,7 @@ class EquipmentMCPAdapter(MCPAdapter):
         self.tools["assign_equipment"] = MCPTool(
             name="assign_equipment",
             description="Assign equipment to a user or task",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {
@@ -156,7 +156,7 @@ class EquipmentMCPAdapter(MCPAdapter):
         self.tools["get_equipment_utilization"] = MCPTool(
             name="get_equipment_utilization",
             description="Get equipment utilization metrics and performance data",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {
@@ -181,7 +181,7 @@ class EquipmentMCPAdapter(MCPAdapter):
         self.tools["get_maintenance_schedule"] = MCPTool(
             name="get_maintenance_schedule",
             description="Get maintenance schedule and upcoming maintenance tasks",
-            tool_type=ToolType.FUNCTION,
+            tool_type=MCPToolType.FUNCTION,
             parameters={
                 "type": "object",
                 "properties": {

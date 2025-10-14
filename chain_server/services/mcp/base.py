@@ -26,6 +26,9 @@ class AdapterType(Enum):
     IoT = "iot"
     RFID = "rfid"
     ATTENDANCE = "attendance"
+    EQUIPMENT = "equipment"
+    OPERATIONS = "operations"
+    SAFETY = "safety"
     CUSTOM = "custom"
 
 class ToolCategory(Enum):
