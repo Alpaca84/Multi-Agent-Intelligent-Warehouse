@@ -38,6 +38,7 @@ graph TB
         Operations[MCP Operations Agent<br/>Dynamic Tool Discovery<br/>✅ Fully Integrated]
         Safety[MCP Safety Agent<br/>Dynamic Tool Discovery<br/>✅ Fully Integrated]
         Chat[MCP General Agent<br/>Tool Discovery & Execution<br/>✅ Fully Integrated]
+        Document[Document Extraction Agent<br/>6-Stage NVIDIA NeMo Pipeline<br/>✅ Production Ready]
     end
 
     %% Memory & Context Management
@@ -55,6 +56,16 @@ graph TB
         NIM_EMB[NVIDIA NIM Embeddings<br/>NV-EmbedQA-E5-v5<br/>✅ Fully Integrated]
     end
 
+    %% Document Processing Pipeline
+    subgraph "Document Processing Pipeline (NVIDIA NeMo)"
+        NEMO_RETRIEVER[NeMo Retriever<br/>Document Preprocessing<br/>✅ Stage 1]
+        NEMO_OCR[NeMoRetriever-OCR-v1<br/>Intelligent OCR<br/>✅ Stage 2]
+        NANO_VL[Llama Nemotron Nano VL 8B<br/>Small LLM Processing<br/>✅ Stage 3]
+        E5_EMBEDDINGS[nv-embedqa-e5-v5<br/>Embedding & Indexing<br/>✅ Stage 4]
+        NEMOTRON_70B[Llama 3.1 Nemotron 70B<br/>Large LLM Judge<br/>✅ Stage 5]
+        INTELLIGENT_ROUTER[Intelligent Router<br/>Quality-based Routing<br/>✅ Stage 6]
+    end
+
     %% Data Retrieval Layer
     subgraph "Hybrid Retrieval (RAG)"
         SQL[Structured Retriever<br/>PostgreSQL/TimescaleDB]
@@ -67,6 +78,17 @@ graph TB
         WMS_SVC[WMS Integration Service<br/>SAP EWM, Manhattan, Oracle]
         IoT_SVC[IoT Integration Service<br/>Equipment & Environmental]
         Metrics[Prometheus Metrics<br/>Performance Monitoring]
+    end
+
+    %% Chat Enhancement Services
+    subgraph "Chat Enhancement Services (Production Ready)"
+        PARAM_VALIDATOR[Parameter Validation Service<br/>MCP Tool Parameter Validation<br/>✅ Implemented]
+        RESPONSE_FORMATTER[Response Formatting Engine<br/>Clean User-Friendly Responses<br/>✅ Implemented]
+        CONVERSATION_MEMORY[Conversation Memory Service<br/>Persistent Context Management<br/>✅ Implemented]
+        EVIDENCE_COLLECTOR[Evidence Collection Service<br/>Context & Source Attribution<br/>✅ Implemented]
+        QUICK_ACTIONS[Smart Quick Actions Service<br/>Contextual Action Suggestions<br/>✅ Implemented]
+        RESPONSE_VALIDATOR[Response Validation Service<br/>Quality Assurance & Enhancement<br/>✅ Implemented]
+        MCP_TESTING[Enhanced MCP Testing Dashboard<br/>Advanced Testing Interface<br/>✅ Implemented]
     end
 
     %% Data Storage
@@ -117,6 +139,8 @@ graph TB
         AUTH_API[/api/v1/auth<br/>Authentication]
         HEALTH_API[/api/v1/health<br/>System Health]
         MCP_API[/api/v1/mcp<br/>MCP Tool Management]
+        DOCUMENT_API[/api/v1/document<br/>Document Processing Pipeline]
+        MCP_TEST_API[/api/v1/mcp-test<br/>Enhanced MCP Testing]
     end
 
     %% Connections - User Interface
@@ -135,6 +159,8 @@ graph TB
     API_GW --> REASONING_API
     API_GW --> HEALTH_API
     API_GW --> MCP_API
+    API_GW --> DOCUMENT_API
+    API_GW --> MCP_TEST_API
 
     %% Security Flow
     AUTH_API --> Auth
@@ -165,6 +191,7 @@ graph TB
     Planner --> Operations
     Planner --> Safety
     Planner --> Chat
+    Planner --> Document
 
     %% MCP-Enabled Agents
     Equipment --> MCP_CLIENT
@@ -179,24 +206,53 @@ graph TB
     Operations --> Memory
     Safety --> Memory
     Chat --> Memory
+    Document --> Memory
     Memory --> Profiles
     Memory --> Sessions
     Memory --> History
     Memory --> Redis_Cache
 
+    %% Document Processing Pipeline
+    Document --> NEMO_RETRIEVER
+    NEMO_RETRIEVER --> NEMO_OCR
+    NEMO_OCR --> NANO_VL
+    NANO_VL --> E5_EMBEDDINGS
+    E5_EMBEDDINGS --> NEMOTRON_70B
+    NEMOTRON_70B --> INTELLIGENT_ROUTER
+    INTELLIGENT_ROUTER --> Document
+
     %% Data Retrieval
     Equipment --> SQL
     Operations --> SQL
     Safety --> SQL
+    Chat --> SQL
+    Document --> SQL
     Equipment --> Vector
     Operations --> Vector
     Safety --> Vector
+    Chat --> Vector
+    Document --> Vector
     SQL --> Postgres
     Vector --> Milvus
     SQL --> Hybrid
     Vector --> Hybrid
     NIM_EMB --> Vector
     Hybrid --> NIM_LLM
+
+    %% Chat Enhancement Services
+    Chat --> PARAM_VALIDATOR
+    Chat --> RESPONSE_FORMATTER
+    Chat --> CONVERSATION_MEMORY
+    Chat --> EVIDENCE_COLLECTOR
+    Chat --> QUICK_ACTIONS
+    Chat --> RESPONSE_VALIDATOR
+    MCP_API --> MCP_TESTING
+    PARAM_VALIDATOR --> MCP_CLIENT
+    RESPONSE_FORMATTER --> Chat
+    CONVERSATION_MEMORY --> Memory
+    EVIDENCE_COLLECTOR --> Hybrid
+    QUICK_ACTIONS --> NIM_LLM
+    RESPONSE_VALIDATOR --> RESPONSE_FORMATTER
 
     %% Core Services
     WMS_SVC --> WMS_ADAPTER
@@ -215,6 +271,21 @@ graph TB
     IoT_ADAPTER --> IOT_API
     RFID_ADAPTER --> SCANNING_API
     ATTENDANCE_ADAPTER --> ATTENDANCE_API
+
+    %% Document Processing API Integration
+    Document --> DOCUMENT_API
+    DOCUMENT_API --> NEMO_RETRIEVER
+    DOCUMENT_API --> NEMO_OCR
+    DOCUMENT_API --> NANO_VL
+    DOCUMENT_API --> E5_EMBEDDINGS
+    DOCUMENT_API --> NEMOTRON_70B
+    DOCUMENT_API --> INTELLIGENT_ROUTER
+
+    %% MCP Testing API Integration
+    MCP_TESTING --> MCP_TEST_API
+    MCP_TEST_API --> MCP_SERVER
+    MCP_TEST_API --> TOOL_DISCOVERY
+    MCP_TEST_API --> TOOL_BINDING
 
     %% Event Streaming
     ERP_ADAPTER --> Kafka
@@ -254,17 +325,99 @@ graph TB
     class UI,Mobile,API_GW userLayer
     class Auth,RBAC,Guardrails securityLayer
     class MCP_SERVER,MCP_CLIENT,TOOL_DISCOVERY,TOOL_BINDING,TOOL_ROUTING,TOOL_VALIDATION,SERVICE_DISCOVERY,MCP_MONITORING,ROLLBACK_MGR mcpLayer
-    class Planner,Equipment,Operations,Safety,Chat agentLayer
+    class Planner,Equipment,Operations,Safety,Chat,Document agentLayer
     class Memory,Profiles,Sessions,History memoryLayer
     class NIM_LLM,NIM_EMB aiLayer
+    class NEMO_RETRIEVER,NEMO_OCR,NANO_VL,E5_EMBEDDINGS,NEMOTRON_70B,INTELLIGENT_ROUTER aiLayer
     class SQL,Vector,Hybrid dataLayer
     class WMS_SVC,IoT_SVC,Metrics serviceLayer
+    class PARAM_VALIDATOR,RESPONSE_FORMATTER,CONVERSATION_MEMORY,EVIDENCE_COLLECTOR,QUICK_ACTIONS,RESPONSE_VALIDATOR,MCP_TESTING serviceLayer
     class Postgres,Milvus,Redis,MinIO storageLayer
     class ERP_ADAPTER,WMS_ADAPTER,IoT_ADAPTER,RFID_ADAPTER,ATTENDANCE_ADAPTER adapterLayer
     class Kafka,Etcd,Docker infraLayer
     class Prometheus,Grafana,AlertManager,NodeExporter,Cadvisor monitorLayer
-    class CHAT_API,EQUIPMENT_API,OPERATIONS_API,SAFETY_API,WMS_API,ERP_API,IOT_API,SCANNING_API,ATTENDANCE_API,REASONING_API,AUTH_API,HEALTH_API,MCP_API apiLayer
+    class CHAT_API,EQUIPMENT_API,OPERATIONS_API,SAFETY_API,WMS_API,ERP_API,IOT_API,SCANNING_API,ATTENDANCE_API,REASONING_API,AUTH_API,HEALTH_API,MCP_API,DOCUMENT_API,MCP_TEST_API apiLayer
 ```
+
+## 📄 **Document Processing Pipeline (6-Stage NVIDIA NeMo)**
+
+The Document Extraction Agent implements a comprehensive **6-stage pipeline** using NVIDIA NeMo models for intelligent document processing:
+
+### **Stage 1: Document Preprocessing** ✅
+- **Model**: NeMo Retriever
+- **Purpose**: PDF decomposition, image extraction, and document structure analysis
+- **Capabilities**: Multi-format support, document type detection, preprocessing optimization
+
+### **Stage 2: Intelligent OCR** ✅
+- **Model**: NeMoRetriever-OCR-v1 + Nemotron Parse
+- **Purpose**: Advanced text extraction with layout understanding
+- **Capabilities**: Multi-language OCR, table extraction, form recognition, layout preservation
+
+### **Stage 3: Small LLM Processing** ✅
+- **Model**: Llama Nemotron Nano VL 8B
+- **Purpose**: Structured data extraction and entity recognition
+- **Capabilities**: Entity extraction, data structuring, content analysis, metadata generation
+
+### **Stage 4: Embedding & Indexing** ✅
+- **Model**: nv-embedqa-e5-v5
+- **Purpose**: Vector embedding generation and semantic indexing
+- **Capabilities**: Semantic search preparation, content indexing, similarity matching
+
+### **Stage 5: Large LLM Judge** ✅
+- **Model**: Llama 3.1 Nemotron 70B Instruct NIM
+- **Purpose**: Quality validation and confidence scoring
+- **Capabilities**: Content validation, quality assessment, confidence scoring, error detection
+
+### **Stage 6: Intelligent Routing** ✅
+- **Model**: Custom routing logic
+- **Purpose**: Quality-based routing and result optimization
+- **Capabilities**: Result routing, quality optimization, final output generation
+
+### **Pipeline Benefits**
+- **End-to-End Processing**: Complete document lifecycle management
+- **NVIDIA NeMo Integration**: Production-grade AI models
+- **Quality Assurance**: Multi-stage validation and scoring
+- **Scalable Architecture**: Handles high-volume document processing
+- **Real-time Monitoring**: Progress tracking and status updates
+
+## 🚀 **Chat Enhancement Services (Production Ready)**
+
+The system now includes **7 comprehensive chat enhancement services** for optimal user experience:
+
+### **Parameter Validation Service** ✅
+- **Purpose**: MCP tool parameter validation and error prevention
+- **Capabilities**: Parameter type checking, required field validation, constraint enforcement
+- **Benefits**: Prevents invalid tool calls, improves system reliability
+
+### **Response Formatting Engine** ✅
+- **Purpose**: Clean, user-friendly response formatting
+- **Capabilities**: Technical detail removal, structured presentation, confidence indicators
+- **Benefits**: Professional user experience, clear communication
+
+### **Conversation Memory Service** ✅
+- **Purpose**: Persistent context management across messages
+- **Capabilities**: Context persistence, entity tracking, conversation continuity
+- **Benefits**: Contextual responses, improved user experience
+
+### **Evidence Collection Service** ✅
+- **Purpose**: Context and source attribution for responses
+- **Capabilities**: Evidence gathering, source tracking, confidence scoring
+- **Benefits**: Transparent responses, verifiable information
+
+### **Smart Quick Actions Service** ✅
+- **Purpose**: Contextual action suggestions and quick commands
+- **Capabilities**: Context-aware suggestions, follow-up actions, quick commands
+- **Benefits**: Improved workflow efficiency, user guidance
+
+### **Response Validation Service** ✅
+- **Purpose**: Quality assurance and response enhancement
+- **Capabilities**: Quality scoring, automatic enhancement, error detection
+- **Benefits**: Consistent quality, improved accuracy
+
+### **Enhanced MCP Testing Dashboard** ✅
+- **Purpose**: Advanced testing interface for MCP tools
+- **Capabilities**: Tool testing, performance monitoring, execution history
+- **Benefits**: Comprehensive testing, debugging capabilities
 
 ## 🛡️ Safety & Compliance Agent Action Tools
 
@@ -458,8 +611,17 @@ sequenceDiagram
 | **Equipment & Asset Operations Agent** | ✅ Complete | Python, async + MCP | - | MCP-enabled equipment management |
 | **Operations Agent** | ✅ Complete | Python, async + MCP | - | MCP-enabled operations management |
 | **Safety Agent** | ✅ Complete | Python, async + MCP | - | MCP-enabled safety management |
+| **Document Extraction Agent** | ✅ Complete | Python, async + NVIDIA NeMo | - | 6-stage document processing pipeline |
 | **Memory Manager** | ✅ Complete | PostgreSQL, Redis | - | Session context, conversation history |
 | **NVIDIA NIMs** | ✅ Complete | Llama 3.1 70B, NV-EmbedQA-E5-v5 | - | AI-powered responses |
+| **Document Processing Pipeline** | ✅ Complete | NVIDIA NeMo Models | - | 6-stage intelligent document processing |
+| **Parameter Validation Service** | ✅ Complete | Python, async | - | MCP tool parameter validation |
+| **Response Formatting Engine** | ✅ Complete | Python, async | - | Clean user-friendly responses |
+| **Conversation Memory Service** | ✅ Complete | Python, async | - | Persistent context management |
+| **Evidence Collection Service** | ✅ Complete | Python, async | - | Context & source attribution |
+| **Smart Quick Actions Service** | ✅ Complete | Python, async | - | Contextual action suggestions |
+| **Response Validation Service** | ✅ Complete | Python, async | - | Quality assurance & enhancement |
+| **Enhanced MCP Testing Dashboard** | ✅ Complete | React, Material-UI | - | Advanced testing interface |
 | **Hybrid Retrieval** | ✅ Complete | PostgreSQL, Milvus | - | Structured + vector search |
 | **ERP Adapter (MCP)** | ✅ Complete | MCP Protocol | - | SAP ECC, Oracle integration |
 | **WMS Adapter (MCP)** | ✅ Complete | MCP Protocol | - | SAP EWM, Manhattan, Oracle |
@@ -495,6 +657,12 @@ sequenceDiagram
 | `/api/v1/mcp/execute` | POST | ✅ Working | Execute MCP tools |
 | `/api/v1/mcp/adapters` | GET | ✅ Working | List MCP adapters |
 | `/api/v1/mcp/health` | GET | ✅ Working | MCP system health |
+| `/api/v1/document` | GET/POST | ✅ Working | Document processing pipeline |
+| `/api/v1/document/upload` | POST | ✅ Working | Upload documents for processing |
+| `/api/v1/document/status/{id}` | GET | ✅ Working | Check document processing status |
+| `/api/v1/document/results/{id}` | GET | ✅ Working | Retrieve processed document results |
+| `/api/v1/document/analytics` | GET | ✅ Working | Document processing analytics |
+| `/api/v1/mcp-test` | GET | ✅ Working | Enhanced MCP testing dashboard |
 
 ### 🏗️ **Infrastructure Components**
 
@@ -656,6 +824,7 @@ graph TB
 ### ✅ **Fully Operational Features**
 
 - **🤖 AI-Powered Chat**: Real-time conversation with NVIDIA NIMs integration
+- **📄 Document Processing**: 6-stage NVIDIA NeMo pipeline for intelligent document processing
 - **🔧 Equipment & Asset Operations**: Equipment availability, maintenance scheduling, asset tracking, action tools (6 core equipment management tools)
 - **👥 Operations Coordination**: Workforce scheduling, task management, KPI tracking, action tools (8 comprehensive operations management tools)
 - **🛡️ Safety & Compliance**: Incident reporting, policy lookup, safety checklists, alert broadcasting, LOTO procedures, corrective actions, SDS retrieval, near-miss reporting
@@ -667,6 +836,8 @@ graph TB
 - **📡 IoT Integration**: Equipment monitoring, environmental sensors, safety systems
 - **📊 Monitoring & Observability**: Prometheus metrics, Grafana dashboards, alerting
 - **🌐 Real-time UI**: React dashboard with live chat interface
+- **🚀 Chat Enhancement Services**: Parameter validation, response formatting, conversation memory, evidence collection, smart quick actions, response validation
+- **🧪 Enhanced MCP Testing**: Advanced testing dashboard with performance monitoring and execution history
 
 ### 📋 **Planned Features**
 
@@ -741,6 +912,39 @@ graph LR
 - **Configuration Management**: etcd for distributed configuration
 
 ## 🔄 **Latest Updates (December 2024)**
+
+### **Chat Interface & MCP System - Production Ready** ✅
+
+The system has achieved **complete production readiness** with comprehensive chat interface optimization and MCP system enhancements:
+
+#### **Chat Interface Optimization** ✅
+- **Response Formatting Engine** - Clean, user-friendly responses with technical detail removal
+- **Conversation Memory Service** - Persistent context management across messages
+- **Evidence Collection Service** - Context and source attribution for transparent responses
+- **Smart Quick Actions Service** - Contextual action suggestions and quick commands
+- **Response Validation Service** - Quality assurance and automatic enhancement
+- **Parameter Validation System** - MCP tool parameter validation and error prevention
+
+#### **Document Processing Pipeline** ✅
+- **6-Stage NVIDIA NeMo Pipeline** - Complete document processing with production-grade AI models
+- **Stage 1**: NeMo Retriever for document preprocessing
+- **Stage 2**: NeMoRetriever-OCR-v1 for intelligent OCR
+- **Stage 3**: Llama Nemotron Nano VL 8B for small LLM processing
+- **Stage 4**: nv-embedqa-e5-v5 for embedding and indexing
+- **Stage 5**: Llama 3.1 Nemotron 70B for large LLM judging
+- **Stage 6**: Intelligent routing for quality-based optimization
+
+#### **Enhanced MCP Testing Dashboard** ✅
+- **Advanced Testing Interface** - Comprehensive MCP tool testing and debugging
+- **Performance Monitoring** - Real-time performance metrics and execution history
+- **Tool Discovery** - Dynamic tool discovery and registration testing
+- **Execution History** - Complete execution history and debugging capabilities
+
+#### **System Integration Updates** ✅
+- **Real Tool Execution** - MCP tools now execute actual operations instead of mock data
+- **Parameter Validation** - Comprehensive parameter validation for all MCP tools
+- **Error Handling** - Robust error handling and recovery mechanisms
+- **Quality Assurance** - Response validation and enhancement systems
 
 ### **MCP (Model Context Protocol) Integration - Phase 3 Complete** ✅
 
