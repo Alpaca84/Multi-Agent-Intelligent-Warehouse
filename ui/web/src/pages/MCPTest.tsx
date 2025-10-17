@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Container } from '@mui/material';
-import MCPTestingPanel from '../components/MCPTestingPanel';
+import EnhancedMCPTestingPanel from '../components/EnhancedMCPTestingPanel';
 
 const MCPTestPage: React.FC = () => {
   return (
@@ -14,7 +14,7 @@ const MCPTestPage: React.FC = () => {
         </Typography>
       </Box>
       
-      <MCPTestingPanel />
+      <EnhancedMCPTestingPanel />
     </Container>
   );
 };
