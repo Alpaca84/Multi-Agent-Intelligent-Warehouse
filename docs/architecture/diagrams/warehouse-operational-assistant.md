@@ -4,146 +4,130 @@
 
 ```mermaid
 graph TB
-    %% User Interface Layer
-    subgraph "User Interface Layer"
-        UI[React Web App<br/>Port 3001<br/>✅ All Issues Fixed]
-        Mobile[React Native Mobile<br/>📱 Pending]
-        API_GW[FastAPI Gateway<br/>Port 8001<br/>✅ All Endpoints Working]
+    subgraph UI_LAYER["User Interface Layer"]
+        UI["React Web App<br/>Port 3001<br/>All Issues Fixed"]
+        Mobile["React Native Mobile<br/>Pending"]
+        API_GW["FastAPI Gateway<br/>Port 8001<br/>All Endpoints Working"]
     end
 
-    %% Security & Authentication
-    subgraph "Security Layer"
-        Auth[JWT/OAuth2 Auth<br/>✅ Implemented]
-        RBAC[Role-Based Access Control<br/>5 User Roles]
-        Guardrails[NeMo Guardrails<br/>Content Safety]
+    subgraph SEC_LAYER["Security Layer"]
+        Auth["JWT OAuth2 Auth<br/>Implemented"]
+        RBAC["Role-Based Access Control<br/>5 User Roles"]
+        Guardrails["NeMo Guardrails<br/>Content Safety"]
     end
 
-    %% MCP Integration Layer
-    subgraph "MCP Integration Layer (Phase 2 Complete - Fully Integrated)"
-        MCP_SERVER[MCP Server<br/>Tool Registration & Discovery<br/>✅ Complete]
-        MCP_CLIENT[MCP Client<br/>Multi-Server Communication<br/>✅ Complete]
-        TOOL_DISCOVERY[Tool Discovery Service<br/>Dynamic Tool Registration<br/>✅ Complete]
-        TOOL_BINDING[Tool Binding Service<br/>Intelligent Tool Execution<br/>✅ Complete]
-        TOOL_ROUTING[Tool Routing Service<br/>Advanced Routing Logic<br/>✅ Complete]
-        TOOL_VALIDATION[Tool Validation Service<br/>Error Handling & Validation<br/>✅ Complete]
-        SERVICE_DISCOVERY[Service Discovery Registry<br/>Centralized Service Management<br/>✅ Complete]
-        MCP_MONITORING[MCP Monitoring Service<br/>Metrics & Health Monitoring<br/>✅ Complete]
-        ROLLBACK_MGR[Rollback Manager<br/>Fallback & Recovery<br/>✅ Complete]
+    subgraph MCP_LAYER["MCP Integration Layer Phase 2 Complete"]
+        MCP_SERVER["MCP Server<br/>Tool Registration Discovery<br/>Complete"]
+        MCP_CLIENT["MCP Client<br/>Multi-Server Communication<br/>Complete"]
+        TOOL_DISCOVERY["Tool Discovery Service<br/>Dynamic Tool Registration<br/>Complete"]
+        TOOL_BINDING["Tool Binding Service<br/>Intelligent Tool Execution<br/>Complete"]
+        TOOL_ROUTING["Tool Routing Service<br/>Advanced Routing Logic<br/>Complete"]
+        TOOL_VALIDATION["Tool Validation Service<br/>Error Handling Validation<br/>Complete"]
+        SERVICE_DISCOVERY["Service Discovery Registry<br/>Centralized Service Management<br/>Complete"]
+        MCP_MONITORING["MCP Monitoring Service<br/>Metrics Health Monitoring<br/>Complete"]
+        ROLLBACK_MGR["Rollback Manager<br/>Fallback Recovery<br/>Complete"]
     end
 
-    %% Agent Orchestration Layer
-    subgraph "Agent Orchestration (LangGraph + MCP Fully Integrated)"
-        Planner[MCP Planner Graph<br/>MCP-Enhanced Intent Classification<br/>✅ Fully Integrated]
-        Equipment[MCP Equipment Agent<br/>Dynamic Tool Discovery<br/>✅ Fully Integrated]
-        Operations[MCP Operations Agent<br/>Dynamic Tool Discovery<br/>✅ Fully Integrated]
-        Safety[MCP Safety Agent<br/>Dynamic Tool Discovery<br/>✅ Fully Integrated]
-        Chat[MCP General Agent<br/>Tool Discovery & Execution<br/>✅ Fully Integrated]
-        Document[Document Extraction Agent<br/>6-Stage NVIDIA NeMo Pipeline<br/>✅ Production Ready]
+    subgraph AGENT_LAYER["Agent Orchestration LangGraph MCP"]
+        Planner["MCP Planner Graph<br/>MCP-Enhanced Intent Classification<br/>Fully Integrated"]
+        Equipment["MCP Equipment Agent<br/>Dynamic Tool Discovery<br/>Fully Integrated"]
+        Operations["MCP Operations Agent<br/>Dynamic Tool Discovery<br/>Fully Integrated"]
+        Safety["MCP Safety Agent<br/>Dynamic Tool Discovery<br/>Fully Integrated"]
+        Chat["MCP General Agent<br/>Tool Discovery Execution<br/>Fully Integrated"]
+        Document["Document Extraction Agent<br/>6-Stage NVIDIA NeMo Pipeline<br/>Production Ready"]
     end
 
-    %% Memory & Context Management
-    subgraph "Memory Management"
-        Memory[Memory Manager<br/>Session Context]
-        Profiles[User Profiles<br/>PostgreSQL]
-        Sessions[Session Context<br/>PostgreSQL]
-        History[Conversation History<br/>PostgreSQL]
-        Redis_Cache[Redis Cache<br/>Session Caching]
+    subgraph MEM_LAYER["Memory Management"]
+        Memory["Memory Manager<br/>Session Context"]
+        Profiles["User Profiles<br/>PostgreSQL"]
+        Sessions["Session Context<br/>PostgreSQL"]
+        History["Conversation History<br/>PostgreSQL"]
+        Redis_Cache["Redis Cache<br/>Session Caching"]
     end
 
-    %% AI Services (NVIDIA NIMs)
-    subgraph "AI Services (NVIDIA NIMs)"
-        NIM_LLM[NVIDIA NIM LLM<br/>Llama 3.1 70B<br/>✅ Fully Integrated]
-        NIM_EMB[NVIDIA NIM Embeddings<br/>NV-EmbedQA-E5-v5<br/>✅ Fully Integrated]
+    subgraph AI_LAYER["AI Services NVIDIA NIMs"]
+        NIM_LLM["NVIDIA NIM LLM<br/>Llama 3-1 70B<br/>Fully Integrated"]
+        NIM_EMB["NVIDIA NIM Embeddings<br/>NV-EmbedQA-E5-v5<br/>Fully Integrated"]
     end
 
-    %% Document Processing Pipeline
-    subgraph "Document Processing Pipeline (NVIDIA NeMo)"
-        NEMO_RETRIEVER[NeMo Retriever<br/>Document Preprocessing<br/>✅ Stage 1]
-        NEMO_OCR[NeMoRetriever-OCR-v1<br/>Intelligent OCR<br/>✅ Stage 2]
-        NANO_VL[Llama Nemotron Nano VL 8B<br/>Small LLM Processing<br/>✅ Stage 3]
-        E5_EMBEDDINGS[nv-embedqa-e5-v5<br/>Embedding & Indexing<br/>✅ Stage 4]
-        NEMOTRON_70B[Llama 3.1 Nemotron 70B<br/>Large LLM Judge<br/>✅ Stage 5]
-        INTELLIGENT_ROUTER[Intelligent Router<br/>Quality-based Routing<br/>✅ Stage 6]
+    subgraph DOC_LAYER["Document Processing Pipeline NVIDIA NeMo"]
+        NEMO_RETRIEVER["NeMo Retriever<br/>Document Preprocessing<br/>Stage 1"]
+        NEMO_OCR["NeMoRetriever-OCR-v1<br/>Intelligent OCR<br/>Stage 2"]
+        NANO_VL["Llama Nemotron Nano VL 8B<br/>Small LLM Processing<br/>Stage 3"]
+        E5_EMBEDDINGS["nv-embedqa-e5-v5<br/>Embedding Indexing<br/>Stage 4"]
+        NEMOTRON_70B["Llama 3-1 Nemotron 70B<br/>Large LLM Judge<br/>Stage 5"]
+        INTELLIGENT_ROUTER["Intelligent Router<br/>Quality-based Routing<br/>Stage 6"]
     end
 
-    %% Data Retrieval Layer
-    subgraph "Hybrid Retrieval (RAG)"
-        SQL[Structured Retriever<br/>PostgreSQL/TimescaleDB]
-        Vector[Vector Retriever<br/>Milvus Semantic Search]
-        Hybrid[Hybrid Ranker<br/>Context Synthesis]
+    subgraph RAG_LAYER["Hybrid Retrieval RAG"]
+        SQL["Structured Retriever<br/>PostgreSQL TimescaleDB"]
+        Vector["Vector Retriever<br/>Milvus Semantic Search"]
+        Hybrid["Hybrid Ranker<br/>Context Synthesis"]
     end
 
-    %% Core Services
-    subgraph "Core Services"
-        WMS_SVC[WMS Integration Service<br/>SAP EWM, Manhattan, Oracle]
-        IoT_SVC[IoT Integration Service<br/>Equipment & Environmental]
-        Metrics[Prometheus Metrics<br/>Performance Monitoring]
+    subgraph CORE_SVC["Core Services"]
+        WMS_SVC["WMS Integration Service<br/>SAP EWM Manhattan Oracle"]
+        IoT_SVC["IoT Integration Service<br/>Equipment Environmental"]
+        Metrics["Prometheus Metrics<br/>Performance Monitoring"]
     end
 
-    %% Chat Enhancement Services
-    subgraph "Chat Enhancement Services (Production Ready)"
-        PARAM_VALIDATOR[Parameter Validation Service<br/>MCP Tool Parameter Validation<br/>✅ Implemented]
-        RESPONSE_FORMATTER[Response Formatting Engine<br/>Clean User-Friendly Responses<br/>✅ Implemented]
-        CONVERSATION_MEMORY[Conversation Memory Service<br/>Persistent Context Management<br/>✅ Implemented]
-        EVIDENCE_COLLECTOR[Evidence Collection Service<br/>Context & Source Attribution<br/>✅ Implemented]
-        QUICK_ACTIONS[Smart Quick Actions Service<br/>Contextual Action Suggestions<br/>✅ Implemented]
-        RESPONSE_VALIDATOR[Response Validation Service<br/>Quality Assurance & Enhancement<br/>✅ Implemented]
-        MCP_TESTING[Enhanced MCP Testing Dashboard<br/>Advanced Testing Interface<br/>✅ Implemented]
+    subgraph CHAT_SVC["Chat Enhancement Services Production Ready"]
+        PARAM_VALIDATOR["Parameter Validation Service<br/>MCP Tool Parameter Validation<br/>Implemented"]
+        RESPONSE_FORMATTER["Response Formatting Engine<br/>Clean User-Friendly Responses<br/>Implemented"]
+        CONVERSATION_MEMORY["Conversation Memory Service<br/>Persistent Context Management<br/>Implemented"]
+        EVIDENCE_COLLECTOR["Evidence Collection Service<br/>Context Source Attribution<br/>Implemented"]
+        QUICK_ACTIONS["Smart Quick Actions Service<br/>Contextual Action Suggestions<br/>Implemented"]
+        RESPONSE_VALIDATOR["Response Validation Service<br/>Quality Assurance Enhancement<br/>Implemented"]
+        MCP_TESTING["Enhanced MCP Testing Dashboard<br/>Advanced Testing Interface<br/>Implemented"]
     end
 
-    %% Data Storage
-    subgraph "Data Storage"
-        Postgres[(PostgreSQL/TimescaleDB<br/>Structured Data & Time Series)]
-        Milvus[(Milvus GPU<br/>Vector Database<br/>NVIDIA cuVS Accelerated)]
-        Redis[(Redis<br/>Cache & Sessions)]
-        MinIO[(MinIO<br/>Object Storage)]
+    subgraph STORAGE["Data Storage"]
+        Postgres[("PostgreSQL TimescaleDB<br/>Structured Data Time Series")]
+        Milvus[("Milvus GPU<br/>Vector Database<br/>NVIDIA cuVS Accelerated")]
+        Redis[("Redis<br/>Cache Sessions")]
+        MinIO[("MinIO<br/>Object Storage")]
     end
 
-    %% MCP Adapters (Phase 3 Complete)
-    subgraph "MCP Adapters (Phase 3 Complete)"
-        ERP_ADAPTER[ERP Adapter<br/>SAP ECC, Oracle<br/>10+ Tools<br/>✅ Complete]
-        WMS_ADAPTER[WMS Adapter<br/>SAP EWM, Manhattan, Oracle<br/>15+ Tools<br/>✅ Complete]
-        IoT_ADAPTER[IoT Adapter<br/>Equipment, Environmental, Safety<br/>12+ Tools<br/>✅ Complete]
-        RFID_ADAPTER[RFID/Barcode Adapter<br/>Zebra, Honeywell, Generic<br/>10+ Tools<br/>✅ Complete]
-        ATTENDANCE_ADAPTER[Time Attendance Adapter<br/>Biometric, Card, Mobile<br/>8+ Tools<br/>✅ Complete]
+    subgraph ADAPTERS["MCP Adapters Phase 3 Complete"]
+        ERP_ADAPTER["ERP Adapter<br/>SAP ECC Oracle<br/>10+ Tools<br/>Complete"]
+        WMS_ADAPTER["WMS Adapter<br/>SAP EWM Manhattan Oracle<br/>15+ Tools<br/>Complete"]
+        IoT_ADAPTER["IoT Adapter<br/>Equipment Environmental Safety<br/>12+ Tools<br/>Complete"]
+        RFID_ADAPTER["RFID Barcode Adapter<br/>Zebra Honeywell Generic<br/>10+ Tools<br/>Complete"]
+        ATTENDANCE_ADAPTER["Time Attendance Adapter<br/>Biometric Card Mobile<br/>8+ Tools<br/>Complete"]
     end
 
-    %% Infrastructure
-    subgraph "Infrastructure"
-        Kafka[Apache Kafka<br/>Event Streaming]
-        Etcd[etcd<br/>Configuration Management]
-        Docker[Docker Compose<br/>Container Orchestration]
+    subgraph INFRA["Infrastructure"]
+        Kafka["Apache Kafka<br/>Event Streaming"]
+        Etcd["etcd<br/>Configuration Management"]
+        Docker["Docker Compose<br/>Container Orchestration"]
     end
 
-    %% Monitoring & Observability
-    subgraph "Monitoring & Observability"
-        Prometheus[Prometheus<br/>Metrics Collection]
-        Grafana[Grafana<br/>Dashboards & Visualization]
-        AlertManager[AlertManager<br/>Alert Management]
-        NodeExporter[Node Exporter<br/>System Metrics]
-        Cadvisor[cAdvisor<br/>Container Metrics]
+    subgraph MONITORING["Monitoring and Observability"]
+        Prometheus["Prometheus<br/>Metrics Collection"]
+        Grafana["Grafana<br/>Dashboards Visualization"]
+        AlertManager["AlertManager<br/>Alert Management"]
+        NodeExporter["Node Exporter<br/>System Metrics"]
+        Cadvisor["cAdvisor<br/>Container Metrics"]
     end
 
-    %% API Endpoints
-    subgraph "API Endpoints"
-        CHAT_API[/api/v1/chat<br/>AI-Powered Chat]
-        EQUIPMENT_API[/api/v1/equipment<br/>Equipment & Asset Management]
-        OPERATIONS_API[/api/v1/operations<br/>Workforce & Tasks]
-        SAFETY_API[/api/v1/safety<br/>Incidents & Policies]
-        WMS_API[/api/v1/wms<br/>External WMS Integration]
-        ERP_API[/api/v1/erp<br/>ERP Integration]
-        IOT_API[/api/v1/iot<br/>IoT Sensor Data]
-        SCANNING_API[/api/v1/scanning<br/>RFID/Barcode Scanning]
-        ATTENDANCE_API[/api/v1/attendance<br/>Time & Attendance]
-        REASONING_API[/api/v1/reasoning<br/>AI Reasoning]
-        AUTH_API[/api/v1/auth<br/>Authentication]
-        HEALTH_API[/api/v1/health<br/>System Health]
-        MCP_API[/api/v1/mcp<br/>MCP Tool Management]
-        DOCUMENT_API[/api/v1/document<br/>Document Processing Pipeline]
-        MCP_TEST_API[/api/v1/mcp-test<br/>Enhanced MCP Testing]
+    subgraph API_LAYER["API Endpoints"]
+        CHAT_API["/api/v1/chat<br/>AI-Powered Chat"]
+        EQUIPMENT_API["/api/v1/equipment<br/>Equipment Asset Management"]
+        OPERATIONS_API["/api/v1/operations<br/>Workforce Tasks"]
+        SAFETY_API["/api/v1/safety<br/>Incidents Policies"]
+        WMS_API["/api/v1/wms<br/>External WMS Integration"]
+        ERP_API["/api/v1/erp<br/>ERP Integration"]
+        IOT_API["/api/v1/iot<br/>IoT Sensor Data"]
+        SCANNING_API["/api/v1/scanning<br/>RFID Barcode Scanning"]
+        ATTENDANCE_API["/api/v1/attendance<br/>Time Attendance"]
+        REASONING_API["/api/v1/reasoning<br/>AI Reasoning"]
+        AUTH_API["/api/v1/auth<br/>Authentication"]
+        HEALTH_API["/api/v1/health<br/>System Health"]
+        MCP_API["/api/v1/mcp<br/>MCP Tool Management"]
+        DOCUMENT_API["/api/v1/document<br/>Document Processing Pipeline"]
+        MCP_TEST_API["/api/v1/mcp-test<br/>Enhanced MCP Testing"]
     end
 
-    %% Connections - User Interface
     UI --> API_GW
     Mobile -.-> API_GW
     API_GW --> AUTH_API
@@ -162,13 +146,11 @@ graph TB
     API_GW --> DOCUMENT_API
     API_GW --> MCP_TEST_API
 
-    %% Security Flow
     AUTH_API --> Auth
     Auth --> RBAC
     RBAC --> Guardrails
     Guardrails --> Planner
 
-    %% MCP Integration Flow
     MCP_API --> MCP_SERVER
     MCP_SERVER --> TOOL_DISCOVERY
     MCP_SERVER --> TOOL_BINDING
@@ -178,7 +160,6 @@ graph TB
     MCP_SERVER --> MCP_MONITORING
     MCP_SERVER --> ROLLBACK_MGR
 
-    %% MCP Client Connections
     MCP_CLIENT --> MCP_SERVER
     MCP_CLIENT --> ERP_ADAPTER
     MCP_CLIENT --> WMS_ADAPTER
@@ -186,14 +167,12 @@ graph TB
     MCP_CLIENT --> RFID_ADAPTER
     MCP_CLIENT --> ATTENDANCE_ADAPTER
 
-    %% Agent Orchestration with MCP
     Planner --> Equipment
     Planner --> Operations
     Planner --> Safety
     Planner --> Chat
     Planner --> Document
 
-    %% MCP-Enabled Agents
     Equipment --> MCP_CLIENT
     Operations --> MCP_CLIENT
     Safety --> MCP_CLIENT
@@ -201,7 +180,6 @@ graph TB
     Operations --> TOOL_DISCOVERY
     Safety --> TOOL_DISCOVERY
 
-    %% Memory Management
     Equipment --> Memory
     Operations --> Memory
     Safety --> Memory
@@ -212,7 +190,6 @@ graph TB
     Memory --> History
     Memory --> Redis_Cache
 
-    %% Document Processing Pipeline
     Document --> NEMO_RETRIEVER
     NEMO_RETRIEVER --> NEMO_OCR
     NEMO_OCR --> NANO_VL
@@ -221,7 +198,6 @@ graph TB
     NEMOTRON_70B --> INTELLIGENT_ROUTER
     INTELLIGENT_ROUTER --> Document
 
-    %% Data Retrieval
     Equipment --> SQL
     Operations --> SQL
     Safety --> SQL
@@ -239,7 +215,6 @@ graph TB
     NIM_EMB --> Vector
     Hybrid --> NIM_LLM
 
-    %% Chat Enhancement Services
     Chat --> PARAM_VALIDATOR
     Chat --> RESPONSE_FORMATTER
     Chat --> CONVERSATION_MEMORY
@@ -254,25 +229,21 @@ graph TB
     QUICK_ACTIONS --> NIM_LLM
     RESPONSE_VALIDATOR --> RESPONSE_FORMATTER
 
-    %% Core Services
     WMS_SVC --> WMS_ADAPTER
     IoT_SVC --> IoT_ADAPTER
     Metrics --> Prometheus
 
-    %% Data Storage
     Memory --> Postgres
     Memory --> Redis
     WMS_SVC --> MinIO
     IoT_SVC --> MinIO
 
-    %% MCP Adapter Integration
     ERP_ADAPTER --> ERP_API
     WMS_ADAPTER --> WMS_API
     IoT_ADAPTER --> IOT_API
     RFID_ADAPTER --> SCANNING_API
     ATTENDANCE_ADAPTER --> ATTENDANCE_API
 
-    %% Document Processing API Integration
     Document --> DOCUMENT_API
     DOCUMENT_API --> NEMO_RETRIEVER
     DOCUMENT_API --> NEMO_OCR
@@ -281,13 +252,11 @@ graph TB
     DOCUMENT_API --> NEMOTRON_70B
     DOCUMENT_API --> INTELLIGENT_ROUTER
 
-    %% MCP Testing API Integration
     MCP_TESTING --> MCP_TEST_API
     MCP_TEST_API --> MCP_SERVER
     MCP_TEST_API --> TOOL_DISCOVERY
     MCP_TEST_API --> TOOL_BINDING
 
-    %% Event Streaming
     ERP_ADAPTER --> Kafka
     WMS_ADAPTER --> Kafka
     IoT_ADAPTER --> Kafka
@@ -296,7 +265,6 @@ graph TB
     Kafka --> Postgres
     Kafka --> Milvus
 
-    %% Monitoring
     Postgres --> Prometheus
     Milvus --> Prometheus
     Redis --> Prometheus
@@ -307,7 +275,6 @@ graph TB
     NodeExporter --> Prometheus
     Cadvisor --> Prometheus
 
-    %% Styling
     classDef userLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     classDef securityLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef mcpLayer fill:#e8f5e8,stroke:#00D4AA,stroke-width:3px
@@ -326,7 +293,7 @@ graph TB
     class Auth,RBAC,Guardrails securityLayer
     class MCP_SERVER,MCP_CLIENT,TOOL_DISCOVERY,TOOL_BINDING,TOOL_ROUTING,TOOL_VALIDATION,SERVICE_DISCOVERY,MCP_MONITORING,ROLLBACK_MGR mcpLayer
     class Planner,Equipment,Operations,Safety,Chat,Document agentLayer
-    class Memory,Profiles,Sessions,History memoryLayer
+    class Memory,Profiles,Sessions,History,Redis_Cache memoryLayer
     class NIM_LLM,NIM_EMB aiLayer
     class NEMO_RETRIEVER,NEMO_OCR,NANO_VL,E5_EMBEDDINGS,NEMOTRON_70B,INTELLIGENT_ROUTER aiLayer
     class SQL,Vector,Hybrid dataLayer
@@ -911,7 +878,7 @@ graph LR
 - **Object Storage**: MinIO for file management and document storage
 - **Configuration Management**: etcd for distributed configuration
 
-## 🔄 **Latest Updates (December 2024)**
+## 🔄 **Latest Updates**
 
 ### **Chat Interface & MCP System - Production Ready** ✅
 
@@ -992,7 +959,7 @@ The system now features **comprehensive MCP integration** with all 3 phases succ
 - **✅ API Endpoints**: Added MCP-specific API endpoints for tool management
 - **✅ Component Status**: Updated all components to reflect MCP integration status
 
-## 🔄 **Previous Updates (December 2024)**
+## 🔄 **Previous Updates**
 
 ### **Equipment & Asset Operations Agent (EAO) - Major Update**
 - **✅ Agent Renamed**: "Inventory Intelligence Agent" → "Equipment & Asset Operations Agent (EAO)"
