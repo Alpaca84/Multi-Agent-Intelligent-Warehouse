@@ -6,13 +6,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1", tags=["Equipment"])
+router = APIRouter(prefix="/api/v1/inventory", tags=["Inventory"])
 
 # Initialize SQL retriever
 sql_retriever = SQLRetriever()
 
 
-class EquipmentItem(BaseModel):
+class InventoryItem(BaseModel):
     sku: str
     name: str
     quantity: int
@@ -21,16 +21,16 @@ class EquipmentItem(BaseModel):
     updated_at: str
 
 
-class EquipmentUpdate(BaseModel):
+class InventoryUpdate(BaseModel):
     name: Optional[str] = None
     quantity: Optional[int] = None
     location: Optional[str] = None
     reorder_point: Optional[int] = None
 
 
-@router.get("/equipment", response_model=List[EquipmentItem])
-async def get_all_equipment_items():
-    """Get all equipment items."""
+@router.get("/items", response_model=List[InventoryItem])
+async def get_all_inventory_items():
+    """Get all inventory items."""
     try:
         await sql_retriever.initialize()
         query = "SELECT sku, name, quantity, location, reorder_point, updated_at FROM inventory_items ORDER BY name"
@@ -39,7 +39,7 @@ async def get_all_equipment_items():
         items = []
         for row in results:
             items.append(
-                EquipmentItem(
+                InventoryItem(
                     sku=row["sku"],
                     name=row["name"],
                     quantity=row["quantity"],
@@ -53,25 +53,25 @@ async def get_all_equipment_items():
 
         return items
     except Exception as e:
-        logger.error(f"Failed to get equipment items: {e}")
+        logger.error(f"Failed to get inventory items: {e}")
         raise HTTPException(
-            status_code=500, detail="Failed to retrieve equipment items"
+            status_code=500, detail="Failed to retrieve inventory items"
         )
 
 
-@router.get("/equipment/{sku}", response_model=EquipmentItem)
-async def get_equipment_item(sku: str):
-    """Get a specific equipment item by SKU."""
+@router.get("/items/{sku}", response_model=InventoryItem)
+async def get_inventory_item(sku: str):
+    """Get a specific inventory item by SKU."""
     try:
         await sql_retriever.initialize()
         item = await InventoryQueries(sql_retriever).get_item_by_sku(sku)
 
         if not item:
             raise HTTPException(
-                status_code=404, detail=f"Equipment item with SKU {sku} not found"
+                status_code=404, detail=f"Inventory item with SKU {sku} not found"
             )
 
-        return EquipmentItem(
+        return InventoryItem(
             sku=item.sku,
             name=item.name,
             quantity=item.quantity,
@@ -83,15 +83,15 @@ async def get_equipment_item(sku: str):
         raise
     except Exception as e:
         logger.error(f"Failed to get equipment item {sku}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve equipment item")
+        raise HTTPException(status_code=500, detail="Failed to retrieve inventory item")
 
 
-@router.post("/equipment", response_model=EquipmentItem)
-async def create_equipment_item(item: EquipmentItem):
-    """Create a new equipment item."""
+@router.post("/items", response_model=InventoryItem)
+async def create_inventory_item(item: InventoryItem):
+    """Create a new inventory item."""
     try:
         await sql_retriever.initialize()
-        # Insert new equipment item
+        # Insert new inventory item
         insert_query = """
         INSERT INTO inventory_items (sku, name, quantity, location, reorder_point, updated_at)
         VALUES ($1, $2, $3, $4, $5, NOW())
@@ -107,13 +107,13 @@ async def create_equipment_item(item: EquipmentItem):
 
         return item
     except Exception as e:
-        logger.error(f"Failed to create equipment item: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create equipment item")
+        logger.error(f"Failed to create inventory item: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create inventory item")
 
 
-@router.put("/equipment/{sku}", response_model=EquipmentItem)
-async def update_equipment_item(sku: str, update: EquipmentUpdate):
-    """Update an existing equipment item."""
+@router.put("/items/{sku}", response_model=InventoryItem)
+async def update_inventory_item(sku: str, update: InventoryUpdate):
+    """Update an existing inventory item."""
     try:
         await sql_retriever.initialize()
 
@@ -121,7 +121,7 @@ async def update_equipment_item(sku: str, update: EquipmentUpdate):
         current_item = await InventoryQueries(sql_retriever).get_item_by_sku(sku)
         if not current_item:
             raise HTTPException(
-                status_code=404, detail=f"Equipment item with SKU {sku} not found"
+                status_code=404, detail=f"Inventory item with SKU {sku} not found"
             )
 
         # Update fields
@@ -153,7 +153,7 @@ async def update_equipment_item(sku: str, update: EquipmentUpdate):
 
         # Return updated item
         updated_item = await InventoryQueries(sql_retriever).get_item_by_sku(sku)
-        return EquipmentItem(
+        return InventoryItem(
             sku=updated_item.sku,
             name=updated_item.name,
             quantity=updated_item.quantity,
@@ -166,5 +166,5 @@ async def update_equipment_item(sku: str, update: EquipmentUpdate):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to update equipment item {sku}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update equipment item")
+        logger.error(f"Failed to update inventory item {sku}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update inventory item")
