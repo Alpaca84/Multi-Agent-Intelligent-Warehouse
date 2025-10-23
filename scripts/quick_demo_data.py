@@ -51,60 +51,67 @@ class QuickDemoDataGenerator:
             # Clear existing data
             await cur.execute("DELETE FROM inventory_items")
             
-            # Generate 50 realistic inventory items
+            # Generate realistic Frito-Lay products
             demo_items = [
-                ("SKU001", "Wireless Barcode Scanner", 15, "Zone A-Aisle 1-Rack 2-Level 3", 5),
-                ("SKU002", "Forklift Battery Pack", 8, "Zone A-Aisle 3-Rack 1-Level 1", 2),
-                ("SKU003", "Safety Hard Hat", 45, "Zone B-Aisle 2-Rack 4-Level 2", 10),
-                ("SKU004", "Conveyor Belt Motor", 3, "Zone B-Aisle 5-Rack 2-Level 1", 1),
-                ("SKU005", "RFID Tag Roll", 25, "Zone C-Aisle 1-Rack 3-Level 2", 5),
-                ("SKU006", "Pallet Jack", 12, "Zone C-Aisle 4-Rack 1-Level 1", 3),
-                ("SKU007", "Label Printer", 6, "Zone D-Aisle 2-Rack 2-Level 3", 2),
-                ("SKU008", "Hand Truck", 18, "Zone D-Aisle 3-Rack 1-Level 2", 4),
-                ("SKU009", "Packaging Tape", 120, "Zone A-Aisle 6-Rack 3-Level 4", 20),
-                ("SKU010", "Safety Vest", 35, "Zone B-Aisle 1-Rack 2-Level 3", 8),
-                ("SKU011", "Laptop Computer", 5, "Zone C-Aisle 2-Rack 1-Level 2", 1),
-                ("SKU012", "Office Chair", 8, "Zone D-Aisle 4-Rack 2-Level 1", 2),
-                ("SKU013", "Desk Lamp", 15, "Zone A-Aisle 3-Rack 4-Level 2", 3),
-                ("SKU014", "Monitor Stand", 12, "Zone B-Aisle 5-Rack 3-Level 1", 2),
-                ("SKU015", "Keyboard", 20, "Zone C-Aisle 3-Rack 2-Level 3", 4),
-                ("SKU016", "Mouse", 25, "Zone D-Aisle 1-Rack 4-Level 2", 5),
-                ("SKU017", "USB Cable", 50, "Zone A-Aisle 4-Rack 1-Level 4", 10),
-                ("SKU018", "Power Strip", 18, "Zone B-Aisle 2-Rack 3-Level 1", 3),
-                ("SKU019", "Extension Cord", 22, "Zone C-Aisle 5-Rack 2-Level 2", 4),
-                ("SKU020", "Tool Kit", 8, "Zone D-Aisle 3-Rack 1-Level 3", 2),
-                # Robotics and Automation Equipment
-                ("SKU026", "Humanoid Robot - Model H1", 2, "Zone A-Aisle 1-Rack 1-Level 1", 1),
-                ("SKU027", "Humanoid Robot - Model H2", 1, "Zone A-Aisle 1-Rack 1-Level 2", 1),
-                ("SKU028", "AMR (Autonomous Mobile Robot) - Model A1", 4, "Zone B-Aisle 1-Rack 1-Level 1", 2),
-                ("SKU029", "AMR (Autonomous Mobile Robot) - Model A2", 3, "Zone B-Aisle 1-Rack 1-Level 2", 2),
-                ("SKU030", "AGV (Automated Guided Vehicle) - Model G1", 5, "Zone C-Aisle 1-Rack 1-Level 1", 2),
-                ("SKU031", "AGV (Automated Guided Vehicle) - Model G2", 3, "Zone C-Aisle 1-Rack 1-Level 2", 2),
-                ("SKU032", "Pick and Place Robot - Model P1", 6, "Zone D-Aisle 1-Rack 1-Level 1", 2),
-                ("SKU033", "Pick and Place Robot - Model P2", 4, "Zone D-Aisle 1-Rack 1-Level 2", 2),
-                ("SKU034", "Robotic Arm - 6-Axis Model R1", 3, "Zone A-Aisle 2-Rack 1-Level 1", 1),
-                ("SKU035", "Robotic Arm - 7-Axis Model R2", 2, "Zone A-Aisle 2-Rack 1-Level 2", 1),
-                ("SKU036", "Collaborative Robot (Cobot) - Model C1", 4, "Zone B-Aisle 2-Rack 1-Level 1", 2),
-                ("SKU037", "Collaborative Robot (Cobot) - Model C2", 3, "Zone B-Aisle 2-Rack 1-Level 2", 2),
-                ("SKU038", "Mobile Manipulator - Model M1", 2, "Zone C-Aisle 2-Rack 1-Level 1", 1),
-                ("SKU039", "Mobile Manipulator - Model M2", 1, "Zone C-Aisle 2-Rack 1-Level 2", 1),
-                ("SKU040", "Vision System for Robotics - Model V1", 8, "Zone D-Aisle 2-Rack 1-Level 1", 3),
-                ("SKU041", "Robotic Gripper - Universal Model G1", 12, "Zone A-Aisle 3-Rack 1-Level 1", 4),
-                ("SKU042", "Robotic Gripper - Vacuum Model G2", 10, "Zone A-Aisle 3-Rack 1-Level 2", 3),
-                ("SKU043", "Robotic Gripper - Magnetic Model G3", 6, "Zone B-Aisle 3-Rack 1-Level 1", 2),
-                ("SKU044", "Robot Controller - Model RC1", 5, "Zone B-Aisle 3-Rack 1-Level 2", 2),
-                ("SKU045", "Robot Controller - Model RC2", 4, "Zone C-Aisle 3-Rack 1-Level 1", 2),
-                ("SKU046", "Robot End Effector - Model E1", 15, "Zone C-Aisle 3-Rack 1-Level 2", 5),
-                ("SKU047", "Robot End Effector - Model E2", 12, "Zone D-Aisle 3-Rack 1-Level 1", 4),
-                ("SKU048", "Robot Sensor Package - Model S1", 8, "Zone D-Aisle 3-Rack 1-Level 2", 3),
-                ("SKU049", "Robot Sensor Package - Model S2", 6, "Zone A-Aisle 4-Rack 1-Level 1", 2),
-                ("SKU050", "Robot Maintenance Kit - Model MK1", 4, "Zone A-Aisle 4-Rack 1-Level 2", 2),
-                # Add some low stock items for alerts
-                ("SKU051", "Emergency Light", 1, "Zone A-Aisle 1-Rack 1-Level 1", 3),
-                ("SKU052", "Fire Extinguisher", 0, "Zone B-Aisle 2-Rack 1-Level 1", 2),
-                ("SKU053", "First Aid Kit", 2, "Zone C-Aisle 3-Rack 1-Level 1", 5),
-                ("SKU054", "Safety Glasses", 3, "Zone D-Aisle 4-Rack 1-Level 1", 10),
-                ("SKU055", "Work Gloves", 4, "Zone A-Aisle 5-Rack 1-Level 1", 8),
+                # Lay's Products
+                ("LAY001", "Lay's Classic Potato Chips 9oz", 1250, "Zone A-Aisle 1-Rack 2-Level 3", 200),
+                ("LAY002", "Lay's Barbecue Potato Chips 9oz", 980, "Zone A-Aisle 1-Rack 2-Level 2", 150),
+                ("LAY003", "Lay's Salt & Vinegar Potato Chips 9oz", 750, "Zone A-Aisle 1-Rack 2-Level 1", 120),
+                ("LAY004", "Lay's Sour Cream & Onion Potato Chips 9oz", 890, "Zone A-Aisle 1-Rack 3-Level 3", 140),
+                ("LAY005", "Lay's Limón Potato Chips 9oz", 420, "Zone A-Aisle 1-Rack 3-Level 2", 80),
+                
+                # Doritos Products
+                ("DOR001", "Doritos Nacho Cheese Tortilla Chips 9.75oz", 1120, "Zone A-Aisle 2-Rack 1-Level 3", 180),
+                ("DOR002", "Doritos Cool Ranch Tortilla Chips 9.75oz", 890, "Zone A-Aisle 2-Rack 1-Level 2", 140),
+                ("DOR003", "Doritos Spicy Nacho Tortilla Chips 9.75oz", 680, "Zone A-Aisle 2-Rack 1-Level 1", 110),
+                ("DOR004", "Doritos Flamin' Hot Nacho Tortilla Chips 9.75oz", 520, "Zone A-Aisle 2-Rack 2-Level 3", 85),
+                
+                # Cheetos Products
+                ("CHE001", "Cheetos Crunchy Cheese Flavored Snacks 8.5oz", 750, "Zone A-Aisle 3-Rack 2-Level 3", 120),
+                ("CHE002", "Cheetos Puffs Cheese Flavored Snacks 8.5oz", 680, "Zone A-Aisle 3-Rack 2-Level 2", 110),
+                ("CHE003", "Cheetos Flamin' Hot Crunchy Snacks 8.5oz", 480, "Zone A-Aisle 3-Rack 2-Level 1", 80),
+                ("CHE004", "Cheetos White Cheddar Puffs 8.5oz", 320, "Zone A-Aisle 3-Rack 3-Level 3", 60),
+                
+                # Tostitos Products
+                ("TOS001", "Tostitos Original Restaurant Style Tortilla Chips 13oz", 420, "Zone B-Aisle 1-Rack 3-Level 1", 80),
+                ("TOS002", "Tostitos Scoops Tortilla Chips 10oz", 380, "Zone B-Aisle 1-Rack 3-Level 2", 70),
+                ("TOS003", "Tostitos Hint of Lime Tortilla Chips 10oz", 290, "Zone B-Aisle 1-Rack 3-Level 3", 55),
+                ("TOS004", "Tostitos Chunky Salsa Medium 16oz", 180, "Zone B-Aisle 1-Rack 4-Level 1", 40),
+                
+                # Fritos Products
+                ("FRI001", "Fritos Original Corn Chips 9.25oz", 320, "Zone B-Aisle 2-Rack 1-Level 1", 60),
+                ("FRI002", "Fritos Chili Cheese Corn Chips 9.25oz", 280, "Zone B-Aisle 2-Rack 1-Level 2", 50),
+                ("FRI003", "Fritos Honey BBQ Corn Chips 9.25oz", 190, "Zone B-Aisle 2-Rack 1-Level 3", 35),
+                
+                # Ruffles Products
+                ("RUF001", "Ruffles Original Potato Chips 9oz", 450, "Zone B-Aisle 3-Rack 2-Level 1", 85),
+                ("RUF002", "Ruffles Cheddar & Sour Cream Potato Chips 9oz", 390, "Zone B-Aisle 3-Rack 2-Level 2", 75),
+                ("RUF003", "Ruffles All Dressed Potato Chips 9oz", 280, "Zone B-Aisle 3-Rack 2-Level 3", 50),
+                
+                # SunChips Products
+                ("SUN001", "SunChips Original Multigrain Snacks 7oz", 180, "Zone C-Aisle 1-Rack 1-Level 1", 40),
+                ("SUN002", "SunChips Harvest Cheddar Multigrain Snacks 7oz", 160, "Zone C-Aisle 1-Rack 1-Level 2", 35),
+                ("SUN003", "SunChips French Onion Multigrain Snacks 7oz", 120, "Zone C-Aisle 1-Rack 1-Level 3", 25),
+                
+                # PopCorners Products
+                ("POP001", "PopCorners Sea Salt Popcorn Chips 5oz", 95, "Zone C-Aisle 2-Rack 2-Level 1", 25),
+                ("POP002", "PopCorners White Cheddar Popcorn Chips 5oz", 85, "Zone C-Aisle 2-Rack 2-Level 2", 20),
+                ("POP003", "PopCorners Sweet & Salty Kettle Corn Chips 5oz", 65, "Zone C-Aisle 2-Rack 2-Level 3", 15),
+                
+                # Funyuns Products
+                ("FUN001", "Funyuns Onion Flavored Rings 6oz", 140, "Zone C-Aisle 3-Rack 1-Level 1", 30),
+                ("FUN002", "Funyuns Flamin' Hot Onion Flavored Rings 6oz", 95, "Zone C-Aisle 3-Rack 1-Level 2", 20),
+                
+                # Smartfood Products
+                ("SMA001", "Smartfood White Cheddar Popcorn 6.75oz", 110, "Zone C-Aisle 4-Rack 1-Level 1", 25),
+                ("SMA002", "Smartfood Delight Sea Salt Popcorn 6oz", 85, "Zone C-Aisle 4-Rack 1-Level 2", 18),
+                
+                # Low stock items (below reorder point for alerts)
+                ("LAY006", "Lay's Kettle Cooked Original Potato Chips 8.5oz", 15, "Zone A-Aisle 1-Rack 4-Level 1", 25),
+                ("DOR005", "Doritos Dinamita Chile Limón Rolled Tortilla Chips 4.5oz", 8, "Zone A-Aisle 2-Rack 3-Level 1", 15),
+                ("CHE005", "Cheetos Mac 'n Cheese Crunchy Snacks 4oz", 12, "Zone A-Aisle 3-Rack 4-Level 1", 20),
+                ("TOS005", "Tostitos Artisan Recipes Fire Roasted Chipotle Tortilla Chips 10oz", 5, "Zone B-Aisle 1-Rack 5-Level 1", 15),
+                ("FRI004", "Fritos Scoops Corn Chips 9.25oz", 3, "Zone B-Aisle 2-Rack 2-Level 1", 10),
             ]
             
             for sku, name, quantity, location, reorder_point in demo_items:
@@ -344,7 +351,7 @@ class QuickDemoDataGenerator:
         logger.info("🎉 Demo data generation completed successfully!")
         logger.info("📊 Demo Data Summary:")
         logger.info("   • 12 users across all roles")
-        logger.info("   • 25 inventory items (including low stock alerts)")
+        logger.info("   • 35 Frito-Lay products (including low stock alerts)")
         logger.info("   • 8 tasks with various statuses")
         logger.info("   • 8 safety incidents with different severities")
         logger.info("   • 7 days of equipment telemetry data")

@@ -1,5 +1,5 @@
 {
-  "86d524fa-8a91-4617-9832-05609ce60edf": {
+  "11365029-afee-40c1-bd4c-a362437a62df": {
     "status": "completed",
     "current_stage": "Completed",
     "progress": 100.0,
@@ -7,36 +7,36 @@
       {
         "name": "preprocessing",
         "status": "completed",
-        "started_at": "2025-10-18T12:13:04.169788",
-        "completed_at": "2025-10-18T12:13:26.475075"
+        "started_at": "2025-10-23T09:16:46.765739",
+        "completed_at": "2025-10-23T09:17:09.875053"
       },
       {
         "name": "ocr_extraction",
         "status": "completed",
-        "started_at": "2025-10-18T12:13:16.479305",
-        "completed_at": "2025-10-18T12:13:26.475078"
+        "started_at": "2025-10-23T09:16:59.106227",
+        "completed_at": "2025-10-23T09:17:09.875057"
       },
       {
         "name": "llm_processing",
         "status": "completed",
-        "started_at": "2025-10-18T12:13:28.522177",
-        "completed_at": "2025-10-18T12:13:26.475082"
+        "started_at": "2025-10-23T09:17:11.143552",
+        "completed_at": "2025-10-23T09:17:09.875060"
       },
       {
         "name": "validation",
         "status": "completed",
-        "started_at": "2025-10-18T12:13:40.558731",
-        "completed_at": "2025-10-18T12:13:26.475084"
+        "started_at": "2025-10-23T09:17:23.176763",
+        "completed_at": "2025-10-23T09:17:09.875064"
       },
       {
         "name": "routing",
         "status": "processing",
-        "started_at": "2025-10-18T12:13:52.593952",
-        "completed_at": "2025-10-18T12:13:26.475087"
+        "started_at": "2025-10-23T09:17:35.284705",
+        "completed_at": "2025-10-23T09:17:09.875067"
       }
     ],
-    "upload_time": "2025-10-18T12:13:04.169794",
-    "estimated_completion": 1760814844.169795,
+    "upload_time": "2025-10-23T09:16:46.765745",
+    "estimated_completion": 1761236266.765746,
     "processing_results": {
       "preprocessing": {
         "document_type": "pdf",

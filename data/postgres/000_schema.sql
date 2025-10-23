@@ -84,16 +84,24 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
--- Sample data
+-- Sample Frito-Lay product data
 INSERT INTO inventory_items (sku, name, quantity, location, reorder_point) VALUES
-  ('SKU123', 'Blue Pallet Jack', 14, 'Aisle A3', 5),
-  ('SKU456', 'RF Scanner', 6, 'Cage C1', 2),
-  ('SKU789', 'Safety Vest', 25, 'Dock D2', 10),
-  ('SKU101', 'Forklift Battery', 3, 'Maintenance Bay', 1),
-  ('SKU202', 'Conveyor Belt', 8, 'Assembly Line', 3),
-  ('SKU303', 'Packaging Tape', 50, 'Packaging Station', 20),
-  ('SKU404', 'Label Printer', 2, 'Office', 1),
-  ('SKU505', 'Hand Truck', 12, 'Loading Dock', 4)
+  ('LAY001', 'Lay''s Classic Potato Chips 9oz', 1250, 'Zone A-Aisle 1-Rack 2-Level 3', 200),
+  ('LAY002', 'Lay''s Barbecue Potato Chips 9oz', 980, 'Zone A-Aisle 1-Rack 2-Level 2', 150),
+  ('DOR001', 'Doritos Nacho Cheese Tortilla Chips 9.75oz', 1120, 'Zone A-Aisle 2-Rack 1-Level 3', 180),
+  ('DOR002', 'Doritos Cool Ranch Tortilla Chips 9.75oz', 890, 'Zone A-Aisle 2-Rack 1-Level 2', 140),
+  ('CHE001', 'Cheetos Crunchy Cheese Flavored Snacks 8.5oz', 750, 'Zone A-Aisle 3-Rack 2-Level 3', 120),
+  ('CHE002', 'Cheetos Puffs Cheese Flavored Snacks 8.5oz', 680, 'Zone A-Aisle 3-Rack 2-Level 2', 110),
+  ('TOS001', 'Tostitos Original Restaurant Style Tortilla Chips 13oz', 420, 'Zone B-Aisle 1-Rack 3-Level 1', 80),
+  ('TOS002', 'Tostitos Scoops Tortilla Chips 10oz', 380, 'Zone B-Aisle 1-Rack 3-Level 2', 70),
+  ('FRI001', 'Fritos Original Corn Chips 9.25oz', 320, 'Zone B-Aisle 2-Rack 1-Level 1', 60),
+  ('FRI002', 'Fritos Chili Cheese Corn Chips 9.25oz', 280, 'Zone B-Aisle 2-Rack 1-Level 2', 50),
+  ('RUF001', 'Ruffles Original Potato Chips 9oz', 450, 'Zone B-Aisle 3-Rack 2-Level 1', 85),
+  ('RUF002', 'Ruffles Cheddar & Sour Cream Potato Chips 9oz', 390, 'Zone B-Aisle 3-Rack 2-Level 2', 75),
+  ('SUN001', 'SunChips Original Multigrain Snacks 7oz', 180, 'Zone C-Aisle 1-Rack 1-Level 1', 40),
+  ('SUN002', 'SunChips Harvest Cheddar Multigrain Snacks 7oz', 160, 'Zone C-Aisle 1-Rack 1-Level 2', 35),
+  ('POP001', 'PopCorners Sea Salt Popcorn Chips 5oz', 95, 'Zone C-Aisle 2-Rack 2-Level 1', 25),
+  ('POP002', 'PopCorners White Cheddar Popcorn Chips 5oz', 85, 'Zone C-Aisle 2-Rack 2-Level 2', 20)
 ON CONFLICT (sku) DO UPDATE SET
   name = EXCLUDED.name,
   quantity = EXCLUDED.quantity,

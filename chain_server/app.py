@@ -21,6 +21,7 @@ from chain_server.routers.reasoning import router as reasoning_router
 from chain_server.routers.migration import router as migration_router
 from chain_server.routers.mcp import router as mcp_router
 from chain_server.routers.document import router as document_router
+from chain_server.routers.equipment_old import router as inventory_router
 from chain_server.services.monitoring.metrics import (
     record_request_metrics,
     get_metrics_response,
@@ -62,6 +63,7 @@ app.include_router(reasoning_router)
 app.include_router(migration_router)
 app.include_router(mcp_router)
 app.include_router(document_router)
+app.include_router(inventory_router)
 
 
 # Add metrics endpoint
