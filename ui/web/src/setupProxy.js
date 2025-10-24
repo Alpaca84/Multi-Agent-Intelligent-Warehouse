@@ -1,10 +1,12 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
+  console.log('Setting up proxy middleware...');
+  
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://localhost:8002',
+      target: 'http://localhost:8001',
       changeOrigin: true,
       secure: false,
       logLevel: 'debug',
@@ -21,4 +23,6 @@ module.exports = function(app) {
       }
     })
   );
+  
+  console.log('Proxy middleware configured for /api -> http://localhost:8001');
 };

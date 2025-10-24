@@ -17,6 +17,9 @@ All notable changes to this project will be documented in this file. See [Conven
 - **NEW: Fixed response formatting** - Technical details removed from chat responses
 - **NEW: Fixed parameter validation** - Comprehensive validation with helpful warnings
 - **NEW: Fixed conversation memory verbosity** - Optimized context injection
+- **NEW: Fixed forecasting API Network Error** - Simplified URL construction and removed class-based approach
+- **NEW: Fixed forecasting UI compilation errors** - TypeScript errors resolved for data field access
+- **NEW: Fixed forecasting data field mismatches** - Updated UI to use correct API response fields (mape/drift_score vs mae/rmse)
 
 ### Features
 - Initial implementation of Warehouse Operational Assistant
@@ -27,6 +30,14 @@ All notable changes to this project will be documented in this file. See [Conven
 - **NEW: Response Formatting Engine** - Technical details removed, user-friendly formatting
 - **NEW: Enhanced Error Handling** - Graceful error handling with actionable suggestions
 - **NEW: Real Tool Execution** - All MCP tools executing with actual database data
+- **NEW: Complete Demand Forecasting System** - AI-powered forecasting with multi-model ensemble
+- **NEW: Advanced Feature Engineering** - Lag features, rolling statistics, seasonal patterns, promotional impacts
+- **NEW: Hyperparameter Optimization** - Optuna-based tuning with Time Series Cross-Validation
+- **NEW: Real-Time Predictions** - Live demand forecasts with confidence intervals
+- **NEW: Automated Reorder Recommendations** - AI-suggested stock orders with urgency levels
+- **NEW: Business Intelligence Dashboard** - Comprehensive analytics and performance monitoring
+- **NEW: Frito-Lay Product Catalog** - 38 SKUs with realistic demand patterns and historical data
+- **NEW: GPU Acceleration Ready** - NVIDIA RAPIDS cuML integration for enterprise-scale forecasting
 - Hybrid RAG system with SQL and vector retrieval
 - Real-time chat interface with evidence panel
 - Equipment asset management and tracking

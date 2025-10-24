@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001/api/v1';
 
 export interface InventoryItem {
   sku: string;
@@ -22,7 +22,7 @@ class InventoryAPI {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = `${API_BASE_URL}/api/v1/inventory`;
+    this.baseURL = `${API_BASE_URL}/inventory`;
   }
 
   async getAllItems(): Promise<InventoryItem[]> {
@@ -30,7 +30,7 @@ class InventoryAPI {
       const response = await axios.get(`${this.baseURL}/items`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching inventory items:', error);
+      // console.error('Error fetching inventory items:', error);
       throw error;
     }
   }
@@ -40,7 +40,7 @@ class InventoryAPI {
       const response = await axios.get(`${this.baseURL}/items/${sku}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching inventory item ${sku}:`, error);
+      // console.error(`Error fetching inventory item ${sku}:`, error);
       throw error;
     }
   }
@@ -50,7 +50,7 @@ class InventoryAPI {
       const response = await axios.post(`${this.baseURL}/items`, item);
       return response.data;
     } catch (error) {
-      console.error('Error creating inventory item:', error);
+      // console.error('Error creating inventory item:', error);
       throw error;
     }
   }
@@ -60,7 +60,7 @@ class InventoryAPI {
       const response = await axios.put(`${this.baseURL}/items/${sku}`, update);
       return response.data;
     } catch (error) {
-      console.error(`Error updating inventory item ${sku}:`, error);
+      // console.error(`Error updating inventory item ${sku}:`, error);
       throw error;
     }
   }
@@ -70,7 +70,7 @@ class InventoryAPI {
       const allItems = await this.getAllItems();
       return allItems.filter(item => item.quantity < item.reorder_point);
     } catch (error) {
-      console.error('Error fetching low stock items:', error);
+      // console.error('Error fetching low stock items:', error);
       throw error;
     }
   }
@@ -83,7 +83,7 @@ class InventoryAPI {
         item.name.toLowerCase().includes(brand.toLowerCase())
       );
     } catch (error) {
-      console.error(`Error fetching items for brand ${brand}:`, error);
+      // console.error(`Error fetching items for brand ${brand}:`, error);
       throw error;
     }
   }
