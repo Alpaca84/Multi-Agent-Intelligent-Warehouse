@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -18,7 +18,6 @@ import {
   Alert,
   CircularProgress,
   IconButton,
-  Tooltip,
   Badge,
   Tabs,
   Tab,
@@ -32,7 +31,6 @@ import {
   Inventory as InventoryIcon,
   Warning as WarningIcon,
   Refresh as RefreshIcon,
-  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import { inventoryAPI, InventoryItem } from '../services/inventoryAPI';
 
@@ -73,25 +71,7 @@ const InventoryPage: React.FC = () => {
     fetchInventoryItems();
   }, []);
 
-  useEffect(() => {
-    filterItems();
-  }, [inventoryItems, searchTerm, brandFilter]);
-
-  const fetchInventoryItems = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const items = await inventoryAPI.getAllItems();
-      setInventoryItems(items);
-    } catch (err) {
-      setError('Failed to fetch inventory items');
-      console.error('Error fetching inventory items:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterItems = () => {
+  const filterItems = useCallback(() => {
     let filtered = inventoryItems;
 
     // Filter by search term
@@ -109,13 +89,24 @@ const InventoryPage: React.FC = () => {
     }
 
     setFilteredItems(filtered);
-  };
+  }, [inventoryItems, searchTerm, brandFilter]);
 
-  const getStockStatus = (item: InventoryItem) => {
-    if (item.quantity === 0) return { status: 'Out of Stock', color: 'error' as const };
-    if (item.quantity < item.reorder_point) return { status: 'Low Stock', color: 'warning' as const };
-    if (item.quantity < item.reorder_point * 1.5) return { status: 'Medium Stock', color: 'info' as const };
-    return { status: 'In Stock', color: 'success' as const };
+  useEffect(() => {
+    filterItems();
+  }, [filterItems]);
+
+  const fetchInventoryItems = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const items = await inventoryAPI.getAllItems();
+      setInventoryItems(items);
+    } catch (err) {
+      setError('Failed to fetch inventory items');
+      // console.error('Error fetching inventory items:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getLowStockItems = () => {
@@ -124,6 +115,13 @@ const InventoryPage: React.FC = () => {
 
   const getBrandItems = (brand: string) => {
     return inventoryItems.filter(item => item.sku.startsWith(brand));
+  };
+
+  const getStockStatus = (item: InventoryItem) => {
+    if (item.quantity === 0) return { status: 'Out of Stock', color: 'error' as const };
+    if (item.quantity < item.reorder_point) return { status: 'Low Stock', color: 'warning' as const };
+    if (item.quantity < item.reorder_point * 1.5) return { status: 'Medium Stock', color: 'info' as const };
+    return { status: 'In Stock', color: 'success' as const };
   };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -310,6 +308,13 @@ interface InventoryTableProps {
 }
 
 const InventoryTable: React.FC<InventoryTableProps> = ({ items }) => {
+  const getStockStatus = (item: InventoryItem) => {
+    if (item.quantity === 0) return { status: 'Out of Stock', color: 'error' as const };
+    if (item.quantity < item.reorder_point) return { status: 'Low Stock', color: 'warning' as const };
+    if (item.quantity < item.reorder_point * 1.5) return { status: 'Medium Stock', color: 'info' as const };
+    return { status: 'In Stock', color: 'success' as const };
+  };
+
   if (items.length === 0) {
     return (
       <Alert severity="info">
@@ -383,11 +388,5 @@ const InventoryTable: React.FC<InventoryTableProps> = ({ items }) => {
   );
 };
 
-const getStockStatus = (item: InventoryItem) => {
-  if (item.quantity === 0) return { status: 'Out of Stock', color: 'error' as const };
-  if (item.quantity < item.reorder_point) return { status: 'Low Stock', color: 'warning' as const };
-  if (item.quantity < item.reorder_point * 1.5) return { status: 'Medium Stock', color: 'info' as const };
-  return { status: 'In Stock', color: 'success' as const };
-};
 
 export default InventoryPage;

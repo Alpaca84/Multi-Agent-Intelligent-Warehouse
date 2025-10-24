@@ -35,7 +35,7 @@ export const versionAPI = {
    */
   getVersion: async (): Promise<VersionInfo> => {
     try {
-      const response = await api.get('/api/v1/version');
+      const response = await api.get('/version');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch version info:', error);
@@ -48,7 +48,7 @@ export const versionAPI = {
    */
   getDetailedVersion: async (): Promise<DetailedVersionInfo> => {
     try {
-      const response = await api.get('/api/v1/version/detailed');
+      const response = await api.get('/version/detailed');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch detailed version info:', error);
@@ -61,7 +61,7 @@ export const versionAPI = {
    */
   getHealth: async (): Promise<any> => {
     try {
-      const response = await api.get('/api/v1/health');
+      const response = await api.get('/health');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch health info:', error);

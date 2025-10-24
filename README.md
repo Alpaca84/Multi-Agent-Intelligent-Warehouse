@@ -106,6 +106,16 @@ The system emphasizes modular design, clear separation of concerns, and enterpri
 - **RFID/Barcode Scanning** - Honeywell, Zebra, generic scanners
 - **Time Attendance** - Biometric systems, card readers, mobile apps
 
+### 📈 **Demand Forecasting & Inventory Intelligence**
+- **AI-Powered Demand Forecasting** - Multi-model ensemble with Random Forest, Gradient Boosting, Linear Regression
+- **Advanced Feature Engineering** - Lag features, rolling statistics, seasonal patterns, promotional impacts
+- **Hyperparameter Optimization** - Optuna-based tuning with Time Series Cross-Validation
+- **Real-Time Predictions** - Live demand forecasts with confidence intervals
+- **Automated Reorder Recommendations** - AI-suggested stock orders with urgency levels
+- **Business Intelligence Dashboard** - Comprehensive analytics and performance monitoring
+- **GPU Acceleration Ready** - NVIDIA RAPIDS cuML integration for enterprise-scale forecasting
+- **Historical Data Generation** - Realistic Frito-Lay product demand patterns with seasonal variations
+
 ### 🛡️ **Enterprise Security & Monitoring**
 - **Authentication** - JWT/OAuth2 + RBAC with 5 user roles
 - **Real-Time Monitoring** - Prometheus metrics + Grafana dashboards
@@ -126,6 +136,10 @@ The system emphasizes modular design, clear separation of concerns, and enterpri
 - PostgreSQL/TimescaleDB integration
 - Vector search with Milvus GPU acceleration
 - Authentication and RBAC security
+- **Demand Forecasting System** - Complete AI-powered forecasting with multi-model ensemble
+- **Inventory Management** - Frito-Lay product catalog with 38 SKUs and historical data
+- **Forecasting Dashboard** - Real-time predictions, reorder recommendations, and business intelligence
+- **Advanced Analytics** - Model performance monitoring and hyperparameter optimization
 - API endpoints for equipment, assignments, maintenance, and telemetry
 - MessageBubble component (✅ **FIXED** - syntax error resolved)
 - ChatInterfaceNew component (✅ **FIXED** - event undefined error resolved)
@@ -170,6 +184,40 @@ The system features **complete MCP integration** with dynamic tool discovery and
 - `chain_server/services/mcp/` - Complete MCP framework implementation
 - `chain_server/services/mcp/parameter_validator.py` - Comprehensive parameter validation
 - Dynamic tool discovery, binding, routing, and validation services
+
+### **📈 Demand Forecasting System** - ✅ **PRODUCTION READY**
+
+The system features **complete AI-powered demand forecasting** with multi-model ensemble and advanced analytics:
+
+**Core Forecasting Capabilities:**
+- **Multi-Model Ensemble** - Random Forest, Gradient Boosting, Linear Regression, Support Vector Regression
+- **Advanced Feature Engineering** - Lag features (1-30 days), rolling statistics, seasonal patterns, promotional impacts
+- **Hyperparameter Optimization** - Optuna-based tuning with Time Series Cross-Validation (5-fold)
+- **Real-Time Predictions** - Live demand forecasts with confidence intervals and uncertainty bounds
+- **Automated Reorder Recommendations** - AI-suggested stock orders with urgency levels (CRITICAL, HIGH, MEDIUM, LOW)
+- **Business Intelligence Dashboard** - Comprehensive analytics, model performance monitoring, and trend analysis
+
+**Training Pipeline:**
+- **Phase 1 & 2** - Data extraction, feature engineering, basic model training (`phase1_phase2_forecasting_agent.py`)
+- **Phase 3** - Advanced models, hyperparameter optimization, ensemble methods (`phase3_advanced_forecasting.py`)
+- **GPU Acceleration Ready** - NVIDIA RAPIDS cuML integration for enterprise-scale forecasting
+- **Historical Data Generation** - Realistic Frito-Lay product demand patterns with seasonal variations
+
+**API Endpoints:**
+- `/api/v1/forecasting/dashboard` - Comprehensive forecasting dashboard data
+- `/api/v1/forecasting/real-time` - Real-time demand predictions
+- `/api/v1/forecasting/reorder-recommendations` - Automated reorder suggestions
+- `/api/v1/forecasting/model-performance` - Model health and performance metrics
+- `/api/v1/forecasting/business-intelligence` - Business analytics and insights
+- `/api/v1/inventory/forecast/demand` - SKU-specific demand forecasts
+- `/api/v1/inventory/forecast/summary` - Summary of all available forecasts
+
+**Key Forecasting Components:**
+- `scripts/phase1_phase2_forecasting_agent.py` - Basic forecasting with CPU fallback
+- `scripts/phase3_advanced_forecasting.py` - Advanced models with hyperparameter optimization
+- `chain_server/routers/advanced_forecasting.py` - FastAPI endpoints for forecasting
+- `ui/web/src/pages/Forecasting.tsx` - React dashboard for forecasting analytics
+- `ui/web/src/services/forecastingAPI.ts` - Frontend API service for forecasting data
 
 ## Quick Start
 

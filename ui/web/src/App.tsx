@@ -8,7 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ChatInterfaceNew from './pages/ChatInterfaceNew';
 import Equipment from './pages/EquipmentNew';
-import Inventory from './pages/Inventory';
+import Forecasting from './pages/Forecasting';
 import Operations from './pages/Operations';
 import Safety from './pages/Safety';
 import Analytics from './pages/Analytics';
@@ -36,7 +36,7 @@ function App() {
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/chat" element={<ChatInterfaceNew />} />
                     <Route path="/equipment" element={<Equipment />} />
-                    <Route path="/inventory" element={<Inventory />} />
+                    <Route path="/forecasting" element={<Forecasting />} />
                     <Route path="/operations" element={<Operations />} />
                     <Route path="/safety" element={<Safety />} />
                     <Route path="/documents" element={<DocumentExtraction />} />

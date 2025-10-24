@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  rapids-forecasting:
+    build:
+      context: .
+      dockerfile: Dockerfile.rapids
+    container_name: frito-lay-forecasting
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      - POSTGRES_HOST=host.docker.internal
+      - POSTGRES_PORT=5435
+      - POSTGRES_USER=warehouse
+      - POSTGRES_PASSWORD=warehousepw
+      - POSTGRES_DB=warehouse
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - warehouse-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  postgres:
+    image: postgres:15
+    container_name: warehouse-postgres
+    environment:
+      - POSTGRES_USER=warehouse
+      - POSTGRES_PASSWORD=warehousepw
+      - POSTGRES_DB=warehouse
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data/postgres:/docker-entrypoint-initdb.d
+    networks:
+      - warehouse-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: warehouse-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - warehouse-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  warehouse-network:
+    driver: bridge

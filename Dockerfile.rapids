@@ -1,0 +1,31 @@
+# NVIDIA RAPIDS Demand Forecasting Agent
+# Docker setup for GPU-accelerated forecasting with cuML
+
+FROM nvcr.io/nvidia/rapidsai/rapidsai:24.02-cuda12.0-runtime-ubuntu22.04-py3.10
+
+# Set working directory
+WORKDIR /app
+
+# Install additional dependencies
+RUN pip install asyncpg psycopg2-binary xgboost
+
+# Copy application files
+COPY scripts/rapids_forecasting_agent.py /app/
+COPY requirements.txt /app/
+
+# Install Python dependencies
+RUN pip install -r requirements.txt
+
+# Set environment variables
+ENV CUDA_VISIBLE_DEVICES=0
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Create data directory
+RUN mkdir -p /app/data
+
+# Expose port for API (if needed)
+EXPOSE 8002
+
+# Default command
+CMD ["python", "rapids_forecasting_agent.py"]

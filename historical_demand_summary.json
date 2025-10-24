@@ -1,0 +1,291 @@
+{
+  "total_movements": 7644,
+  "date_range": {
+    "start": "2025-04-26 09:42:28.749954",
+    "end": "2025-10-22 09:42:28.749954"
+  },
+  "products": {
+    "CHE001": {
+      "total_demand": 7451,
+      "avg_daily_demand": 41.39,
+      "movement_count": 198,
+      "demand_variability": 0.169
+    },
+    "CHE002": {
+      "total_demand": 7397,
+      "avg_daily_demand": 41.09,
+      "movement_count": 209,
+      "demand_variability": 0.196
+    },
+    "CHE003": {
+      "total_demand": 7367,
+      "avg_daily_demand": 40.93,
+      "movement_count": 191,
+      "demand_variability": 0.175
+    },
+    "CHE004": {
+      "total_demand": 7313,
+      "avg_daily_demand": 40.63,
+      "movement_count": 204,
+      "demand_variability": 0.173
+    },
+    "CHE005": {
+      "total_demand": 7567,
+      "avg_daily_demand": 42.04,
+      "movement_count": 198,
+      "demand_variability": 0.168
+    },
+    "DOR001": {
+      "total_demand": 9390,
+      "avg_daily_demand": 52.17,
+      "movement_count": 201,
+      "demand_variability": 0.319
+    },
+    "DOR002": {
+      "total_demand": 9356,
+      "avg_daily_demand": 51.98,
+      "movement_count": 202,
+      "demand_variability": 0.326
+    },
+    "DOR003": {
+      "total_demand": 9407,
+      "avg_daily_demand": 52.26,
+      "movement_count": 199,
+      "demand_variability": 0.307
+    },
+    "DOR004": {
+      "total_demand": 9458,
+      "avg_daily_demand": 52.54,
+      "movement_count": 197,
+      "demand_variability": 0.287
+    },
+    "DOR005": {
+      "total_demand": 9281,
+      "avg_daily_demand": 51.56,
+      "movement_count": 202,
+      "demand_variability": 0.308
+    },
+    "FRI001": {
+      "total_demand": 3925,
+      "avg_daily_demand": 21.81,
+      "movement_count": 192,
+      "demand_variability": 0.167
+    },
+    "FRI002": {
+      "total_demand": 3980,
+      "avg_daily_demand": 22.11,
+      "movement_count": 200,
+      "demand_variability": 0.152
+    },
+    "FRI003": {
+      "total_demand": 3980,
+      "avg_daily_demand": 22.11,
+      "movement_count": 199,
+      "demand_variability": 0.154
+    },
+    "FRI004": {
+      "total_demand": 3976,
+      "avg_daily_demand": 22.09,
+      "movement_count": 203,
+      "demand_variability": 0.149
+    },
+    "FUN001": {
+      "total_demand": 4141,
+      "avg_daily_demand": 23.01,
+      "movement_count": 204,
+      "demand_variability": 0.248
+    },
+    "FUN002": {
+      "total_demand": 4155,
+      "avg_daily_demand": 23.08,
+      "movement_count": 198,
+      "demand_variability": 0.241
+    },
+    "LAY001": {
+      "total_demand": 9987,
+      "avg_daily_demand": 55.48,
+      "movement_count": 204,
+      "demand_variability": 0.226
+    },
+    "LAY002": {
+      "total_demand": 10106,
+      "avg_daily_demand": 56.14,
+      "movement_count": 199,
+      "demand_variability": 0.213
+    },
+    "LAY003": {
+      "total_demand": 10183,
+      "avg_daily_demand": 56.57,
+      "movement_count": 205,
+      "demand_variability": 0.188
+    },
+    "LAY004": {
+      "total_demand": 10240,
+      "avg_daily_demand": 56.89,
+      "movement_count": 202,
+      "demand_variability": 0.224
+    },
+    "LAY005": {
+      "total_demand": 10239,
+      "avg_daily_demand": 56.88,
+      "movement_count": 200,
+      "demand_variability": 0.218
+    },
+    "LAY006": {
+      "total_demand": 9978,
+      "avg_daily_demand": 55.43,
+      "movement_count": 192,
+      "demand_variability": 0.216
+    },
+    "POP001": {
+      "total_demand": 2249,
+      "avg_daily_demand": 12.49,
+      "movement_count": 201,
+      "demand_variability": 0.183
+    },
+    "POP002": {
+      "total_demand": 2268,
+      "avg_daily_demand": 12.6,
+      "movement_count": 210,
+      "demand_variability": 0.169
+    },
+    "POP003": {
+      "total_demand": 2263,
+      "avg_daily_demand": 12.57,
+      "movement_count": 193,
+      "demand_variability": 0.175
+    },
+    "RUF001": {
+      "total_demand": 6847,
+      "avg_daily_demand": 38.04,
+      "movement_count": 206,
+      "demand_variability": 0.213
+    },
+    "RUF002": {
+      "total_demand": 6611,
+      "avg_daily_demand": 36.73,
+      "movement_count": 202,
+      "demand_variability": 0.188
+    },
+    "RUF003": {
+      "total_demand": 6779,
+      "avg_daily_demand": 37.66,
+      "movement_count": 204,
+      "demand_variability": 0.209
+    },
+    "SMA001": {
+      "total_demand": 1865,
+      "avg_daily_demand": 10.36,
+      "movement_count": 210,
+      "demand_variability": 0.16
+    },
+    "SMA002": {
+      "total_demand": 1862,
+      "avg_daily_demand": 10.34,
+      "movement_count": 203,
+      "demand_variability": 0.172
+    },
+    "SUN001": {
+      "total_demand": 2908,
+      "avg_daily_demand": 16.16,
+      "movement_count": 199,
+      "demand_variability": 0.192
+    },
+    "SUN002": {
+      "total_demand": 2914,
+      "avg_daily_demand": 16.19,
+      "movement_count": 202,
+      "demand_variability": 0.198
+    },
+    "SUN003": {
+      "total_demand": 2952,
+      "avg_daily_demand": 16.4,
+      "movement_count": 207,
+      "demand_variability": 0.204
+    },
+    "TOS001": {
+      "total_demand": 6403,
+      "avg_daily_demand": 35.57,
+      "movement_count": 200,
+      "demand_variability": 0.358
+    },
+    "TOS002": {
+      "total_demand": 6190,
+      "avg_daily_demand": 34.39,
+      "movement_count": 198,
+      "demand_variability": 0.358
+    },
+    "TOS003": {
+      "total_demand": 6282,
+      "avg_daily_demand": 34.9,
+      "movement_count": 206,
+      "demand_variability": 0.365
+    },
+    "TOS004": {
+      "total_demand": 6440,
+      "avg_daily_demand": 35.78,
+      "movement_count": 196,
+      "demand_variability": 0.378
+    },
+    "TOS005": {
+      "total_demand": 6358,
+      "avg_daily_demand": 35.32,
+      "movement_count": 208,
+      "demand_variability": 0.379
+    }
+  },
+  "brand_performance": {
+    "CHE": {
+      "total_demand": 37095,
+      "avg_demand_per_product": 7419.0,
+      "product_count": 5
+    },
+    "DOR": {
+      "total_demand": 46892,
+      "avg_demand_per_product": 9378.4,
+      "product_count": 5
+    },
+    "FRI": {
+      "total_demand": 15861,
+      "avg_demand_per_product": 3965.25,
+      "product_count": 4
+    },
+    "FUN": {
+      "total_demand": 8296,
+      "avg_demand_per_product": 4148.0,
+      "product_count": 2
+    },
+    "LAY": {
+      "total_demand": 60733,
+      "avg_demand_per_product": 10122.17,
+      "product_count": 6
+    },
+    "POP": {
+      "total_demand": 6780,
+      "avg_demand_per_product": 2260.0,
+      "product_count": 3
+    },
+    "RUF": {
+      "total_demand": 20237,
+      "avg_demand_per_product": 6745.67,
+      "product_count": 3
+    },
+    "SMA": {
+      "total_demand": 3727,
+      "avg_demand_per_product": 1863.5,
+      "product_count": 2
+    },
+    "SUN": {
+      "total_demand": 8774,
+      "avg_demand_per_product": 2924.67,
+      "product_count": 3
+    },
+    "TOS": {
+      "total_demand": 31673,
+      "avg_demand_per_product": 6334.6,
+      "product_count": 5
+    }
+  },
+  "seasonal_patterns": {},
+  "promotional_impact": {}
+}
