@@ -807,13 +807,13 @@ async def chat(req: ChatRequest):
             logger.warning(f"Output safety check failed: {safety_error}, proceeding with response")
 
         # Extract structured response if available
-        structured_response = result.get("structured_response", {})
+        structured_response = result.get("structured_response", {}) if result else {}
 
         # Extract MCP tool execution results
-        mcp_tools_used = result.get("mcp_tools_used", [])
-        tool_execution_results = result.get("context", {}).get(
-            "tool_execution_results", {}
-        )
+        mcp_tools_used = result.get("mcp_tools_used", []) if result else []
+        tool_execution_results = {}
+        if result and result.get("context"):
+            tool_execution_results = result.get("context", {}).get("tool_execution_results", {})
 
         # Extract confidence from multiple possible sources with sensible defaults
         # Priority: result.confidence > structured_response.confidence > agent_responses > default (0.75)
@@ -838,12 +838,22 @@ async def chat(req: ChatRequest):
                 confidence = 0.75 if result.get("route") != "error" else 0.0
 
         # Format the response to be more user-friendly
-        formatted_reply = _format_user_response(
-            result["response"],
-            structured_response,
-            confidence,
-            result.get("recommendations", []),
-        )
+        # Ensure we have a valid response before formatting
+        base_response = result.get("response") if result else None
+        if not base_response:
+            logger.warning(f"No response in result: {result}")
+            base_response = f"I received your message: '{req.message}'. Processing your request..."
+        
+        try:
+            formatted_reply = _format_user_response(
+                base_response,
+                structured_response if structured_response else {},
+                confidence if confidence else 0.75,
+                result.get("recommendations", []) if result else [],
+            )
+        except Exception as format_error:
+            logger.error(f"Error formatting response: {format_error}")
+            formatted_reply = base_response if base_response else f"I received your message: '{req.message}'."
 
         # Validate and enhance the response
         try:
@@ -874,7 +884,7 @@ async def chat(req: ChatRequest):
             enhancement_result = await response_enhancer.enhance_response(
                 response=formatted_reply,
                 context=req.context,
-                intent=result.get("intent"),
+                intent=result.get("intent") if result else "general",
                 entities=validation_entities,
                 auto_fix=True,
             )
