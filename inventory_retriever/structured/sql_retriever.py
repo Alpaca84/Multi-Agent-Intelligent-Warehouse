@@ -78,8 +78,8 @@ class SQLRetriever:
                     )
                     logger.info(f"Database connection pool initialized for {self.config.database}")
                 except asyncio.TimeoutError:
-                    logger.error(f"Database pool creation timed out after 10 seconds")
-                    raise ConnectionError(f"Database connection timeout: Unable to connect to {self.config.host}:{self.config.port}/{self.config.database} within 10 seconds")
+                    logger.error(f"Database pool creation timed out after 7 seconds")
+                    raise ConnectionError(f"Database connection timeout: Unable to connect to {self.config.host}:{self.config.port}/{self.config.database} within 7 seconds")
         except Exception as e:
             logger.error(f"Failed to initialize database pool: {e}")
             raise
