@@ -179,11 +179,35 @@ async def get_version():
     Returns:
         dict: Version information
     """
+    import asyncio
     try:
-        return {"status": "ok", **version_service.get_version_info()}
+        # Wrap version service call with timeout to prevent hanging
+        try:
+            version_info = await asyncio.wait_for(
+                asyncio.to_thread(version_service.get_version_info),
+                timeout=2.0  # 2 second timeout for version info
+            )
+            return {"status": "ok", **version_info}
+        except asyncio.TimeoutError:
+            logger.warning("Version service call timed out, returning fallback version")
+            # Return fallback version info
+            return {
+                "status": "ok",
+                "version": "0.0.0-dev",
+                "git_sha": "unknown",
+                "build_time": datetime.utcnow().isoformat(),
+                "environment": os.getenv("ENVIRONMENT", "development"),
+            }
     except Exception as e:
         logger.error(f"Version endpoint failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Version check failed: {str(e)}")
+        # Return fallback version info instead of raising error
+        return {
+            "status": "ok",
+            "version": "0.0.0-dev",
+            "git_sha": "unknown",
+            "build_time": datetime.utcnow().isoformat(),
+            "environment": os.getenv("ENVIRONMENT", "development"),
+        }
 
 
 @router.get("/version/detailed")
@@ -194,13 +218,47 @@ async def get_detailed_version():
     Returns:
         dict: Detailed build information
     """
+    import asyncio
     try:
-        return {"status": "ok", **version_service.get_detailed_info()}
+        # Wrap version service call with timeout to prevent hanging
+        try:
+            detailed_info = await asyncio.wait_for(
+                asyncio.to_thread(version_service.get_detailed_info),
+                timeout=3.0  # 3 second timeout for detailed version info
+            )
+            return {"status": "ok", **detailed_info}
+        except asyncio.TimeoutError:
+            logger.warning("Detailed version service call timed out, returning fallback version")
+            # Return fallback detailed version info
+            return {
+                "status": "ok",
+                "version": "0.0.0-dev",
+                "git_sha": "unknown",
+                "git_branch": "unknown",
+                "build_time": datetime.utcnow().isoformat(),
+                "commit_count": 0,
+                "python_version": "unknown",
+                "environment": os.getenv("ENVIRONMENT", "development"),
+                "docker_image": "unknown",
+                "build_host": os.getenv("HOSTNAME", "unknown"),
+                "build_user": os.getenv("USER", "unknown"),
+            }
     except Exception as e:
         logger.error(f"Detailed version endpoint failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Detailed version check failed: {str(e)}"
-        )
+        # Return fallback instead of raising error
+        return {
+            "status": "ok",
+            "version": "0.0.0-dev",
+            "git_sha": "unknown",
+            "git_branch": "unknown",
+            "build_time": datetime.utcnow().isoformat(),
+            "commit_count": 0,
+            "python_version": "unknown",
+            "environment": os.getenv("ENVIRONMENT", "development"),
+            "docker_image": "unknown",
+            "build_host": os.getenv("HOSTNAME", "unknown"),
+            "build_user": os.getenv("USER", "unknown"),
+        }
 
 
 @router.get("/ready")
