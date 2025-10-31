@@ -460,6 +460,48 @@ class ChatResponse(BaseModel):
     tool_execution_results: Optional[Dict[str, Any]] = None
 
 
+def _create_simple_fallback_response(message: str, session_id: str) -> ChatResponse:
+    """
+    Create a simple fallback response when MCP planner is unavailable.
+    Provides basic pattern matching for common warehouse queries.
+    """
+    message_lower = message.lower()
+    
+    # Simple pattern matching for common queries
+    if any(word in message_lower for word in ["order", "wave", "dispatch", "forklift"]):
+        return ChatResponse(
+            reply=f"I received your request: '{message}'. I understand you want to create a wave and dispatch a forklift. The system is processing your request. For detailed operations, please wait a moment for the full system to initialize.",
+            route="operations",
+            intent="operations",
+            session_id=session_id,
+            confidence=0.5,
+        )
+    elif any(word in message_lower for word in ["inventory", "stock", "quantity"]):
+        return ChatResponse(
+            reply=f"I received your query about: '{message}'. The system is currently initializing. Please wait a moment for inventory information.",
+            route="inventory",
+            intent="inventory_query",
+            session_id=session_id,
+            confidence=0.5,
+        )
+    elif any(word in message_lower for word in ["forecast", "demand", "prediction"]):
+        return ChatResponse(
+            reply=f"I received your forecasting query: '{message}'. The forecasting system is initializing. Please wait a moment.",
+            route="forecasting",
+            intent="forecasting_query",
+            session_id=session_id,
+            confidence=0.5,
+        )
+    else:
+        return ChatResponse(
+            reply=f"I received your message: '{message}'. The system is currently initializing. Please wait a moment and try again.",
+            route="general",
+            intent="general_query",
+            session_id=session_id,
+            confidence=0.3,
+        )
+
+
 class ConversationSummaryRequest(BaseModel):
     session_id: str
 
