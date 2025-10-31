@@ -47,6 +47,25 @@ async def register(
         )
 
 
+@router.get("/auth/debug/user/{username}")
+async def debug_user_lookup(username: str):
+    """Debug endpoint to test user lookup."""
+    try:
+        await user_service.initialize()
+        user = await user_service.get_user_for_auth(username)
+        if user:
+            return {
+                "found": True,
+                "username": user.username,
+                "status": user.status.value,
+                "role": user.role.value,
+            }
+        else:
+            return {"found": False, "username": username}
+    except Exception as e:
+        return {"error": str(e), "type": type(e).__name__}
+
+
 @router.post("/auth/login", response_model=Token)
 async def login(user_login: UserLogin):
     """Authenticate user and return tokens."""
@@ -74,11 +93,15 @@ async def login(user_login: UserLogin):
             )
 
         # Get user with hashed password (with timeout)
+        logger.info(f"🔍 Starting user lookup for: {user_login.username}")
+        print(f"[AUTH DEBUG] Starting user lookup for: {user_login.username}", flush=True)
         try:
             user = await asyncio.wait_for(
                 user_service.get_user_for_auth(user_login.username),
                 timeout=2.0  # 2 second timeout for user lookup
             )
+            logger.info(f"🔍 User lookup completed, user is {'None' if user is None else 'found'}")
+            print(f"[AUTH DEBUG] User lookup completed: user={'None' if user is None else f'found({user.username})'}", flush=True)
         except asyncio.TimeoutError:
             logger.error(f"User lookup timed out for username: {user_login.username}")
             raise HTTPException(

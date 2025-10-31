@@ -94,7 +94,11 @@ class SQLRetriever:
     async def get_connection(self):
         """Get a database connection from the pool with retry logic."""
         if not self._pool:
+            logger.warning("Connection pool is None, reinitializing...")
             await self.initialize()
+        
+        if not self._pool:
+            raise ConnectionError("Database connection pool is not available after initialization")
         
         connection = None
         try:
