@@ -176,9 +176,13 @@ class UserService:
                 FROM users
                 WHERE username = $1
             """
-            logger.debug(f"Fetching user for auth: {username}")
+            logger.info(f"Fetching user for auth: username='{username}' (type: {type(username)}, len: {len(username)})")
             result = await self.sql_retriever.fetch_one(query, username)
-            logger.debug(f"User fetch result: {result is not None}")
+            logger.info(f"User fetch result: {result is not None}, result type: {type(result)}")
+            if result:
+                logger.info(f"User found in DB: username='{result.get('username')}', status='{result.get('status')}'")
+            else:
+                logger.warning(f"No user found for username='{username}'")
 
             if not result:
                 return None
