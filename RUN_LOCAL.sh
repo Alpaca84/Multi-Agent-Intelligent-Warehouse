@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Warehouse Operational Assistant - Local API Runner
-# Automatically finds a free port and starts the FastAPI application
+# Starts the FastAPI application on port 8002 (or PORT environment variable)
 
 echo "Starting Warehouse Operational Assistant API..."
 
