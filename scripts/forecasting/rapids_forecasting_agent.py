@@ -95,7 +95,7 @@ class RAPIDSForecastingAgent:
                 host="localhost",
                 port=5435,
                 user="warehouse",
-                password="warehousepw",
+                password=os.getenv("POSTGRES_PASSWORD", ""),
                 database="warehouse"
             )
             logger.info("✅ Connected to PostgreSQL")

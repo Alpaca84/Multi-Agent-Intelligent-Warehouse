@@ -78,7 +78,7 @@ Create environment files for different deployment stages:
 #### Development (.env.dev)
 ```bash
 # Database Configuration
-DATABASE_URL=postgresql://warehouse:warehousepw@localhost:5435/warehouse
+DATABASE_URL=postgresql://${POSTGRES_USER:-warehouse}:${POSTGRES_PASSWORD:-changeme}@localhost:5435/${POSTGRES_DB:-warehouse}
 REDIS_URL=redis://localhost:6379/0
 
 # MCP Configuration
@@ -108,7 +108,7 @@ ENCRYPTION_KEY=your-encryption-key-here
 #### Staging (.env.staging)
 ```bash
 # Database Configuration
-DATABASE_URL=postgresql://warehouse:warehousepw@staging-db:5432/warehouse
+DATABASE_URL=postgresql://${POSTGRES_USER:-warehouse}:${POSTGRES_PASSWORD:-changeme}@staging-db:5432/warehouse
 REDIS_URL=redis://staging-redis:6379/0
 
 # MCP Configuration
@@ -181,7 +181,7 @@ services:
     environment:
       POSTGRES_DB: warehouse
       POSTGRES_USER: warehouse
-      POSTGRES_PASSWORD: warehousepw
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
     ports:
       - "5435:5432"
     volumes:
@@ -230,8 +230,8 @@ services:
   minio:
     image: minio/minio:latest
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
     command: minio server /minio_data
     volumes:
       - minio_data:/minio_data
@@ -244,7 +244,7 @@ services:
       context: .
       dockerfile: Dockerfile.mcp
     environment:
-      - DATABASE_URL=postgresql://warehouse:warehousepw@postgres:5432/warehouse
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-warehouse}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/warehouse
       - REDIS_URL=redis://redis:6379/0
       - MCP_SERVER_HOST=0.0.0.0
       - MCP_SERVER_PORT=8000
@@ -262,7 +262,7 @@ services:
       context: .
       dockerfile: Dockerfile.mcp
     environment:
-      - DATABASE_URL=postgresql://warehouse:warehousepw@postgres:5432/warehouse
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-warehouse}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/warehouse
       - REDIS_URL=redis://redis:6379/0
       - MCP_SERVER_URL=http://mcp-server:8000
     depends_on:

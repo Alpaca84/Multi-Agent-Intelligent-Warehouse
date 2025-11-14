@@ -14,7 +14,10 @@ async def run_migrations():
     """Run database migrations."""
     
     # Database connection
-    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://warehouse:warehousepw@localhost:5435/warehouse")
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL",
+        f"postgresql://{os.getenv('POSTGRES_USER', 'warehouse')}:{os.getenv('POSTGRES_PASSWORD', '')}@localhost:5435/{os.getenv('POSTGRES_DB', 'warehouse')}"
+    )
     
     try:
         print("🔌 Connecting to database...")

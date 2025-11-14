@@ -41,7 +41,7 @@ async def check_database_health() -> dict:
         load_dotenv()
         database_url = os.getenv(
             "DATABASE_URL",
-            "postgresql://warehouse:warehousepw@localhost:5435/warehouse",
+            f"postgresql://{os.getenv('POSTGRES_USER', 'warehouse')}:{os.getenv('POSTGRES_PASSWORD', '')}@localhost:5435/{os.getenv('POSTGRES_DB', 'warehouse')}",
         )
 
         conn = await asyncpg.connect(database_url)
@@ -103,7 +103,7 @@ async def health_simple():
         load_dotenv()
         database_url = os.getenv(
             "DATABASE_URL",
-            "postgresql://warehouse:warehousepw@localhost:5435/warehouse",
+            f"postgresql://{os.getenv('POSTGRES_USER', 'warehouse')}:{os.getenv('POSTGRES_PASSWORD', '')}@localhost:5435/{os.getenv('POSTGRES_DB', 'warehouse')}",
         )
 
         conn = await asyncpg.connect(database_url)

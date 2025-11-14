@@ -23,7 +23,7 @@ async def create_default_admin():
             host="localhost",
             port=5435,
             user="warehouse",
-            password="warehousepw",
+            password=os.getenv("POSTGRES_PASSWORD", ""),
             database="warehouse"
         )
         
@@ -62,7 +62,7 @@ async def create_default_admin():
             logger.info("Creating default admin user...")
             
             # Hash password using bcrypt (same as JWT handler)
-            password = "password123"
+            password = os.getenv("DEFAULT_ADMIN_PASSWORD", "changeme")
             hashed_password = pwd_context.hash(password)
             
             await conn.execute("""
@@ -73,7 +73,7 @@ async def create_default_admin():
             logger.info("Default admin user created")
             logger.info("Login credentials:")
             logger.info("   Username: admin")
-            logger.info("   Password: password123")
+            logger.info(f"   Password: {password}")
         else:
             logger.info("Admin user already exists")
         
@@ -83,7 +83,7 @@ async def create_default_admin():
         if not user_exists:
             logger.info("Creating default user...")
             
-            password = "user123"
+            password = os.getenv("DEFAULT_USER_PASSWORD", "changeme")
             hashed_password = pwd_context.hash(password)
             
             await conn.execute("""
@@ -94,7 +94,7 @@ async def create_default_admin():
             logger.info("Default user created")
             logger.info("User credentials:")
             logger.info("   Username: user")
-            logger.info("   Password: user123")
+            logger.info(f"   Password: {password}")
         
         await conn.close()
         logger.info("User setup complete!")

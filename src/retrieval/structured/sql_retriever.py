@@ -25,7 +25,7 @@ class DatabaseConfig:
     port: int = int(os.getenv("PGPORT", "5435"))
     database: str = os.getenv("POSTGRES_DB", "warehouse")
     user: str = os.getenv("POSTGRES_USER", "warehouse")
-    password: str = os.getenv("POSTGRES_PASSWORD", "warehousepw")
+    password: str = os.getenv("POSTGRES_PASSWORD", "")
     min_size: int = 1
     max_size: int = 10
 

@@ -109,7 +109,7 @@ ON CONFLICT (sku) DO UPDATE SET
   reorder_point = EXCLUDED.reorder_point,
   updated_at = now();
 
--- Sample users (passwords are 'password123' hashed with bcrypt)
+-- Sample users (passwords set via DEFAULT_ADMIN_PASSWORD env var, hashed with bcrypt)
 INSERT INTO users (username, email, full_name, role, status, hashed_password) VALUES
   ('admin', 'admin@warehouse.com', 'System Administrator', 'admin', 'active', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KzqK2a'),
   ('manager1', 'manager1@warehouse.com', 'John Manager', 'manager', 'active', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KzqK2a'),

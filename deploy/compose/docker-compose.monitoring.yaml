@@ -35,7 +35,7 @@ services:
       - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=warehouse123
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
     networks:
@@ -118,7 +118,7 @@ services:
     ports:
       - "9187:9187"
     environment:
-      - DATA_SOURCE_NAME=postgresql://warehouse:warehousepw@host.docker.internal:5435/warehouse?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-warehouse}:${POSTGRES_PASSWORD:-changeme}@host.docker.internal:5435/${POSTGRES_DB:-warehouse}?sslmode=disable
     networks:
       - monitoring
     restart: unless-stopped
