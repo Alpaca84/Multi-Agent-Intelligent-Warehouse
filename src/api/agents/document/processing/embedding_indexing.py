@@ -10,6 +10,16 @@ import os
 import json
 from datetime import datetime
 
+from pymilvus import (
+    connections,
+    Collection,
+    CollectionSchema,
+    FieldSchema,
+    DataType,
+    utility,
+    MilvusException,
+)
+
 from src.api.services.llm.nim_client import get_nim_client
 
 logger = logging.getLogger(__name__)
@@ -31,6 +41,9 @@ class EmbeddingIndexingService:
         self.milvus_host = os.getenv("MILVUS_HOST", "localhost")
         self.milvus_port = int(os.getenv("MILVUS_PORT", "19530"))
         self.collection_name = "warehouse_documents"
+        self.collection: Optional[Collection] = None
+        self._connected = False
+        self.embedding_dimension = 1024  # NV-EmbedQA-E5-v5 dimension
 
     async def initialize(self):
         """Initialize the embedding and indexing service."""
@@ -46,6 +59,17 @@ class EmbeddingIndexingService:
         except Exception as e:
             logger.error(f"Failed to initialize Embedding & Indexing Service: {e}")
             logger.warning("Falling back to mock implementation")
+
+    async def disconnect(self):
+        """Disconnect from Milvus server."""
+        try:
+            if self._connected:
+                connections.disconnect("default")
+                self._connected = False
+                self.collection = None
+                logger.info("Disconnected from Milvus")
+        except Exception as e:
+            logger.error(f"Error disconnecting from Milvus: {e}")
 
     async def generate_and_store_embeddings(
         self,
@@ -82,7 +106,7 @@ class EmbeddingIndexingService:
 
             # Store in vector database
             storage_result = await self._store_in_milvus(
-                document_id, embeddings, metadata
+                document_id, embeddings, metadata, text_content
             )
 
             return {
@@ -261,37 +285,113 @@ class EmbeddingIndexingService:
     async def _initialize_milvus(self):
         """Initialize Milvus connection and collection."""
         try:
-            # This would initialize actual Milvus connection
-            # For now, we'll log the operation
             logger.info(
                 f"Initializing Milvus connection to {self.milvus_host}:{self.milvus_port}"
             )
             logger.info(f"Collection: {self.collection_name}")
 
-            # TODO: Implement actual Milvus integration
-            # from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType
+            # Connect to Milvus
+            try:
+                connections.connect(
+                    alias="default",
+                    host=self.milvus_host,
+                    port=str(self.milvus_port),
+                )
+                self._connected = True
+                logger.info(f"Connected to Milvus at {self.milvus_host}:{self.milvus_port}")
+            except MilvusException as e:
+                logger.warning(f"Failed to connect to Milvus: {e}")
+                logger.warning("Using mock Milvus implementation")
+                self._connected = False
+                return
 
-            # connections.connect("default", host=self.milvus_host, port=self.milvus_port)
+            # Check if collection exists, create if not
+            if utility.has_collection(self.collection_name):
+                logger.info(f"Collection {self.collection_name} already exists")
+                self.collection = Collection(self.collection_name)
+            else:
+                # Define collection schema
+                fields = [
+                    FieldSchema(
+                        name="id",
+                        dtype=DataType.VARCHAR,
+                        is_primary=True,
+                        max_length=200,
+                    ),
+                    FieldSchema(
+                        name="document_id",
+                        dtype=DataType.VARCHAR,
+                        max_length=100,
+                    ),
+                    FieldSchema(
+                        name="text_content",
+                        dtype=DataType.VARCHAR,
+                        max_length=65535,
+                    ),
+                    FieldSchema(
+                        name="embedding",
+                        dtype=DataType.FLOAT_VECTOR,
+                        dim=self.embedding_dimension,
+                    ),
+                    FieldSchema(
+                        name="document_type",
+                        dtype=DataType.VARCHAR,
+                        max_length=50,
+                    ),
+                    FieldSchema(
+                        name="metadata_json",
+                        dtype=DataType.VARCHAR,
+                        max_length=65535,
+                    ),
+                    FieldSchema(
+                        name="processing_timestamp",
+                        dtype=DataType.VARCHAR,
+                        max_length=50,
+                    ),
+                ]
 
-            # # Define collection schema
-            # fields = [
-            #     FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
-            #     FieldSchema(name="document_id", dtype=DataType.VARCHAR, max_length=100),
-            #     FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=1024),
-            #     FieldSchema(name="metadata", dtype=DataType.JSON)
-            # ]
+                schema = CollectionSchema(
+                    fields=fields,
+                    description="Warehouse documents collection for semantic search",
+                )
 
-            # schema = CollectionSchema(fields, "Warehouse documents collection")
-            # collection = Collection(self.collection_name, schema)
+                # Create collection
+                self.collection = Collection(
+                    name=self.collection_name,
+                    schema=schema,
+                )
 
-            logger.info("Milvus collection initialized (mock)")
+                # Create index for vector field
+                index_params = {
+                    "metric_type": "L2",
+                    "index_type": "IVF_FLAT",
+                    "params": {"nlist": 1024},
+                }
+
+                self.collection.create_index(
+                    field_name="embedding",
+                    index_params=index_params,
+                )
+
+                logger.info(
+                    f"Created collection {self.collection_name} with vector index"
+                )
+
+            # Load collection into memory
+            self.collection.load()
+            logger.info(f"Loaded collection {self.collection_name} into memory")
 
         except Exception as e:
             logger.error(f"Failed to initialize Milvus: {e}")
             logger.warning("Using mock Milvus implementation")
+            self._connected = False
 
     async def _store_in_milvus(
-        self, document_id: str, embeddings: List[List[float]], metadata: Dict[str, Any]
+        self,
+        document_id: str,
+        embeddings: List[List[float]],
+        metadata: Dict[str, Any],
+        text_content: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Store embeddings and metadata in Milvus."""
         try:
@@ -299,32 +399,83 @@ class EmbeddingIndexingService:
                 f"Storing {len(embeddings)} embeddings for document {document_id}"
             )
 
-            # Mock storage implementation
-            # In real implementation, this would store in Milvus
-            storage_data = {
-                "document_id": document_id,
-                "embeddings": embeddings,
-                "metadata": metadata,
-                "stored_at": datetime.now().isoformat(),
-            }
+            # If not connected, use mock implementation
+            if not self._connected or not self.collection:
+                logger.warning("Milvus not connected, using mock storage")
+                return {
+                    "success": True,
+                    "document_id": document_id,
+                    "embeddings_stored": len(embeddings),
+                    "metadata_stored": len(metadata),
+                    "mock": True,
+                }
 
-            # TODO: Implement actual Milvus storage
-            # collection = Collection(self.collection_name)
-            # collection.insert([storage_data])
-            # collection.flush()
+            # Prepare data for insertion
+            # Each embedding gets its own row with a unique ID
+            ids = []
+            document_ids = []
+            text_contents = []
+            embedding_vectors = []
+            document_types = []
+            metadata_jsons = []
+            timestamps = []
 
-            logger.info(f"Successfully stored embeddings for document {document_id}")
+            document_type = metadata.get("document_type", "unknown")
+            processing_timestamp = metadata.get(
+                "processing_timestamp", datetime.now().isoformat()
+            )
+            metadata_json_str = json.dumps(metadata)
+
+            # Use provided text_content or create placeholders
+            if text_content is None:
+                text_content = [f"Document segment {i+1}" for i in range(len(embeddings))]
+
+            for i, (embedding, text) in enumerate(zip(embeddings, text_content)):
+                # Create unique ID: document_id + segment index
+                unique_id = f"{document_id}_seg_{i}"
+                ids.append(unique_id)
+                document_ids.append(document_id)
+                text_contents.append(text[:65535])  # Truncate if too long
+                embedding_vectors.append(embedding)
+                document_types.append(document_type)
+                metadata_jsons.append(metadata_json_str[:65535])  # Truncate if too long
+                timestamps.append(processing_timestamp)
+
+            # Insert data into Milvus
+            data = [
+                ids,
+                document_ids,
+                text_contents,
+                embedding_vectors,
+                document_types,
+                metadata_jsons,
+                timestamps,
+            ]
+
+            insert_result = self.collection.insert(data)
+            self.collection.flush()
+
+            logger.info(
+                f"Successfully stored {len(embeddings)} embeddings for document {document_id} in Milvus"
+            )
 
             return {
                 "success": True,
                 "document_id": document_id,
                 "embeddings_stored": len(embeddings),
                 "metadata_stored": len(metadata),
+                "insert_count": len(ids),
             }
 
         except Exception as e:
             logger.error(f"Failed to store in Milvus: {e}")
-            return {"success": False, "error": str(e), "document_id": document_id}
+            logger.warning("Falling back to mock storage")
+            return {
+                "success": False,
+                "error": str(e),
+                "document_id": document_id,
+                "mock": True,
+            }
 
     async def search_similar_documents(
         self, query: str, limit: int = 10, filters: Optional[Dict[str, Any]] = None
@@ -345,19 +496,79 @@ class EmbeddingIndexingService:
 
             # Generate embedding for query
             query_embeddings = await self._generate_embeddings([query])
-            if not query_embeddings:
-                return []
+            if not query_embeddings or not query_embeddings[0]:
+                logger.warning("Failed to generate query embedding")
+                return await self._mock_semantic_search(query, limit, filters)
 
-            # Mock search implementation
-            # In real implementation, this would search Milvus
-            mock_results = await self._mock_semantic_search(query, limit, filters)
+            query_embedding = query_embeddings[0]
 
-            logger.info(f"Found {len(mock_results)} similar documents")
-            return mock_results
+            # If not connected, use mock search
+            if not self._connected or not self.collection:
+                logger.warning("Milvus not connected, using mock search")
+                return await self._mock_semantic_search(query, limit, filters)
+
+            # Build search parameters
+            search_params = {
+                "metric_type": "L2",
+                "params": {"nprobe": 10},
+            }
+
+            # Build filter expression if filters provided
+            expr = None
+            if filters:
+                filter_parts = []
+                if "document_type" in filters:
+                    filter_parts.append(
+                        f'document_type == "{filters["document_type"]}"'
+                    )
+                if "document_id" in filters:
+                    filter_parts.append(
+                        f'document_id == "{filters["document_id"]}"'
+                    )
+                if filter_parts:
+                    expr = " && ".join(filter_parts)
+
+            # Perform vector search
+            search_results = self.collection.search(
+                data=[query_embedding],
+                anns_field="embedding",
+                param=search_params,
+                limit=limit,
+                expr=expr,
+                output_fields=["document_id", "text_content", "document_type", "metadata_json", "processing_timestamp"],
+            )
+
+            # Process results
+            results = []
+            if search_results and len(search_results) > 0:
+                for hit in search_results[0]:
+                    try:
+                        # Parse metadata JSON
+                        metadata = {}
+                        if hit.entity.get("metadata_json"):
+                            metadata = json.loads(hit.entity.get("metadata_json", "{}"))
+
+                        result = {
+                            "document_id": hit.entity.get("document_id", ""),
+                            "similarity_score": 1.0 / (1.0 + hit.distance),  # Convert distance to similarity
+                            "distance": hit.distance,
+                            "metadata": metadata,
+                            "text_content": hit.entity.get("text_content", ""),
+                            "document_type": hit.entity.get("document_type", ""),
+                            "processing_timestamp": hit.entity.get("processing_timestamp", ""),
+                        }
+                        results.append(result)
+                    except Exception as e:
+                        logger.warning(f"Error processing search result: {e}")
+                        continue
+
+            logger.info(f"Found {len(results)} similar documents in Milvus")
+            return results
 
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")
-            return []
+            logger.warning("Falling back to mock search")
+            return await self._mock_semantic_search(query, limit, filters)
 
     async def _mock_semantic_search(
         self, query: str, limit: int, filters: Optional[Dict[str, Any]]

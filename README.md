@@ -276,7 +276,7 @@ cp .env.example .env
 # PGHOST=localhost
 # PGPORT=5435
 # PGUSER=warehouse
-# PGPASSWORD=warehousepw
+# PGPASSWORD=${POSTGRES_PASSWORD:-changeme}
 # PGDATABASE=warehouse
 ```
 
@@ -311,7 +311,7 @@ This script will:
 - Wait for services to be ready
 
 **Service Endpoints:**
-- **Postgres/Timescale**: `postgresql://warehouse:warehousepw@localhost:5435/warehouse`
+- **Postgres/Timescale**: `postgresql://${POSTGRES_USER:-warehouse}:${POSTGRES_PASSWORD:-changeme}@localhost:5435/${POSTGRES_DB:-warehouse}`
 - **Redis**: `localhost:6379`
 - **Milvus gRPC**: `localhost:19530`
 - **Milvus HTTP**: `localhost:9091`
@@ -327,13 +327,13 @@ source env/bin/activate  # Linux/macOS
 # or: env\Scripts\activate  # Windows
 
 # Run all required schema files in order
-PGPASSWORD=warehousepw psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/000_schema.sql
-PGPASSWORD=warehousepw psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/001_equipment_schema.sql
-PGPASSWORD=warehousepw psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/002_document_schema.sql
-PGPASSWORD=warehousepw psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/004_inventory_movements_schema.sql
+PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/000_schema.sql
+PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/001_equipment_schema.sql
+PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/002_document_schema.sql
+PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/004_inventory_movements_schema.sql
 
 # Create model tracking tables (required for forecasting features)
-PGPASSWORD=warehousepw psql -h localhost -p 5435 -U warehouse -d warehouse -f scripts/setup/create_model_tracking_tables.sql
+PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f scripts/setup/create_model_tracking_tables.sql
 ```
 
 **Alternative:** If `psql` is not available, you can use the Python migration script:
@@ -361,8 +361,8 @@ python scripts/setup/create_default_users.py
 ```
 
 This creates:
-- **Admin user**: `admin` / `password123` (role: admin)
-- **Operator user**: `user` / `user123` (role: operator)
+- **Admin user**: `admin` / `${DEFAULT_ADMIN_PASSWORD:-changeme}` (role: admin)
+- **Operator user**: `user` / `${DEFAULT_USER_PASSWORD:-changeme}` (role: operator)
 
 **Important:** The script uses bcrypt password hashing to match the authentication system. If users already exist, the script will skip creation.
 
@@ -406,7 +406,7 @@ npm start
 
 The frontend will be available at:
 - **Web UI**: http://localhost:3001
-- **Login**: Use `admin` / `password123` (see [docs/secrets.md](docs/secrets.md))
+- **Login**: Use `admin` / `${DEFAULT_ADMIN_PASSWORD:-changeme}` (see [docs/secrets.md](docs/secrets.md))
 
 ### Step 9: Verify Installation
 
@@ -419,7 +419,7 @@ curl http://localhost:8002/api/v1/health
 # Test authentication (should return JWT tokens)
 curl -X POST http://localhost:8002/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"password123"}'
+  -d '{"username":"admin","password":"${DEFAULT_ADMIN_PASSWORD:-changeme}"}'
 
 # Test chat endpoint (if NVIDIA API keys are configured)
 curl -X POST http://localhost:8002/api/v1/chat \
@@ -440,7 +440,7 @@ chmod +x deploy/scripts/setup_monitoring.sh
 ```
 
 **Access URLs:**
-- **Grafana**: http://localhost:3000 (admin/warehouse123)
+- **Grafana**: http://localhost:3000 (admin/${GRAFANA_ADMIN_PASSWORD:-changeme})
 - **Prometheus**: http://localhost:9090
 - **Alertmanager**: http://localhost:9093
 
@@ -1152,10 +1152,10 @@ The system uses a migration-based approach for database schema management. After
 
 ```bash
 # Run all migrations in order
-PGPASSWORD=warehousepw psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/000_schema.sql
-PGPASSWORD=warehousepw psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/001_equipment_schema.sql
-PGPASSWORD=warehousepw psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/002_document_schema.sql
-PGPASSWORD=warehousepw psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/004_inventory_movements_schema.sql
+PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/000_schema.sql
+PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/001_equipment_schema.sql
+PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/002_document_schema.sql
+PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/004_inventory_movements_schema.sql
 ```
 
 ### Generating Sample Data
@@ -1659,7 +1659,7 @@ For detailed integration guide, see [IoT Integration Documentation](docs/iot-int
 ### `.env` (dev defaults)
 ```
 POSTGRES_USER=warehouse
-POSTGRES_PASSWORD=warehousepw
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
 POSTGRES_DB=warehouse
 PGHOST=127.0.0.1
 PGPORT=5435
@@ -1670,7 +1670,7 @@ MILVUS_HOST=127.0.0.1
 MILVUS_PORT=19530
 
 # JWT Configuration
-JWT_SECRET_KEY=warehouse-operational-assistant-super-secret-key-change-in-production-2024
+JWT_SECRET_KEY=${JWT_SECRET_KEY:-changeme-in-production}
 
 # NVIDIA NIMs Configuration
 NVIDIA_API_KEY=your_nvidia_api_key_here

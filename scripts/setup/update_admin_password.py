@@ -22,14 +22,14 @@ async def update_admin_password():
             host="localhost",
             port=5435,
             user="warehouse",
-            password="warehousepw",
+            password=os.getenv("POSTGRES_PASSWORD", ""),
             database="warehouse"
         )
         
         logger.info("✅ Connected to database")
         
         # Update admin password with bcrypt
-        password = "admin123"
+        password = os.getenv("DEFAULT_ADMIN_PASSWORD", "changeme")
         hashed_password = pwd_context.hash(password)
         
         await conn.execute("""
@@ -41,7 +41,7 @@ async def update_admin_password():
         logger.info("✅ Admin password updated with bcrypt")
         logger.info("📝 Login credentials:")
         logger.info("   Username: admin")
-        logger.info("   Password: admin123")
+        logger.info(f"   Password: {password}")
         
         await conn.close()
         logger.info("🎉 Password update complete!")

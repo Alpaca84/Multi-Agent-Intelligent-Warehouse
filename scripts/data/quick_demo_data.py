@@ -19,7 +19,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Database connection settings
-POSTGRES_DSN = "postgresql://warehouse:warehousepw@localhost:5435/warehouse"
+POSTGRES_DSN = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{os.getenv('POSTGRES_USER', 'warehouse')}:{os.getenv('POSTGRES_PASSWORD', '')}@localhost:5435/{os.getenv('POSTGRES_DB', 'warehouse')}"
+)
 
 class QuickDemoDataGenerator:
     """Generates quick demo data for warehouse operations."""
@@ -148,7 +151,8 @@ class QuickDemoDataGenerator:
                 ("viewer2", "viewer2@warehouse.com", "Daniel Martinez", "viewer"),
             ]
             
-            hashed_password = bcrypt.hashpw("password123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            default_password = os.getenv("DEFAULT_USER_PASSWORD", "changeme")
+            hashed_password = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
             for username, email, full_name, role in demo_users:
                 await cur.execute("""

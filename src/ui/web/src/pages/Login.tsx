@@ -117,7 +117,7 @@ const Login: React.FC = () => {
               Username: admin
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Password: password123
+              Password: (set via DEFAULT_ADMIN_PASSWORD env var)
             </Typography>
           </Box>
         </CardContent>

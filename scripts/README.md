@@ -36,7 +36,7 @@ This generates:
 -**Redis**: Session data, cache data, and real-time metrics ### Data Types Generated #### 👥 Users
 -**Roles**: admin, manager, supervisor, operator, viewer
 -**Realistic Names**: Generated using Faker library
--**Authentication**: Properly hashed passwords (default: "password123")
+-**Authentication**: Properly hashed passwords (set via DEFAULT_ADMIN_PASSWORD env var)
 -**Activity**: Last login times and session data #### Inventory Items
 -**SKUs**: Realistic product codes (SKU001, SKU002, etc.)
 -**Locations**: Zone-based warehouse locations (Zone A-Aisle 1-Rack 2-Level 3)
@@ -68,7 +68,7 @@ This generates:
 - `pymilvus` - Milvus vector database client
 - `redis` - Redis client ### Database Credentials
 The generators use the following default credentials:
--**PostgreSQL**: `warehouse:warehousepw@localhost:5435/warehouse`
+-**PostgreSQL**: Set via POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB env vars
 -**Redis**: `localhost:6379`
 -**Milvus**: `localhost:19530` ## Use Cases ### Demo Preparation
 1.**Quick Demo**: Use `run_quick_demo.sh` for fast setup

@@ -95,7 +95,7 @@ database:
   port: 5432
   name: "warehouse_ops"
   user: "postgres"
-  password: "postgres"
+  password: ""  # Set via secret or environment variable
 
 # Redis configuration
 redis:

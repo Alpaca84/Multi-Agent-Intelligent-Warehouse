@@ -6,15 +6,15 @@
 
 ### Authentication
 - **Username**: `admin`
-- **Password**: `password123`
+- **Password**: Set via `DEFAULT_ADMIN_PASSWORD` environment variable (default: `changeme`)
 - **Role**: `admin`
 
 ### Database
 - **Host**: `localhost`
 - **Port**: `5435`
-- **Database**: `warehouse_assistant`
-- **Username**: `postgres`
-- **Password**: `postgres`
+- **Database**: Set via `POSTGRES_DB` environment variable (default: `warehouse`)
+- **Username**: Set via `POSTGRES_USER` environment variable (default: `warehouse`)
+- **Password**: Set via `POSTGRES_PASSWORD` environment variable (default: `changeme`)
 
 ### Redis
 - **Host**: `localhost`

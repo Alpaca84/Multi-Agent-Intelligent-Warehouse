@@ -31,7 +31,10 @@ logger = logging.getLogger(__name__)
 fake = Faker()
 
 # Database connection settings
-POSTGRES_DSN = "postgresql://warehouse:warehousepw@localhost:5435/warehouse"
+POSTGRES_DSN = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{os.getenv('POSTGRES_USER', 'warehouse')}:{os.getenv('POSTGRES_PASSWORD', '')}@localhost:5435/{os.getenv('POSTGRES_DB', 'warehouse')}"
+)
 MILVUS_HOST = "localhost"
 MILVUS_PORT = 19530
 REDIS_HOST = "localhost"
@@ -151,7 +154,8 @@ class SyntheticDataGenerator:
                     username = f"{role}{i+1}"
                     email = f"{username}@warehouse.com"
                     full_name = fake.name()
-                    hashed_password = bcrypt.hashpw("password123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    default_password = os.getenv("DEFAULT_USER_PASSWORD", "changeme")
+                    hashed_password = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                     
                     await cur.execute("""
                         INSERT INTO users (username, email, full_name, role, status, hashed_password, created_at, last_login)
