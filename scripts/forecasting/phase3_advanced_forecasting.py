@@ -454,6 +454,31 @@ class AdvancedRAPIDSForecastingAgent:
                 best_params=best_params
             )
             
+            # Write training history to database
+            try:
+                if self.pg_conn:
+                    # Calculate accuracy score from R² (R² is a good proxy for accuracy)
+                    accuracy_score = max(0.0, min(1.0, r2))  # Clamp between 0 and 1
+                    
+                    await self.pg_conn.execute("""
+                        INSERT INTO model_training_history 
+                        (model_name, training_date, training_type, accuracy_score, mape_score, 
+                         training_duration_minutes, models_trained, status)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    """, 
+                        model_name,
+                        datetime.now(),
+                        'advanced',
+                        float(accuracy_score),
+                        float(mape),
+                        int(training_time / 60),  # Convert seconds to minutes
+                        1,  # One model per training
+                        'completed'
+                    )
+                    logger.info(f"💾 Saved {model_name} training to database")
+            except Exception as e:
+                logger.warning(f"⚠️  Failed to save {model_name} training to database: {e}")
+            
             logger.info(f"✅ {model_name} - RMSE: {rmse:.2f}, R²: {r2:.3f}, MAPE: {mape:.1f}%")
         
         self.model_performance = performance
@@ -579,7 +604,32 @@ class AdvancedRAPIDSForecastingAgent:
             forecasts = {}
             for sku in skus:
                 try:
-                    forecasts[sku] = await self.forecast_demand_advanced(sku, horizon_days)
+                    forecast = await self.forecast_demand_advanced(sku, horizon_days)
+                    forecasts[sku] = forecast
+                    
+                    # Save predictions to database
+                    try:
+                        if self.pg_conn and 'predictions' in forecast:
+                            predictions = forecast['predictions']
+                            # Save first prediction (day 1) for each model
+                            if 'model_performance' in forecast:
+                                for model_name in forecast['model_performance'].keys():
+                                    if predictions and len(predictions) > 0:
+                                        predicted_value = float(predictions[0])
+                                        await self.pg_conn.execute("""
+                                            INSERT INTO model_predictions 
+                                            (model_name, sku, predicted_value, prediction_date, forecast_horizon_days)
+                                            VALUES ($1, $2, $3, $4, $5)
+                                        """,
+                                            model_name,
+                                            sku,
+                                            predicted_value,
+                                            datetime.now(),
+                                            horizon_days
+                                        )
+                    except Exception as e:
+                        logger.warning(f"⚠️  Failed to save predictions for {sku} to database: {e}")
+                        
                 except Exception as e:
                     logger.error(f"Failed to forecast {sku}: {e}")
                     continue

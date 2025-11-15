@@ -180,6 +180,28 @@ class AdvancedForecastingService:
                 'recent_average_demand': float(recent_demand)
             }
             
+            # Save prediction to database for tracking
+            try:
+                if self.pg_conn and predictions and len(predictions) > 0:
+                    # Use "Real-Time Simple" as model name for this forecast type
+                    model_name = "Real-Time Simple"
+                    predicted_value = float(predictions[0])  # First day prediction
+                    
+                    await self.pg_conn.execute("""
+                        INSERT INTO model_predictions 
+                        (model_name, sku, predicted_value, prediction_date, forecast_horizon_days)
+                        VALUES ($1, $2, $3, $4, $5)
+                        ON CONFLICT DO NOTHING
+                    """,
+                        model_name,
+                        sku,
+                        predicted_value,
+                        datetime.now(),
+                        horizon_days
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to save prediction to database: {e}")
+            
             # Cache the result for 1 hour
             try:
                 self.redis_client.setex(cache_key, 3600, json.dumps(forecast_result, default=str))
