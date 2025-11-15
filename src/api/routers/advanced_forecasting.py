@@ -888,44 +888,48 @@ async def get_enhanced_business_intelligence():
         raise HTTPException(status_code=500, detail=str(e))
 
 async def get_forecast_summary_data():
-    """Get forecast summary data from the inventory forecast endpoint"""
+    """Get forecast summary data dynamically from real-time forecasts"""
     try:
-        import json
-        import os
-        from pathlib import Path
+        # Ensure service is initialized
+        await forecasting_service.initialize()
         
-        # Get project root (4 levels up from this file: src/api/routers/advanced_forecasting.py)
-        project_root = Path(__file__).parent.parent.parent.parent
-        forecast_file = project_root / "data" / "sample" / "forecasts" / "all_sku_forecasts.json"
+        # Get all SKUs from inventory
+        sku_query = """
+            SELECT DISTINCT sku 
+            FROM inventory_items 
+            ORDER BY sku
+            LIMIT 100
+        """
         
-        if not forecast_file.exists():
-            logger.warning(f"Forecast file not found: {forecast_file}")
-            # Return empty summary if no forecast data
+        sku_results = await forecasting_service.pg_conn.fetch(sku_query)
+        
+        if not sku_results:
+            logger.warning("No SKUs found in inventory")
             return {
                 "forecast_summary": {},
                 "total_skus": 0,
                 "generated_at": datetime.now().isoformat()
             }
         
-        with open(forecast_file, 'r') as f:
-            forecasts = json.load(f)
-        
         summary = {}
-        for sku, forecast_data in forecasts.items():
-            # Handle different forecast data structures
-            if isinstance(forecast_data, dict):
-                # Check if it has predictions array
-                if 'predictions' in forecast_data:
-                    predictions = forecast_data['predictions']
-                elif 'forecast' in forecast_data and 'predictions' in forecast_data['forecast']:
-                    predictions = forecast_data['forecast']['predictions']
-                else:
-                    logger.warning(f"SKU {sku} has unexpected structure: {list(forecast_data.keys())}")
-                    continue
+        current_date = datetime.now().isoformat()
+        
+        logger.info(f"🔮 Generating dynamic forecasts for {len(sku_results)} SKUs...")
+        
+        # Generate forecasts for each SKU (use cached when available)
+        for row in sku_results:
+            sku = row['sku']
+            try:
+                # Get real-time forecast (uses cache if available)
+                forecast = await forecasting_service.get_real_time_forecast(sku, horizon_days=30)
                 
+                # Extract predictions
+                predictions = forecast.get('predictions', [])
                 if not predictions or len(predictions) == 0:
+                    logger.warning(f"No predictions for SKU {sku}")
                     continue
                 
+                # Calculate summary statistics
                 avg_demand = sum(predictions) / len(predictions)
                 min_demand = min(predictions)
                 max_demand = max(predictions)
@@ -936,8 +940,8 @@ async def get_forecast_summary_data():
                 else:
                     trend = "stable"
                 
-                # Get forecast date
-                forecast_date = forecast_data.get('forecast_date') or forecast_data.get('forecast', {}).get('forecast_date') or datetime.now().isoformat()
+                # Use forecast_date from the forecast response, or current date
+                forecast_date = forecast.get('forecast_date', current_date)
                 
                 summary[sku] = {
                     "average_daily_demand": round(avg_demand, 1),
@@ -946,12 +950,17 @@ async def get_forecast_summary_data():
                     "trend": trend,
                     "forecast_date": forecast_date
                 }
+                
+            except Exception as e:
+                logger.warning(f"Failed to generate forecast for SKU {sku}: {e}")
+                # Skip this SKU and continue with others
+                continue
         
-        logger.info(f"✅ Loaded forecast summary for {len(summary)} SKUs")
+        logger.info(f"✅ Generated dynamic forecast summary for {len(summary)} SKUs")
         return {
             "forecast_summary": summary,
             "total_skus": len(summary),
-            "generated_at": datetime.now().isoformat()
+            "generated_at": current_date
         }
         
     except Exception as e:
