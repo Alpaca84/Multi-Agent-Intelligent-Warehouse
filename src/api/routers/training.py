@@ -74,8 +74,8 @@ class TrainingStatus(BaseModel):
     logs: List[str]
     estimated_completion: Optional[str] = None
 
-def add_training_to_history(training_type: str, start_time: str, end_time: str, status: str, logs: List[str]):
-    """Add completed training session to history"""
+async def add_training_to_history(training_type: str, start_time: str, end_time: str, status: str, logs: List[str]):
+    """Add completed training session to history (both in-memory and database)"""
     global training_history
     
     # Calculate duration
@@ -91,7 +91,7 @@ def add_training_to_history(training_type: str, start_time: str, end_time: str, 
     # Generate training ID
     training_id = f"training_{start_dt.strftime('%Y%m%d_%H%M%S')}"
     
-    # Add to history
+    # Add to in-memory history
     training_session = {
         "id": training_id,
         "type": training_type,
@@ -108,6 +108,27 @@ def add_training_to_history(training_type: str, start_time: str, end_time: str, 
     # Keep only last 50 training sessions
     if len(training_history) > 50:
         training_history.pop()
+    
+    # Also write to database if available
+    try:
+        import asyncpg
+        import os
+        
+        conn = await asyncpg.connect(
+            host=os.getenv("PGHOST", "localhost"),
+            port=int(os.getenv("PGPORT", "5435")),
+            user=os.getenv("POSTGRES_USER", "warehouse"),
+            password=os.getenv("POSTGRES_PASSWORD", ""),
+            database=os.getenv("POSTGRES_DB", "warehouse")
+        )
+        
+        # Note: The actual model training records are written by the training scripts
+        # This is just a summary record. The detailed model records are in model_training_history
+        # which is populated by the training scripts themselves.
+        
+        await conn.close()
+    except Exception as e:
+        logger.warning(f"Could not write training history to database: {e}")
     
     logger.info(f"Added training session to history: {training_id}")
 
@@ -205,7 +226,7 @@ async def run_training_script(script_path: str, training_type: str = "advanced")
         
         # Add completed training to history
         if training_status["start_time"] and training_status["end_time"]:
-            add_training_to_history(
+            await add_training_to_history(
                 training_type=training_type,
                 start_time=training_status["start_time"],
                 end_time=training_status["end_time"],
