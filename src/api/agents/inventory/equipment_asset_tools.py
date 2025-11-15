@@ -391,7 +391,10 @@ class EquipmentAssetTools:
                     "assignment_id": None,
                 }
 
-            assignment_id, assignee, assignment_type = assignment_result[0]
+            assignment = assignment_result[0]
+            assignment_id = assignment["id"]
+            assignee = assignment["assignee"]
+            assignment_type = assignment["assignment_type"]
 
             # Update assignment with release info
             release_query = """
@@ -412,7 +415,7 @@ class EquipmentAssetTools:
             update_query = """
                 UPDATE equipment_assets 
                 SET status = 'available', owner_user = NULL, updated_at = now()
-                WHERE asset_id = %s
+                WHERE asset_id = $1
             """
 
             await self.sql_retriever.execute_command(update_query, asset_id)
@@ -577,7 +580,7 @@ class EquipmentAssetTools:
 
             notes = f"Scheduled by {scheduled_by}, Priority: {priority}, Duration: {estimated_duration_minutes} minutes"
 
-            maintenance_result = await self.sql_retriever.fetch_all(
+            maintenance_result = await self.sql_retriever.fetch_one(
                 maintenance_query,
                 asset_id,
                 maintenance_type,
@@ -588,14 +591,14 @@ class EquipmentAssetTools:
                 notes,
             )
 
-            maintenance_id = maintenance_result[0][0] if maintenance_result else None
+            maintenance_id = maintenance_result["id"] if maintenance_result else None
 
             # Update equipment status if it's emergency maintenance
             if maintenance_type == "emergency":
                 update_query = """
                     UPDATE equipment_assets 
                     SET status = 'maintenance', updated_at = now()
-                    WHERE asset_id = %s
+                    WHERE asset_id = $1
                 """
                 await self.sql_retriever.execute_command(update_query, asset_id)
 
@@ -650,11 +653,11 @@ class EquipmentAssetTools:
             param_count = 3
 
             if asset_id:
-                where_conditions.append(f"asset_id = ${param_count}")
+                where_conditions.append(f"m.asset_id = ${param_count}")
                 params.append(asset_id)
                 param_count += 1
             if maintenance_type:
-                where_conditions.append(f"maintenance_type = ${param_count}")
+                where_conditions.append(f"m.maintenance_type = ${param_count}")
                 params.append(maintenance_type)
                 param_count += 1
 
