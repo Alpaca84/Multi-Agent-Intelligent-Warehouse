@@ -227,7 +227,7 @@ The system features **complete AI-powered demand forecasting** with multi-model 
 
 ## Quick Start
 
-This guide will help you get the Warehouse Operational Assistant running from a fresh clone of the repository.
+This guide will help you get the Multi-Agent-Intelligent-Warehouse running from a fresh clone of the repository.
 
 **For the fastest setup, see [QUICK_START.md](QUICK_START.md). For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).**
 
@@ -292,7 +292,7 @@ cp .env.example .env
 - Milvus connection (MILVUS_HOST, MILVUS_PORT)
 - JWT secret key (JWT_SECRET_KEY) - change from default in production
 
-**Optional Environment Variables (for full AI features):**
+**Environment Variables (for full AI features):**
 - NVIDIA API keys (NVIDIA_API_KEY, NEMO_*_API_KEY, LLAMA_*_API_KEY)
 
 **Note:** The application will work without NVIDIA API keys, but AI features (chat, document processing) will be limited. See [docs/secrets.md](docs/secrets.md) for development credentials and default values.
@@ -384,7 +384,7 @@ This creates:
 
 **Note:** See [docs/secrets.md](docs/secrets.md) for all development credentials.
 
-### Step 7: (Optional) Install RAPIDS for GPU-Accelerated Forecasting
+### Step 7: Install RAPIDS for GPU-Accelerated Forecasting
 
 For GPU-accelerated demand forecasting (10-100x faster), install NVIDIA RAPIDS:
 
