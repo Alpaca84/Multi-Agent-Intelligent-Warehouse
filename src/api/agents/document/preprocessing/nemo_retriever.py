@@ -92,16 +92,25 @@ class NeMoRetrieverPreprocessor:
     async def _process_pdf(self, file_path: str) -> Dict[str, Any]:
         """Process PDF document using NeMo Retriever."""
         try:
+            logger.info(f"Extracting images from PDF: {file_path}")
             # Extract images from PDF
             images = await self._extract_pdf_images(file_path)
+            logger.info(f"Extracted {len(images)} pages from PDF")
 
             # Process each page with NeMo Retriever
             processed_pages = []
+            
+            # Limit to first 5 pages for faster processing (can be configured)
+            max_pages = int(os.getenv("MAX_PDF_PAGES_TO_PROCESS", "5"))
+            pages_to_process = images[:max_pages] if len(images) > max_pages else images
+            
+            if len(images) > max_pages:
+                logger.info(f"Processing first {max_pages} pages out of {len(images)} total pages")
 
-            for i, image in enumerate(images):
-                logger.info(f"Processing PDF page {i + 1}")
+            for i, image in enumerate(pages_to_process):
+                logger.info(f"Processing PDF page {i + 1}/{len(pages_to_process)}")
 
-                # Use NeMo Retriever for page element detection
+                # Use NeMo Retriever for page element detection (with fast fallback)
                 page_elements = await self._detect_page_elements(image)
 
                 processed_pages.append(
@@ -116,17 +125,19 @@ class NeMoRetrieverPreprocessor:
             return {
                 "document_type": "pdf",
                 "total_pages": len(images),
-                "images": images,
+                "images": images,  # Return all images, but only processed first N pages
                 "processed_pages": processed_pages,
                 "metadata": {
                     "file_path": file_path,
                     "file_size": os.path.getsize(file_path),
                     "processing_timestamp": datetime.now().isoformat(),
+                    "pages_processed": len(processed_pages),
+                    "total_pages": len(images),
                 },
             }
 
         except Exception as e:
-            logger.error(f"PDF processing failed: {e}")
+            logger.error(f"PDF processing failed: {e}", exc_info=True)
             raise
 
     async def _process_image(self, file_path: str) -> Dict[str, Any]:
@@ -166,14 +177,25 @@ class NeMoRetrieverPreprocessor:
         images = []
 
         try:
+            logger.info(f"Opening PDF: {file_path}")
             # Open PDF with PyMuPDF
             pdf_document = fitz.open(file_path)
+            total_pages = pdf_document.page_count
+            logger.info(f"PDF has {total_pages} pages")
 
-            for page_num in range(pdf_document.page_count):
+            # Limit pages for faster processing
+            max_pages = int(os.getenv("MAX_PDF_PAGES_TO_EXTRACT", "10"))
+            pages_to_extract = min(total_pages, max_pages)
+            
+            if total_pages > max_pages:
+                logger.info(f"Extracting first {pages_to_extract} pages out of {total_pages} total")
+
+            for page_num in range(pages_to_extract):
+                logger.debug(f"Extracting page {page_num + 1}/{pages_to_extract}")
                 page = pdf_document[page_num]
 
-                # Render page as image
-                mat = fitz.Matrix(2.0, 2.0)  # 2x zoom for better quality
+                # Render page as image (use 1.5x zoom for faster processing, still good quality)
+                mat = fitz.Matrix(1.5, 1.5)
                 pix = page.get_pixmap(matrix=mat)
 
                 # Convert to PIL Image
@@ -185,7 +207,7 @@ class NeMoRetrieverPreprocessor:
             logger.info(f"Extracted {len(images)} pages from PDF")
 
         except Exception as e:
-            logger.error(f"PDF image extraction failed: {e}")
+            logger.error(f"PDF image extraction failed: {e}", exc_info=True)
             raise
 
         return images
@@ -198,11 +220,12 @@ class NeMoRetrieverPreprocessor:
         - nv-yolox-page-elements-v1 for element detection
         - nemoretriever-page-elements-v1 for semantic regions
         """
+        # Immediately use mock if no API key - don't wait for timeout
+        if not self.api_key:
+            logger.info("No API key found, using mock page element detection")
+            return await self._mock_page_element_detection(image)
+        
         try:
-            if not self.api_key:
-                # Mock implementation for development
-                return await self._mock_page_element_detection(image)
-
             # Convert image to base64
             import io
             import base64
@@ -211,8 +234,9 @@ class NeMoRetrieverPreprocessor:
             image.save(buffer, format="PNG")
             image_base64 = base64.b64encode(buffer.getvalue()).decode()
 
-            # Call NeMo Retriever API for element detection
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            # Call NeMo Retriever API for element detection with shorter timeout
+            # Use a shorter timeout to fail fast and fall back to mock
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     f"{self.base_url}/chat/completions",
                     headers={
@@ -256,9 +280,13 @@ class NeMoRetrieverPreprocessor:
                     "model_used": "nv-yolox-page-elements-v1",
                 }
 
+        except (httpx.TimeoutException, httpx.RequestError) as e:
+            logger.warning(f"API call failed or timed out: {e}. Falling back to mock implementation.")
+            # Fall back to mock implementation immediately on timeout/network error
+            return await self._mock_page_element_detection(image)
         except Exception as e:
-            logger.error(f"Page element detection failed: {e}")
-            # Fall back to mock implementation
+            logger.warning(f"Page element detection failed: {e}. Falling back to mock implementation.")
+            # Fall back to mock implementation on any other error
             return await self._mock_page_element_detection(image)
 
     def _parse_element_detection(
