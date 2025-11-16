@@ -190,15 +190,22 @@ async def get_document_status(
         result = await tools.get_document_status(document_id)
 
         if result["success"]:
+            # Convert ProcessingStage enum to string for frontend compatibility
+            status_value = result["status"]
+            if hasattr(status_value, "value"):
+                status_value = status_value.value
+            elif not isinstance(status_value, str):
+                status_value = str(status_value)
+            
             return DocumentProcessingResponse(
                 document_id=document_id,
-                status=result["status"],
+                status=status_value,
                 progress=result["progress"],
                 current_stage=result["current_stage"],
                 stages=[
                     {
                         "stage_name": stage["name"].lower().replace(" ", "_"),
-                        "status": stage["status"],
+                        "status": stage["status"] if isinstance(stage["status"], str) else str(stage["status"]),
                         "started_at": stage.get("started_at"),
                         "completed_at": stage.get("completed_at"),
                         "processing_time_ms": stage.get("processing_time_ms"),

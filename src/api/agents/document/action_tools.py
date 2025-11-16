@@ -535,23 +535,33 @@ class DocumentActionTools:
         # Use actual status from document_statuses, not time-based simulation
         # The background task updates status after each stage
         overall_status = status_info.get("status", ProcessingStage.UPLOADED)
+        
+        # Convert enum to string if needed
+        if hasattr(overall_status, "value"):
+            overall_status_str = overall_status.value
+        elif isinstance(overall_status, str):
+            overall_status_str = overall_status
+        else:
+            overall_status_str = str(overall_status)
+        
         current_stage_name = status_info.get("current_stage", "Unknown")
         progress = status_info.get("progress", 0)
         stages = status_info.get("stages", [])
         
         # If status is COMPLETED, verify that processing_results actually exist
         # This prevents race conditions where status shows COMPLETED but results aren't stored yet
-        if overall_status == ProcessingStage.COMPLETED:
+        if overall_status_str == "completed" or overall_status == ProcessingStage.COMPLETED:
             if "processing_results" not in status_info:
                 logger.warning(f"Document {document_id} status is COMPLETED but no processing_results found. Setting to PROCESSING.")
                 overall_status = ProcessingStage.PROCESSING
+                overall_status_str = "processing"
                 status_info["status"] = ProcessingStage.PROCESSING
                 current_stage_name = "Finalizing"
                 progress = 95
                 self._save_status_data()
 
         return {
-            "status": overall_status,
+            "status": overall_status_str,  # Return string, not enum
             "current_stage": current_stage_name,
             "progress": progress,
             "stages": stages,
