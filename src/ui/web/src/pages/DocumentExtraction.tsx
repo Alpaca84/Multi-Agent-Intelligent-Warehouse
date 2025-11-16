@@ -1002,7 +1002,68 @@ const DocumentExtraction: React.FC = () => {
                   {documentResults.extracted_data.document_type === 'invoice' && (() => {
                     // Extract invoice fields from structured_data or directly from extracted_data
                     const structuredData = documentResults.extracted_data.structured_data;
-                    const extractedFields = structuredData?.extracted_fields || documentResults.extracted_data.extracted_fields || {};
+                    let extractedFields = structuredData?.extracted_fields || documentResults.extracted_data.extracted_fields || {};
+                    
+                    // Fallback: If extracted_fields is empty, try to parse from extracted_text
+                    const extractedText = documentResults.extracted_data.extracted_text || '';
+                    if (Object.keys(extractedFields).length === 0 && extractedText) {
+                      // Parse invoice fields from text using regex patterns
+                      const parsedFields: Record<string, any> = {};
+                      
+                      // Invoice Number patterns
+                      const invoiceNumMatch = extractedText.match(/Invoice Number:\s*([A-Z0-9-]+)/i) || 
+                                            extractedText.match(/Invoice #:\s*([A-Z0-9-]+)/i) ||
+                                            extractedText.match(/INV[-\s]*([A-Z0-9-]+)/i);
+                      if (invoiceNumMatch) parsedFields.invoice_number = { value: invoiceNumMatch[1] };
+                      
+                      // Order Number patterns
+                      const orderNumMatch = extractedText.match(/Order Number:\s*(\d+)/i) ||
+                                          extractedText.match(/Order #:\s*(\d+)/i) ||
+                                          extractedText.match(/PO[-\s]*(\d+)/i);
+                      if (orderNumMatch) parsedFields.order_number = { value: orderNumMatch[1] };
+                      
+                      // Invoice Date patterns
+                      const invoiceDateMatch = extractedText.match(/Invoice Date:\s*([^+\n]+?)(?:\n|$)/i) ||
+                                             extractedText.match(/Date:\s*([^+\n]+?)(?:\n|$)/i);
+                      if (invoiceDateMatch) parsedFields.invoice_date = { value: invoiceDateMatch[1].trim() };
+                      
+                      // Due Date patterns
+                      const dueDateMatch = extractedText.match(/Due Date:\s*([^+\n]+?)(?:\n|$)/i) ||
+                                         extractedText.match(/Payment Due:\s*([^+\n]+?)(?:\n|$)/i);
+                      if (dueDateMatch) parsedFields.due_date = { value: dueDateMatch[1].trim() };
+                      
+                      // Service patterns
+                      const serviceMatch = extractedText.match(/Service:\s*([^+\n]+?)(?:\n|$)/i) ||
+                                         extractedText.match(/Description:\s*([^+\n]+?)(?:\n|$)/i);
+                      if (serviceMatch) parsedFields.service = { value: serviceMatch[1].trim() };
+                      
+                      // Rate/Price patterns
+                      const rateMatch = extractedText.match(/Rate\/Price:\s*\$?([0-9,]+\.?\d*)/i) ||
+                                      extractedText.match(/Price:\s*\$?([0-9,]+\.?\d*)/i) ||
+                                      extractedText.match(/Rate:\s*\$?([0-9,]+\.?\d*)/i);
+                      if (rateMatch) parsedFields.rate = { value: `$${rateMatch[1]}` };
+                      
+                      // Sub Total patterns
+                      const subtotalMatch = extractedText.match(/Sub Total:\s*\$?([0-9,]+\.?\d*)/i) ||
+                                          extractedText.match(/Subtotal:\s*\$?([0-9,]+\.?\d*)/i);
+                      if (subtotalMatch) parsedFields.subtotal = { value: `$${subtotalMatch[1]}` };
+                      
+                      // Tax patterns
+                      const taxMatch = extractedText.match(/Tax:\s*\$?([0-9,]+\.?\d*)/i) ||
+                                     extractedText.match(/Tax Amount:\s*\$?([0-9,]+\.?\d*)/i);
+                      if (taxMatch) parsedFields.tax = { value: `$${taxMatch[1]}` };
+                      
+                      // Total patterns
+                      const totalMatch = extractedText.match(/Total:\s*\$?([0-9,]+\.?\d*)/i) ||
+                                       extractedText.match(/Total Due:\s*\$?([0-9,]+\.?\d*)/i) ||
+                                       extractedText.match(/Amount Due:\s*\$?([0-9,]+\.?\d*)/i);
+                      if (totalMatch) parsedFields.total = { value: `$${totalMatch[1]}` };
+                      
+                      // Use parsed fields if we found any
+                      if (Object.keys(parsedFields).length > 0) {
+                        extractedFields = parsedFields;
+                      }
+                    }
                     
                     // Helper function to get field value with fallback
                     // Handles both nested structure {field: {value: "...", confidence: 0.9}} and flat structure {field: "..."}
