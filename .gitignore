@@ -100,6 +100,12 @@ document_statuses.json
 phase1_phase2_forecasts.json
 rapids_gpu_forecasts.json
 
+# Test/demo output files (keep sample data but ignore generated results)
+data/sample/*_results.json
+data/sample/*_demo*.json
+data/sample/pipeline_test_results/
+data/sample/document_statuses.json
+
 # Build artifacts
 build-info.json
 
