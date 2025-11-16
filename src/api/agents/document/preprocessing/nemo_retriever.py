@@ -12,8 +12,15 @@ from datetime import datetime
 import httpx
 import json
 from PIL import Image
-import fitz  # PyMuPDF for PDF processing
 import io
+
+# Try to import PyMuPDF, fallback to None if not available
+try:
+    import fitz  # PyMuPDF for PDF processing
+    FITZ_AVAILABLE = True
+except ImportError:
+    FITZ_AVAILABLE = False
+    logger.warning("PyMuPDF (fitz) not available. PDF processing will be limited.")
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +184,11 @@ class NeMoRetrieverPreprocessor:
         images = []
 
         try:
+            if not FITZ_AVAILABLE:
+                raise ImportError(
+                    "PyMuPDF (fitz) is not installed. Install it with: pip install PyMuPDF"
+                )
+            
             logger.info(f"Opening PDF: {file_path}")
             # Open PDF with PyMuPDF
             pdf_document = fitz.open(file_path)
