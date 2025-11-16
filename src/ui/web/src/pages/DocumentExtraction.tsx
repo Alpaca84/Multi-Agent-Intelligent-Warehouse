@@ -277,10 +277,11 @@ const DocumentExtraction: React.FC = () => {
             
             const updatedDoc = {
               ...doc,
-              progress: status.progress,
+              status: status.status || doc.status,  // Update document status
+              progress: status.progress || 0,
               stages: doc.stages.map((stage) => {
                 // Find the corresponding backend stage by matching the stage name
-                const backendStage = status.stages.find((bs: any) => 
+                const backendStage = status.stages?.find((bs: any) => 
                   stageMapping[bs.stage_name] === stage.name
                 );
                 console.log(`Mapping stage "${stage.name}" to backend stage:`, backendStage);
@@ -291,6 +292,8 @@ const DocumentExtraction: React.FC = () => {
                 };
               })
             };
+            
+            console.log(`Updated document ${documentId}: status=${updatedDoc.status}, progress=${updatedDoc.progress}%`);
             
             // If processing is complete, move to completed documents
             if (status.status === 'completed') {
