@@ -127,6 +127,7 @@ class GuardrailsService:
                 "avoid safety inspections",
                 "skip compliance requirements",
                 "ignore regulations",
+                "ignore safety regulations",
                 "work around safety rules",
             ]
 
