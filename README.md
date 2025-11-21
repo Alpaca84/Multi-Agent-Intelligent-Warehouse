@@ -15,6 +15,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Acronyms & Abbreviations](#acronyms--abbreviations)
 - [System Architecture](#system-architecture)
 - [Key Features](#key-features)
 - [Quick Start](#quick-start)
@@ -25,6 +26,48 @@
 - [Development Guide](#development-guide)
 - [Contributing](#contributing)
 - [License](#license)
+
+## Acronyms & Abbreviations
+
+| Acronym | Definition |
+|---------|------------|
+| **ADR** | Architecture Decision Record |
+| **API** | Application Programming Interface |
+| **BOL** | Bill of Lading |
+| **cuML** | CUDA Machine Learning |
+| **cuVS** | CUDA Vector Search |
+| **EAO** | Equipment & Asset Operations (Agent) |
+| **ERP** | Enterprise Resource Planning |
+| **GPU** | Graphics Processing Unit |
+| **HTTP/HTTPS** | Hypertext Transfer Protocol (Secure) |
+| **IoT** | Internet of Things |
+| **JSON** | JavaScript Object Notation |
+| **JWT** | JSON Web Token |
+| **KPI** | Key Performance Indicator |
+| **LLM** | Large Language Model |
+| **LOTO** | Lockout/Tagout |
+| **MAPE** | Mean Absolute Percentage Error |
+| **MCP** | Model Context Protocol |
+| **NeMo** | NVIDIA NeMo |
+| **NIM/NIMs** | NVIDIA Inference Microservices |
+| **OAuth2** | Open Authorization 2.0 |
+| **OCR** | Optical Character Recognition |
+| **PPE** | Personal Protective Equipment |
+| **QPS** | Queries Per Second |
+| **RAG** | Retrieval-Augmented Generation |
+| **RAPIDS** | Rapid Analytics Platform for Interactive Data Science |
+| **RBAC** | Role-Based Access Control |
+| **RFID** | Radio Frequency Identification |
+| **RMSE** | Root Mean Square Error |
+| **REST** | Representational State Transfer |
+| **SDS** | Safety Data Sheet |
+| **SKU** | Stock Keeping Unit |
+| **SLA** | Service Level Agreement |
+| **SOP** | Standard Operating Procedure |
+| **SQL** | Structured Query Language |
+| **UI** | User Interface |
+| **UX** | User Experience |
+| **WMS** | Warehouse Management System |
 
 ## Overview
 
