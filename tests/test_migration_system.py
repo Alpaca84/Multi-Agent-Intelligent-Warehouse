@@ -36,7 +36,12 @@ class TestMigrationService:
     
     @pytest.fixture
     def sample_migration_config(self):
-        """Create a sample migration configuration."""
+        """
+        Create a sample migration configuration.
+        
+        NOTE: This is a test fixture with mock credentials. The password is a placeholder
+        and is never used for actual database connections (tests use mocked connections).
+        """
         return {
             'migration_system': {
                 'version': '1.0.0',
@@ -50,7 +55,8 @@ class TestMigrationService:
                     'port': 5435,
                     'name': 'test_db',
                     'user': 'test_user',
-                    'password': 'test_pass',
+                    # Test-only placeholder password - never used for real connections
+                    'password': '<TEST_PASSWORD_PLACEHOLDER>',
                     'ssl_mode': 'disable'
                 },
                 'execution': {
