@@ -786,10 +786,10 @@ class DocumentActionTools:
                     stage["status"] = "completed"
                     stage["completed_at"] = datetime.now().isoformat()
 
-                # Save to persistent storage
-                self._save_status_data()
+                # Save to persistent storage (run in thread pool to avoid blocking)
+                await asyncio.to_thread(self._save_status_data)
                 logger.info(
-                    f"Successfully stored processing results for document: {document_id}"
+                    f"Successfully stored processing results for document: {_sanitize_log_data(document_id)}"
                 )
             else:
                 logger.error(f"Document {document_id} not found in status tracking")
