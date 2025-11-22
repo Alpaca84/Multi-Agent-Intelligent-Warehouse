@@ -57,10 +57,17 @@ class TestSAPEWMAdapter:
     
     @pytest.fixture
     def sap_config(self):
+        """
+        Create SAP EWM adapter test configuration.
+        
+        NOTE: This is a test fixture with mock credentials. The password is a placeholder
+        and is never used for actual WMS connections (tests use mocked connections).
+        """
         return {
             "host": "test-sap.com",
             "user": "test_user",
-            "password": "test_password",
+            # Test-only placeholder password - never used for real connections
+            "password": "<TEST_PASSWORD_PLACEHOLDER>",
             "warehouse_number": "1000"
         }
     
@@ -114,10 +121,17 @@ class TestManhattanAdapter:
     
     @pytest.fixture
     def manhattan_config(self):
+        """
+        Create Manhattan WMS adapter test configuration.
+        
+        NOTE: This is a test fixture with mock credentials. The password is a placeholder
+        and is never used for actual WMS connections (tests use mocked connections).
+        """
         return {
             "host": "test-manhattan.com",
             "username": "test_user",
-            "password": "test_password",
+            # Test-only placeholder password - never used for real connections
+            "password": "<TEST_PASSWORD_PLACEHOLDER>",
             "facility_id": "FAC001"
         }
     
@@ -153,10 +167,17 @@ class TestOracleAdapter:
     
     @pytest.fixture
     def oracle_config(self):
+        """
+        Create Oracle WMS adapter test configuration.
+        
+        NOTE: This is a test fixture with mock credentials. The password is a placeholder
+        and is never used for actual WMS connections (tests use mocked connections).
+        """
         return {
             "host": "test-oracle.com",
             "username": "test_user",
-            "password": "test_password",
+            # Test-only placeholder password - never used for real connections
+            "password": "<TEST_PASSWORD_PLACEHOLDER>",
             "organization_id": "ORG001"
         }
     
@@ -185,11 +206,17 @@ class TestWMSAdapterFactory:
         assert "oracle" in adapters
     
     def test_factory_create_adapter(self):
-        """Test adapter creation."""
+        """
+        Test adapter creation.
+        
+        NOTE: This test uses mock credentials. The password is a placeholder
+        and is never used for actual WMS connections.
+        """
         config = {
             "host": "test.com",
             "user": "test",
-            "password": "test",
+            # Test-only placeholder password - never used for real connections
+            "password": "<TEST_PASSWORD_PLACEHOLDER>",
             "warehouse_number": "1000"
         }
         
