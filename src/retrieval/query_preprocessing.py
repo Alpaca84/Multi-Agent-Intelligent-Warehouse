@@ -144,7 +144,7 @@ class QueryPreprocessor:
             normalized_query = self._normalize_query(query)
             
             # Step 2: Extract entities
-            entities = await self._extract_entities(normalized_query)
+            entities = self._extract_entities(normalized_query)
             
             # Step 3: Extract keywords
             keywords = await self._extract_keywords(normalized_query)
@@ -234,7 +234,7 @@ class QueryPreprocessor:
         
         return normalized
     
-    async def _extract_entities(self, query: str) -> Dict[str, Any]:
+    def _extract_entities(self, query: str) -> Dict[str, Any]:
         """Extract entities from normalized query."""
         entities = {}
         
