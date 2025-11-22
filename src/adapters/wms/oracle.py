@@ -55,8 +55,12 @@ class OracleWMSAdapter(BaseWMSAdapter):
         self.auth_token: Optional[str] = None
         
         # Oracle WMS API endpoints
+        # NOTE: These are API endpoint paths, not secrets. The 'auth' endpoint is the
+        # standard OAuth2 token endpoint path used by Oracle WMS for authentication.
+        # Actual credentials (username, password) are stored in self.username and
+        # self.password, which come from the config parameter (not hardcoded).
         self.endpoints = {
-            'auth': '/security/v1/oauth2/token',
+            'auth': '/security/v1/oauth2/token',  # OAuth2 token endpoint path (not a secret)
             'inventory': '/11.13.18.05/inventoryOnHand',
             'tasks': '/11.13.18.05/warehouseTasks',
             'orders': '/11.13.18.05/salesOrders',
