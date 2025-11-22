@@ -729,7 +729,6 @@ class DocumentActionTools:
         if overall_status_str == "completed" or overall_status == ProcessingStage.COMPLETED:
             if "processing_results" not in status_info:
                 logger.warning(f"Document {_sanitize_log_data(document_id)} status is COMPLETED but no processing_results found. Setting to ROUTING.")
-                overall_status = ProcessingStage.ROUTING
                 overall_status_str = "routing"
                 status_info["status"] = ProcessingStage.ROUTING
                 current_stage_name = "Finalizing"
