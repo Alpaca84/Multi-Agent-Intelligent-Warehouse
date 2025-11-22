@@ -179,8 +179,6 @@ async def upload_document(
         result = await tools.upload_document(
             file_path=str(persistent_file_path),
             document_type=document_type,
-            user_id=user_id,
-            metadata=parsed_metadata,
             document_id=document_id,  # Pass the document ID from router
         )
 
