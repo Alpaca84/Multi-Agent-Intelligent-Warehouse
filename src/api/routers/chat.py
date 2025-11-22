@@ -188,6 +188,144 @@ def _format_user_response(
         return f"{base_response}\n\n🟢 {int(confidence * 100)}%"
 
 
+def _convert_reasoning_step_to_dict(step: Any) -> Dict[str, Any]:
+    """
+    Convert a single reasoning step (dataclass, dict, or other) to a dictionary.
+    
+    Args:
+        step: Reasoning step to convert
+        
+    Returns:
+        Dictionary representation of the step
+    """
+    from dataclasses import is_dataclass
+    
+    if is_dataclass(step):
+        try:
+            step_dict = {
+                "step_id": getattr(step, "step_id", ""),
+                "step_type": getattr(step, "step_type", ""),
+                "description": getattr(step, "description", ""),
+                "reasoning": getattr(step, "reasoning", ""),
+                "confidence": float(getattr(step, "confidence", 0.0)),
+            }
+            # Convert timestamp
+            if hasattr(step, "timestamp"):
+                timestamp = getattr(step, "timestamp")
+                if hasattr(timestamp, "isoformat"):
+                    step_dict["timestamp"] = timestamp.isoformat()
+                else:
+                    step_dict["timestamp"] = str(timestamp)
+            
+            # Handle input_data and output_data - skip to avoid circular references
+            step_dict["input_data"] = {}
+            step_dict["output_data"] = {}
+                
+            if hasattr(step, "dependencies"):
+                deps = getattr(step, "dependencies")
+                step_dict["dependencies"] = list(deps) if deps and isinstance(deps, (list, tuple)) else []
+            else:
+                step_dict["dependencies"] = []
+                
+            return step_dict
+        except Exception as e:
+            logger.warning(f"Error converting reasoning step: {_sanitize_log_data(str(e))}")
+            return {"step_id": "error", "step_type": "error", 
+                   "description": "Error converting step", "reasoning": "", "confidence": 0.0}
+    elif isinstance(step, dict):
+        # Already a dict, just ensure it's serializable
+        return {k: v for k, v in step.items() 
+               if isinstance(v, (str, int, float, bool, type(None), list, dict))}
+    else:
+        return {"step_id": "unknown", "step_type": "unknown", 
+               "description": str(step), "reasoning": "", "confidence": 0.0}
+
+
+def _convert_reasoning_steps_to_list(steps: List[Any]) -> List[Dict[str, Any]]:
+    """
+    Convert a list of reasoning steps to a list of dictionaries.
+    
+    Args:
+        steps: List of reasoning steps to convert
+        
+    Returns:
+        List of dictionary representations
+    """
+    return [_convert_reasoning_step_to_dict(step) for step in steps]
+
+
+def _convert_reasoning_chain_to_dict(
+    reasoning_chain: Any,
+    safe_convert_value: callable,
+) -> Optional[Dict[str, Any]]:
+    """
+    Convert a ReasoningChain dataclass to a dictionary.
+    
+    Args:
+        reasoning_chain: ReasoningChain dataclass instance
+        safe_convert_value: Function to safely convert values
+        
+    Returns:
+        Dictionary representation or None if conversion fails
+    """
+    from dataclasses import is_dataclass
+    
+    try:
+        reasoning_chain_dict = {
+            "chain_id": getattr(reasoning_chain, "chain_id", ""),
+            "query": getattr(reasoning_chain, "query", ""),
+            "reasoning_type": getattr(reasoning_chain, "reasoning_type", ""),
+            "final_conclusion": getattr(reasoning_chain, "final_conclusion", ""),
+            "overall_confidence": float(getattr(reasoning_chain, "overall_confidence", 0.0)),
+            "execution_time": float(getattr(reasoning_chain, "execution_time", 0.0)),
+        }
+        # Convert enum to string
+        if hasattr(reasoning_chain_dict["reasoning_type"], "value"):
+            reasoning_chain_dict["reasoning_type"] = reasoning_chain_dict["reasoning_type"].value
+        # Convert datetime to ISO string
+        if hasattr(reasoning_chain, "created_at"):
+            created_at = getattr(reasoning_chain, "created_at")
+            if hasattr(created_at, "isoformat"):
+                reasoning_chain_dict["created_at"] = created_at.isoformat()
+            else:
+                reasoning_chain_dict["created_at"] = str(created_at)
+        
+        # Convert steps manually - be very careful with nested data
+        if hasattr(reasoning_chain, "steps") and reasoning_chain.steps:
+            reasoning_chain_dict["steps"] = _convert_reasoning_steps_to_list(reasoning_chain.steps)
+        else:
+            reasoning_chain_dict["steps"] = []
+        
+        logger.info(f"✅ Successfully converted reasoning_chain to dict with {len(reasoning_chain_dict.get('steps', []))} steps")
+        return reasoning_chain_dict
+    except Exception as e:
+        logger.error(f"Error converting reasoning_chain to dict: {_sanitize_log_data(str(e))}", exc_info=True)
+        return None
+
+
+def _extract_equipment_entities(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract equipment entities from structured response data.
+    
+    Args:
+        data: Structured response data dictionary
+        
+    Returns:
+        Dictionary with extracted equipment entities
+    """
+    entities = {}
+    if "equipment" in data and isinstance(data["equipment"], list) and data["equipment"]:
+        first_equipment = data["equipment"][0]
+        if isinstance(first_equipment, dict):
+            entities.update({
+                "equipment_id": first_equipment.get("asset_id"),
+                "equipment_type": first_equipment.get("type"),
+                "zone": first_equipment.get("zone"),
+                "status": first_equipment.get("status"),
+            })
+    return entities
+
+
 def _clean_response_text(response: str) -> str:
     """
     Clean the response text by removing technical details and context information.
@@ -278,69 +416,42 @@ def _clean_response_text(response: str) -> str:
         # Remove patterns like "actions_taken: [, ],"
         response = re.sub(r"actions_taken: \[[^\]]*\],", "", response)
 
-        # Remove patterns like "natural_language: '...',"
-        response = re.sub(r"natural_language: '[^']*',", "", response)
+        # Remove patterns like "field: value" or "'field': value"
+        field_patterns = [
+            (r"natural_language: '[^']*',", ""),
+            (r"recommendations: \[[^\]]*\],", ""),
+            (r"confidence: [0-9.]+", ""),
+            (r"'natural_language': '[^']*',", ""),
+            (r"'recommendations': \[[^\]]*\],", ""),
+            (r"'confidence': [0-9.]+", ""),
+            (r"'actions_taken': \[[^\]]*\],", ""),
+        ]
+        for pattern, replacement in field_patterns:
+            response = re.sub(pattern, replacement, response)
 
-        # Remove patterns like "recommendations: ['...'],"
-        response = re.sub(r"recommendations: \[[^\]]*\],", "", response)
-
-        # Remove patterns like "confidence: 0.9,"
-        response = re.sub(r"confidence: [0-9.]+", "", response)
-
-        # Remove patterns like "}, 'mcp_tools_used': [], 'tool_execution_results': {}}"
-        response = re.sub(
-            r"}, 'mcp_tools_used': \[\], 'tool_execution_results': \{\}\}", "", response
-        )
-
-        # Remove patterns like "}, 'mcp_tools_used': [], 'tool_execution_results': {}}"
-        response = re.sub(
-            r"', 'mcp_tools_used': \[\], 'tool_execution_results': \{\}\}", "", response
-        )
-
-        # Remove patterns like "', , , , , , , , , ]},"
-        response = re.sub(r"', , , , , , , , , \]\},", "", response)
-
-        # Remove patterns like "', , , , , , , , , ]},"
-        response = re.sub(r", , , , , , , , , \]\},", "", response)
-
-        # Remove patterns like "'natural_language': '...',"
-        response = re.sub(r"'natural_language': '[^']*',", "", response)
-
-        # Remove patterns like "'recommendations': ['...'],"
-        response = re.sub(r"'recommendations': \[[^\]]*\],", "", response)
-
-        # Remove patterns like "'confidence': 0.9,"
-        response = re.sub(r"'confidence': [0-9.]+", "", response)
-
-        # Remove patterns like "'actions_taken': [, ],"
-        response = re.sub(r"'actions_taken': \[[^\]]*\],", "", response)
+        # Remove patterns like "actions_taken: [, ],"
+        response = re.sub(r"actions_taken: \[[^\]]*\],", "", response)
 
         # Remove patterns like "'mcp_tools_used': [], 'tool_execution_results': {}"
-        response = re.sub(
-            r"'mcp_tools_used': \[\], 'tool_execution_results': \{\}", "", response
-        )
+        mcp_patterns = [
+            r"}, 'mcp_tools_used': \[\], 'tool_execution_results': \{\}\}",
+            r"', 'mcp_tools_used': \[\], 'tool_execution_results': \{\}\}",
+            r"'mcp_tools_used': \[\], 'tool_execution_results': \{\}",
+        ]
+        for pattern in mcp_patterns:
+            response = re.sub(pattern, "", response)
 
-        # Remove patterns like "'response_type': 'equipment_telemetry', , 'actions_taken': []"
-        response = re.sub(
-            r"'response_type': '[^']*', , 'actions_taken': \[\]", "", response
-        )
-
-        # Remove patterns like ", , 'response_type': 'equipment_telemetry', , 'actions_taken': []"
-        response = re.sub(
-            r", , 'response_type': '[^']*', , 'actions_taken': \[\]", "", response
-        )
-
-        # Remove patterns like "equipment damage. , , 'response_type': 'equipment_telemetry', , 'actions_taken': []"
-        response = re.sub(
+        # Remove patterns like "'response_type': '...', , 'actions_taken': []"
+        response_type_patterns = [
+            r"'response_type': '[^']*', , 'actions_taken': \[\]",
+            r", , 'response_type': '[^']*', , 'actions_taken': \[\]",
             r"equipment damage\. , , 'response_type': '[^']*', , 'actions_taken': \[\]",
-            "",
-            response,
-        )
+        ]
+        for pattern in response_type_patterns:
+            response = re.sub(pattern, "", response)
 
         # Remove patterns like "awaiting further processing. , , , , , , , , , ]},"
-        response = re.sub(
-            r"awaiting further processing\. , , , , , , , , , \]\},", "", response
-        )
+        response = re.sub(r"awaiting further processing\. , , , , , , , , , \]\},", "", response)
 
         # Remove patterns like "Regarding equipment_id FL-01..."
         response = re.sub(r"Regarding [^.]*\.\.\.", "", response)
@@ -351,20 +462,20 @@ def _clean_response_text(response: str) -> str:
         )
 
         # Remove patterns like "}, 'mcp_tools_used': [], 'tool_execution_results': {}}"
-        response = re.sub(
-            r"}, 'mcp_tools_used': \[\], 'tool_execution_results': \{\}\}", "", response
-        )
-
-        # Remove patterns like "}, 'mcp_tools_used': [], 'tool_execution_results': {}}"
-        response = re.sub(
-            r"', 'mcp_tools_used': \[\], 'tool_execution_results': \{\}\}", "", response
-        )
+        mcp_patterns = [
+            r"}, 'mcp_tools_used': \[\], 'tool_execution_results': \{\}\}",
+            r"', 'mcp_tools_used': \[\], 'tool_execution_results': \{\}\}",
+        ]
+        for pattern in mcp_patterns:
+            response = re.sub(pattern, "", response)
 
         # Remove patterns like "', , , , , , , , , ]},"
-        response = re.sub(r"', , , , , , , , , \]\},", "", response)
-
-        # Remove patterns like "', , , , , , , , , ]},"
-        response = re.sub(r", , , , , , , , , \]\},", "", response)
+        comma_patterns = [
+            r"', , , , , , , , , \]\},",
+            r", , , , , , , , , \]\},",
+        ]
+        for pattern in comma_patterns:
+            response = re.sub(pattern, "", response)
 
         # Remove patterns like "awaiting further processing. ,"
         response = re.sub(
@@ -388,78 +499,14 @@ def _clean_response_text(response: str) -> str:
             response,
         )
 
-        # Remove patterns like "damage. , , 'response_type':"
-        response = re.sub(r"damage\. , , '[^']*':", "damage.", response)
-
-        # Remove patterns like "actions. , , 'response_type':"
-        response = re.sub(r"actions\. , , '[^']*':", "actions.", response)
-
-        # Remove patterns like "investigate. , , 'response_type':"
-        response = re.sub(r"investigate\. , , '[^']*':", "investigate.", response)
-
-        # Remove patterns like "prevent. , , 'response_type':"
-        response = re.sub(r"prevent\. , , '[^']*':", "prevent.", response)
-
-        # Remove patterns like "equipment. , , 'response_type':"
-        response = re.sub(r"equipment\. , , '[^']*':", "equipment.", response)
-
-        # Remove patterns like "machine. , , 'response_type':"
-        response = re.sub(r"machine\. , , '[^']*':", "machine.", response)
-
-        # Remove patterns like "event. , , 'response_type':"
-        response = re.sub(r"event\. , , '[^']*':", "event.", response)
-
-        # Remove patterns like "detected. , , 'response_type':"
-        response = re.sub(r"detected\. , , '[^']*':", "detected.", response)
-
-        # Remove patterns like "temperature. , , 'response_type':"
-        response = re.sub(r"temperature\. , , '[^']*':", "temperature.", response)
-
-        # Remove patterns like "over-temperature. , , 'response_type':"
-        response = re.sub(
-            r"over-temperature\. , , '[^']*':", "over-temperature.", response
-        )
-
-        # Remove patterns like "D2. , , 'response_type':"
-        response = re.sub(r"D2\. , , '[^']*':", "D2.", response)
-
-        # Remove patterns like "Dock. , , 'response_type':"
-        response = re.sub(r"Dock\. , , '[^']*':", "Dock.", response)
-
-        # Remove patterns like "investigate. , , 'response_type':"
-        response = re.sub(r"investigate\. , , '[^']*':", "investigate.", response)
-
-        # Remove patterns like "actions. , , 'response_type':"
-        response = re.sub(r"actions\. , , '[^']*':", "actions.", response)
-
-        # Remove patterns like "prevent. , , 'response_type':"
-        response = re.sub(r"prevent\. , , '[^']*':", "prevent.", response)
-
-        # Remove patterns like "equipment. , , 'response_type':"
-        response = re.sub(r"equipment\. , , '[^']*':", "equipment.", response)
-
-        # Remove patterns like "machine. , , 'response_type':"
-        response = re.sub(r"machine\. , , '[^']*':", "machine.", response)
-
-        # Remove patterns like "event. , , 'response_type':"
-        response = re.sub(r"event\. , , '[^']*':", "event.", response)
-
-        # Remove patterns like "detected. , , 'response_type':"
-        response = re.sub(r"detected\. , , '[^']*':", "detected.", response)
-
-        # Remove patterns like "temperature. , , 'response_type':"
-        response = re.sub(r"temperature\. , , '[^']*':", "temperature.", response)
-
-        # Remove patterns like "over-temperature. , , 'response_type':"
-        response = re.sub(
-            r"over-temperature\. , , '[^']*':", "over-temperature.", response
-        )
-
-        # Remove patterns like "D2. , , 'response_type':"
-        response = re.sub(r"D2\. , , '[^']*':", "D2.", response)
-
-        # Remove patterns like "Dock. , , 'response_type':"
-        response = re.sub(r"Dock\. , , '[^']*':", "Dock.", response)
+        # Remove patterns like "word. , , 'response_type':" for common words
+        # Use a loop to avoid duplication
+        common_words = [
+            "damage", "actions", "investigate", "prevent", "equipment", "machine",
+            "event", "detected", "temperature", "over-temperature", "D2", "Dock"
+        ]
+        for word in common_words:
+            response = re.sub(rf"{re.escape(word)}\. , , '[^']*':", f"{word}.", response)
 
         # Clean up multiple spaces and newlines
         response = re.sub(r"\s+", " ", response)
@@ -518,6 +565,24 @@ class ChatResponse(BaseModel):
     reasoning_steps: Optional[List[Dict[str, Any]]] = None  # Individual reasoning steps
 
 
+def _create_fallback_chat_response(
+    message: str,
+    session_id: str,
+    reply: str,
+    route: str,
+    intent: str,
+    confidence: float,
+) -> ChatResponse:
+    """Create a ChatResponse with standardized fields."""
+    return ChatResponse(
+        reply=reply,
+        route=route,
+        intent=intent,
+        session_id=session_id,
+        confidence=confidence,
+    )
+
+
 def _create_simple_fallback_response(message: str, session_id: str) -> ChatResponse:
     """
     Create a simple fallback response when MCP planner is unavailable.
@@ -525,39 +590,33 @@ def _create_simple_fallback_response(message: str, session_id: str) -> ChatRespo
     """
     message_lower = message.lower()
     
-    # Simple pattern matching for common queries
-    if any(word in message_lower for word in ["order", "wave", "dispatch", "forklift"]):
-        return ChatResponse(
-            reply=f"I received your request: '{message}'. I understand you want to create a wave and dispatch a forklift. The system is processing your request. For detailed operations, please wait a moment for the full system to initialize.",
-            route="operations",
-            intent="operations",
-            session_id=session_id,
-            confidence=0.5,
-        )
-    elif any(word in message_lower for word in ["inventory", "stock", "quantity"]):
-        return ChatResponse(
-            reply=f"I received your query about: '{message}'. The system is currently initializing. Please wait a moment for inventory information.",
-            route="inventory",
-            intent="inventory_query",
-            session_id=session_id,
-            confidence=0.5,
-        )
-    elif any(word in message_lower for word in ["forecast", "demand", "prediction", "reorder recommendation", "model performance"]):
-        return ChatResponse(
-            reply=f"I received your forecasting query: '{message}'. Routing to the Forecasting Agent...",
-            route="forecasting",
-            intent="forecasting_query",
-            session_id=session_id,
-            confidence=0.6,
-        )
-    else:
-        return ChatResponse(
-            reply=f"I received your message: '{message}'. The system is currently initializing. Please wait a moment and try again.",
-            route="general",
-            intent="general_query",
-            session_id=session_id,
-            confidence=0.3,
-        )
+    # Define patterns and responses
+    patterns = [
+        (["order", "wave", "dispatch", "forklift"], 
+         f"I received your request: '{message}'. I understand you want to create a wave and dispatch a forklift. The system is processing your request. For detailed operations, please wait a moment for the full system to initialize.",
+         "operations", "operations", 0.5),
+        (["inventory", "stock", "quantity"],
+         f"I received your query about: '{message}'. The system is currently initializing. Please wait a moment for inventory information.",
+         "inventory", "inventory_query", 0.5),
+        (["forecast", "demand", "prediction", "reorder recommendation", "model performance"],
+         f"I received your forecasting query: '{message}'. Routing to the Forecasting Agent...",
+         "forecasting", "forecasting_query", 0.6),
+    ]
+    
+    # Check patterns
+    for keywords, reply, route, intent, confidence in patterns:
+        if any(word in message_lower for word in keywords):
+            return _create_fallback_chat_response(message, session_id, reply, route, intent, confidence)
+    
+    # Default fallback
+    return _create_fallback_chat_response(
+        message,
+        session_id,
+        f"I received your message: '{message}'. The system is currently initializing. Please wait a moment and try again.",
+        "general",
+        "general_query",
+        0.3,
+    )
 
 
 class ConversationSummaryRequest(BaseModel):
@@ -593,13 +652,10 @@ async def chat(req: ChatRequest):
             )
             if not input_safety.is_safe:
                 logger.warning(f"Input safety violation: {_sanitize_log_data(str(input_safety.violations))}")
-                return ChatResponse(
-                    reply=guardrails_service.get_safety_response(input_safety.violations),
-                    route="guardrails",
-                    intent="safety_violation",
-                    session_id=req.session_id or "default",
-                    context={"safety_violations": input_safety.violations},
-                    confidence=input_safety.confidence,
+                return _create_safety_violation_response(
+                    input_safety.violations,
+                    input_safety.confidence,
+                    req.session_id or "default",
                 )
         except asyncio.TimeoutError:
             logger.warning("Input safety check timed out, proceeding")
@@ -643,11 +699,9 @@ async def chat(req: ChatRequest):
                 )
             except asyncio.TimeoutError:
                 logger.warning("MCP planner initialization timed out, using simple fallback")
-                # Use simple response pattern matching for basic queries
                 return _create_simple_fallback_response(req.message, req.session_id)
             except Exception as init_error:
                 logger.error(f"MCP planner initialization failed: {_sanitize_log_data(str(init_error))}")
-                # Use simple fallback response
                 return _create_simple_fallback_response(req.message, req.session_id)
             
             if not mcp_planner:
@@ -719,21 +773,7 @@ async def chat(req: ChatRequest):
             structured_response = result.get("structured_response", {})
             
             if structured_response and structured_response.get("data"):
-                data = structured_response["data"]
-                # Extract common entities
-                if "equipment" in data:
-                    equipment_data = data["equipment"]
-                    if isinstance(equipment_data, list) and equipment_data:
-                        first_equipment = equipment_data[0]
-                        if isinstance(first_equipment, dict):
-                            entities.update(
-                                {
-                                    "equipment_id": first_equipment.get("asset_id"),
-                                    "equipment_type": first_equipment.get("type"),
-                                    "zone": first_equipment.get("zone"),
-                                    "status": first_equipment.get("status"),
-                                }
-                            )
+                entities.update(_extract_equipment_entities(structured_response["data"]))
 
             # Parallelize independent enhancement operations for better performance
             # Skip enhancements for simple queries or when reasoning is enabled to improve response time
@@ -923,26 +963,12 @@ async def chat(req: ChatRequest):
             else:
                 user_message = "I encountered an error processing your query. Please try rephrasing your question or contact support if the issue persists."
 
-            return ChatResponse(
-                reply=user_message,
-                route="error",
-                intent="error",
-                session_id=req.session_id or "default",
-                context={
-                    "error": error_message,
-                    "error_type": error_type,
-                    "suggestions": [
-                        "Try rephrasing your question",
-                        "Check if the equipment ID or task name is correct",
-                        "Contact support if the issue persists",
-                    ],
-                },
-                confidence=0.0,
-                recommendations=[
-                    "Try rephrasing your question",
-                    "Check if the equipment ID or task name is correct",
-                    "Contact support if the issue persists",
-                ],
+            return _create_error_chat_response(
+                user_message,
+                error_message,
+                error_type,
+                req.session_id or "default",
+                0.0,
             )
 
         # Check output safety with guardrails (with timeout protection)
@@ -957,13 +983,10 @@ async def chat(req: ChatRequest):
                 output_safety = None
             if output_safety and not output_safety.is_safe:
                 logger.warning(f"Output safety violation: {_sanitize_log_data(str(output_safety.violations))}")
-                return ChatResponse(
-                    reply=guardrails_service.get_safety_response(output_safety.violations),
-                    route="guardrails",
-                    intent="safety_violation",
-                    session_id=req.session_id or "default",
-                    context={"safety_violations": output_safety.violations},
-                    confidence=output_safety.confidence,
+                return _create_safety_violation_response(
+                    output_safety.violations,
+                    output_safety.confidence,
+                    req.session_id or "default",
                 )
         except asyncio.TimeoutError:
             logger.warning("Output safety check timed out, proceeding with response")
@@ -973,18 +996,18 @@ async def chat(req: ChatRequest):
         # Extract structured response if available
         structured_response = result.get("structured_response", {}) if result else {}
         
-        # Log structured_response for debugging
-        if structured_response:
-            logger.info(f"📊 structured_response keys: {list(structured_response.keys())}")
+        # Log structured_response for debugging (only in debug mode to reduce noise)
+        if structured_response and logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"📊 structured_response keys: {list(structured_response.keys())}")
             if "data" in structured_response:
                 data = structured_response.get("data")
-                logger.info(f"📊 structured_response['data'] type: {type(data)}, value: {data}")
+                logger.debug(f"📊 structured_response['data'] type: {type(data)}")
                 if isinstance(data, dict):
-                    logger.info(f"📊 structured_response['data'] keys: {list(data.keys()) if data else 'empty dict'}")
+                    logger.debug(f"📊 structured_response['data'] keys: {list(data.keys()) if data else 'empty dict'}")
                 elif isinstance(data, list):
-                    logger.info(f"📊 structured_response['data'] length: {len(data) if data else 0}")
+                    logger.debug(f"📊 structured_response['data'] length: {len(data) if data else 0}")
             else:
-                logger.warning("📊 structured_response does not contain 'data' field")
+                logger.debug("📊 structured_response does not contain 'data' field")
 
         # Extract MCP tool execution results
         mcp_tools_used = result.get("mcp_tools_used", []) if result else []
@@ -1011,12 +1034,13 @@ async def chat(req: ChatRequest):
                     logger.info(f"🔍 Found reasoning_steps in structured_response: {reasoning_steps is not None}, count: {len(reasoning_steps) if reasoning_steps else 0}")
         
         # Also check result directly for reasoning_chain
-        if result and "reasoning_chain" in result:
-            reasoning_chain = result.get("reasoning_chain")
-            logger.info(f"🔍 Found reasoning_chain in result: {reasoning_chain is not None}")
-        if result and "reasoning_steps" in result:
-            reasoning_steps = result.get("reasoning_steps")
-            logger.info(f"🔍 Found reasoning_steps in result: {reasoning_steps is not None}")
+        if result:
+            if "reasoning_chain" in result:
+                reasoning_chain = result.get("reasoning_chain")
+                logger.info(f"🔍 Found reasoning_chain in result: {reasoning_chain is not None}")
+            if "reasoning_steps" in result:
+                reasoning_steps = result.get("reasoning_steps")
+                logger.info(f"🔍 Found reasoning_steps in result: {reasoning_steps is not None}")
         
         # Convert ReasoningChain dataclass to dict if needed (using safe manual conversion with depth limit)
         if reasoning_chain is not None:
@@ -1060,75 +1084,7 @@ async def chat(req: ChatRequest):
                     return str(value)
             
             if is_dataclass(reasoning_chain):
-                # Manually construct dict to avoid recursion issues
-                try:
-                    reasoning_chain_dict = {
-                        "chain_id": getattr(reasoning_chain, "chain_id", ""),
-                        "query": getattr(reasoning_chain, "query", ""),
-                        "reasoning_type": getattr(reasoning_chain, "reasoning_type", ""),
-                        "final_conclusion": getattr(reasoning_chain, "final_conclusion", ""),
-                        "overall_confidence": float(getattr(reasoning_chain, "overall_confidence", 0.0)),
-                        "execution_time": float(getattr(reasoning_chain, "execution_time", 0.0)),
-                    }
-                    # Convert enum to string
-                    if hasattr(reasoning_chain_dict["reasoning_type"], "value"):
-                        reasoning_chain_dict["reasoning_type"] = reasoning_chain_dict["reasoning_type"].value
-                    # Convert datetime to ISO string
-                    if hasattr(reasoning_chain, "created_at"):
-                        created_at = getattr(reasoning_chain, "created_at")
-                        if hasattr(created_at, "isoformat"):
-                            reasoning_chain_dict["created_at"] = created_at.isoformat()
-                        else:
-                            reasoning_chain_dict["created_at"] = str(created_at)
-                    
-                    # Convert steps manually - be very careful with nested data
-                    if hasattr(reasoning_chain, "steps") and reasoning_chain.steps:
-                        converted_steps = []
-                        for step in reasoning_chain.steps:
-                            if is_dataclass(step):
-                                step_dict = {
-                                    "step_id": getattr(step, "step_id", ""),
-                                    "step_type": getattr(step, "step_type", ""),
-                                    "description": getattr(step, "description", ""),
-                                    "reasoning": getattr(step, "reasoning", ""),
-                                    "confidence": float(getattr(step, "confidence", 0.0)),
-                                }
-                                # Convert timestamp
-                                if hasattr(step, "timestamp"):
-                                    timestamp = getattr(step, "timestamp")
-                                    if hasattr(timestamp, "isoformat"):
-                                        step_dict["timestamp"] = timestamp.isoformat()
-                                    else:
-                                        step_dict["timestamp"] = str(timestamp)
-                                
-                                # Handle input_data and output_data - skip to avoid circular references
-                                # These fields often contain complex objects that can cause circular references
-                                step_dict["input_data"] = {}
-                                step_dict["output_data"] = {}
-                                    
-                                if hasattr(step, "dependencies"):
-                                    deps = getattr(step, "dependencies")
-                                    step_dict["dependencies"] = list(deps) if deps and isinstance(deps, (list, tuple)) else []
-                                else:
-                                    step_dict["dependencies"] = []
-                                    
-                                converted_steps.append(step_dict)
-                            elif isinstance(step, dict):
-                                # Already a dict, just ensure it's serializable
-                                converted_steps.append({k: v for k, v in step.items() 
-                                                       if isinstance(v, (str, int, float, bool, type(None), list, dict))})
-                            else:
-                                converted_steps.append({"step_id": "unknown", "step_type": "unknown", 
-                                                       "description": str(step), "reasoning": "", "confidence": 0.0})
-                        reasoning_chain_dict["steps"] = converted_steps
-                    else:
-                        reasoning_chain_dict["steps"] = []
-                    reasoning_chain = reasoning_chain_dict
-                except Exception as e:
-                    logger.error(f"Error converting reasoning_chain to dict: {_sanitize_log_data(str(e))}", exc_info=True)
-                    reasoning_chain = None
-                else:
-                    logger.info(f"✅ Successfully converted reasoning_chain to dict with {len(reasoning_chain.get('steps', []))} steps")
+                reasoning_chain = _convert_reasoning_chain_to_dict(reasoning_chain, safe_convert_value)
             elif not isinstance(reasoning_chain, dict):
                 # If it's not a dict and not a dataclass, try to convert it safely
                 try:
@@ -1139,50 +1095,7 @@ async def chat(req: ChatRequest):
         
         # Convert reasoning_steps to list of dicts if needed (simplified to avoid recursion)
         if reasoning_steps is not None and isinstance(reasoning_steps, list):
-            from dataclasses import is_dataclass
-            converted_steps = []
-            for step in reasoning_steps:
-                if is_dataclass(step):
-                    try:
-                        step_dict = {
-                            "step_id": getattr(step, "step_id", ""),
-                            "step_type": getattr(step, "step_type", ""),
-                            "description": getattr(step, "description", ""),
-                            "reasoning": getattr(step, "reasoning", ""),
-                            "confidence": float(getattr(step, "confidence", 0.0)),
-                        }
-                        # Convert timestamp
-                        if hasattr(step, "timestamp"):
-                            timestamp = getattr(step, "timestamp")
-                            if hasattr(timestamp, "isoformat"):
-                                step_dict["timestamp"] = timestamp.isoformat()
-                            else:
-                                step_dict["timestamp"] = str(timestamp)
-                        
-                            # Handle input_data and output_data - skip to avoid circular references
-                            # These fields often contain complex objects that can cause circular references
-                            step_dict["input_data"] = {}
-                            step_dict["output_data"] = {}
-                            
-                        if hasattr(step, "dependencies"):
-                            deps = getattr(step, "dependencies")
-                            step_dict["dependencies"] = list(deps) if deps and isinstance(deps, (list, tuple)) else []
-                        else:
-                            step_dict["dependencies"] = []
-                            
-                        converted_steps.append(step_dict)
-                    except Exception as e:
-                        logger.warning(f"Error converting reasoning step: {_sanitize_log_data(str(e))}")
-                        converted_steps.append({"step_id": "error", "step_type": "error", 
-                                               "description": "Error converting step", "reasoning": "", "confidence": 0.0})
-                elif isinstance(step, dict):
-                    # Already a dict, just ensure it's serializable
-                    converted_steps.append({k: v for k, v in step.items() 
-                                           if isinstance(v, (str, int, float, bool, type(None), list, dict))})
-                else:
-                    converted_steps.append({"step_id": "unknown", "step_type": "unknown", 
-                                           "description": str(step), "reasoning": "", "confidence": 0.0})
-            reasoning_steps = converted_steps
+            reasoning_steps = _convert_reasoning_steps_to_list(reasoning_steps)
 
         # Extract confidence from multiple possible sources with sensible defaults
         # Priority: result.confidence > structured_response.confidence > agent_responses > default (0.75)
@@ -1249,22 +1162,7 @@ async def chat(req: ChatRequest):
             # Extract entities for validation
             validation_entities = {}
             if structured_response and structured_response.get("data"):
-                data = structured_response["data"]
-                if (
-                    "equipment" in data
-                    and isinstance(data["equipment"], list)
-                    and data["equipment"]
-                ):
-                    first_equipment = data["equipment"][0]
-                    if isinstance(first_equipment, dict):
-                        validation_entities.update(
-                            {
-                                "equipment_id": first_equipment.get("asset_id"),
-                                "equipment_type": first_equipment.get("type"),
-                                "zone": first_equipment.get("zone"),
-                                "status": first_equipment.get("status"),
-                            }
-                        )
+                validation_entities = _extract_equipment_entities(structured_response["data"])
 
             # Enhance the response
             enhancement_result = await response_enhancer.enhance_response(
@@ -1544,37 +1442,23 @@ async def chat(req: ChatRequest):
             logger.error(f"Result data: {_sanitize_log_data(str(result) if result else 'None')}")
             logger.error(f"Structured response: {_sanitize_log_data(str(structured_response) if structured_response else 'None')}")
             # Return a minimal response
-            return ChatResponse(
-                reply=formatted_reply if formatted_reply else f"I received your message: '{req.message}'. However, there was an issue formatting the response.",
-                route="general",
-                intent="general",
-                session_id=req.session_id or "default",
-                confidence=confidence if confidence else 0.5,
-                recommendations=["Please try rephrasing your question"],
+            return _create_fallback_chat_response(
+                req.message,
+                req.session_id or "default",
+                formatted_reply if formatted_reply else f"I received your message: '{req.message}'. However, there was an issue formatting the response.",
+                "general",
+                "general",
+                confidence if confidence else 0.5,
             )
 
     except asyncio.TimeoutError:
         logger.error("Chat endpoint timed out - main query processing exceeded timeout")
-        return ChatResponse(
-            reply="The request timed out. Please try again with a simpler question or try again in a moment.",
-            route="error",
-            intent="timeout",
-            session_id=req.session_id or "default",
-            context={
-                "error": "Request timed out",
-                "error_type": "TimeoutError",
-                "suggestions": [
-                    "Try rephrasing your question",
-                    "Simplify your request",
-                    "Try again in a moment",
-                ],
-            },
-            confidence=0.0,
-            recommendations=[
-                "Try rephrasing your question",
-                "Simplify your request",
-                "Try again in a moment",
-            ],
+        return _create_error_chat_response(
+            "The request timed out. Please try again with a simpler question or try again in a moment.",
+            "Request timed out",
+            "TimeoutError",
+            req.session_id or "default",
+            0.0,
         )
     except Exception as e:
         import traceback
@@ -1582,26 +1466,12 @@ async def chat(req: ChatRequest):
         logger.error(f"Traceback: {_sanitize_log_data(traceback.format_exc())}")
         # Return a user-friendly error response with helpful suggestions
         try:
-            return ChatResponse(
-                reply="I'm sorry, I encountered an unexpected error. Please try again or contact support if the issue persists.",
-                route="error",
-                intent="error",
-                session_id=req.session_id or "default",
-                context={
-                    "error": str(e)[:200],  # Limit error message length
-                    "error_type": type(e).__name__,
-                    "suggestions": [
-                        "Try refreshing the page",
-                        "Check your internet connection",
-                        "Contact support if the issue persists",
-                    ],
-                },
-                confidence=0.0,
-                recommendations=[
-                    "Try refreshing the page",
-                    "Check your internet connection",
-                    "Contact support if the issue persists",
-                ],
+            return _create_error_chat_response(
+                "I'm sorry, I encountered an unexpected error. Please try again or contact support if the issue persists.",
+                str(e)[:200],  # Limit error message length
+                type(e).__name__,
+                req.session_id or "default",
+                0.0,
             )
         except Exception as fallback_error:
             # If even ChatResponse creation fails, log and return minimal error
