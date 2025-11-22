@@ -93,7 +93,7 @@ def _format_equipment_status(equipment_list: List[Dict[str, Any]]) -> str:
     if not status_info:
         return ""
     
-    return f"\n\n**Equipment Status:**\n" + "\n".join(f"• {info}" for info in status_info)
+    return "\n\n**Equipment Status:**\n" + "\n".join(f"• {info}" for info in status_info)
 
 
 def _get_allocation_status_emoji(allocation_status: str) -> str:
