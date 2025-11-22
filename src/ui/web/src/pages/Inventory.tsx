@@ -110,7 +110,7 @@ const InventoryPage: React.FC = () => {
           uniqueBrands.add(brandPrefix);
         }
       });
-      setBrands(Array.from(uniqueBrands).sort());
+      setBrands(Array.from(uniqueBrands).sort((a, b) => a.localeCompare(b)));
     } catch (err) {
       setError('Failed to fetch inventory items');
       // console.error('Error fetching inventory items:', err);
