@@ -260,8 +260,6 @@ class DocumentActionTools:
         self,
         file_path: str,
         document_type: str,
-        user_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
         document_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Upload and process document through pipeline."""
