@@ -24,3 +24,30 @@ While NVIDIA currently does not have a bug bounty program, we do offer acknowled
 
 For all security-related concerns, please visit NVIDIA's Product Security portal at https://www.nvidia.com/en-us/security
 
+## Project Security Documentation
+
+This project includes additional security documentation:
+
+- **[Python REPL Security Guidelines](docs/security/PYTHON_REPL_SECURITY.md)**: Guidelines for handling Python REPL and code execution capabilities, including protection against CVE-2024-38459 and related vulnerabilities.
+
+## Security Tools
+
+### Dependency Blocklist Checker
+
+Check for blocked dependencies that should not be installed:
+
+```bash
+# Check requirements.txt
+python scripts/security/dependency_blocklist.py
+
+# Check installed packages
+python scripts/security/dependency_blocklist.py --check-installed
+
+# Exit on violation (for CI/CD)
+python scripts/security/dependency_blocklist.py --exit-on-violation
+```
+
+This tool automatically detects and blocks:
+- `langchain-experimental` (Python REPL vulnerabilities)
+- Other packages with code execution capabilities
+

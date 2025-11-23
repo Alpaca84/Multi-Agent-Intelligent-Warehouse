@@ -1,0 +1,24 @@
+# Security Blocklist: Packages that should NEVER be installed
+#
+# This file lists packages that are blocked due to security vulnerabilities
+# or dangerous capabilities. These packages will be automatically detected
+# and blocked by the dependency blocklist checker.
+#
+# DO NOT ADD THESE PACKAGES TO requirements.txt
+# DO NOT INSTALL THESE PACKAGES IN PRODUCTION
+#
+# For more information, see:
+# - docs/security/PYTHON_REPL_SECURITY.md
+# - scripts/security/dependency_blocklist.py
+
+# LangChain Experimental - Contains Python REPL vulnerabilities
+# CVE-2024-38459: Unauthorized Python REPL access without opt-in
+# CVE-2024-46946: Code execution via sympy.sympify
+# CVE-2024-21513: Code execution via VectorSQLDatabaseChain
+# CVE-2023-44467: Arbitrary code execution via PALChain
+langchain-experimental
+langchain_experimental
+
+# Other potentially dangerous packages
+# (Add more as needed)
+
