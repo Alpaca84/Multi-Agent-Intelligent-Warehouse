@@ -18,6 +18,12 @@ import uuid
 from .server import MCPServer, MCPTool, MCPToolType
 from .client import MCPClient, MCPConnectionType
 from .base import MCPAdapter, MCPManager, AdapterType
+from .security import (
+    validate_tool_security,
+    is_tool_blocked,
+    log_security_event,
+    SecurityViolationError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -350,8 +356,55 @@ class ToolDiscoveryService:
         return tools_discovered
 
     async def _register_discovered_tool(self, tool: DiscoveredTool) -> None:
-        """Register a discovered tool."""
+        """Register a discovered tool with security validation."""
         tool_key = tool.tool_id
+
+        # Security check: Validate tool before registration
+        try:
+            is_blocked, reason = is_tool_blocked(
+                tool_name=tool.name,
+                tool_description=tool.description,
+                tool_capabilities=tool.capabilities,
+                tool_parameters=tool.parameters,
+            )
+            
+            if is_blocked:
+                log_security_event(
+                    event_type="tool_blocked",
+                    tool_name=tool.name,
+                    reason=reason or "Security policy violation",
+                    additional_info={
+                        "source": tool.source,
+                        "source_type": tool.source_type,
+                        "category": tool.category.value,
+                    },
+                )
+                logger.warning(
+                    f"Security: Blocked tool registration for '{tool.name}': {reason}"
+                )
+                return  # Don't register blocked tools
+            
+            # Validate tool security (will raise SecurityViolationError if blocked)
+            validate_tool_security(
+                tool_name=tool.name,
+                tool_description=tool.description,
+                tool_capabilities=tool.capabilities,
+                tool_parameters=tool.parameters,
+                raise_on_violation=False,  # We already checked, just log
+            )
+            
+        except SecurityViolationError as e:
+            log_security_event(
+                event_type="tool_security_violation",
+                tool_name=tool.name,
+                reason=str(e),
+                additional_info={
+                    "source": tool.source,
+                    "source_type": tool.source_type,
+                },
+            )
+            logger.error(f"Security violation detected for tool '{tool.name}': {e}")
+            return  # Don't register tools with security violations
 
         # Update existing tool or add new one
         if tool_key in self.discovered_tools:
@@ -596,11 +649,41 @@ class ToolDiscoveryService:
             return []
 
     async def execute_tool(self, tool_key: str, arguments: Dict[str, Any]) -> Any:
-        """Execute a discovered tool."""
+        """Execute a discovered tool with security validation."""
         if tool_key not in self.discovered_tools:
             raise ValueError(f"Tool '{tool_key}' not found")
 
         tool = self.discovered_tools[tool_key]
+        
+        # Security check: Validate tool before execution
+        try:
+            is_blocked, reason = is_tool_blocked(
+                tool_name=tool.name,
+                tool_description=tool.description,
+                tool_capabilities=tool.capabilities,
+                tool_parameters=tool.parameters,
+            )
+            
+            if is_blocked:
+                log_security_event(
+                    event_type="tool_execution_blocked",
+                    tool_name=tool.name,
+                    reason=reason or "Security policy violation",
+                    additional_info={
+                        "tool_key": tool_key,
+                        "source": tool.source,
+                        "arguments": str(arguments)[:200],  # Limit argument logging
+                    },
+                )
+                raise SecurityViolationError(
+                    f"Tool '{tool.name}' execution blocked: {reason}"
+                )
+        except SecurityViolationError:
+            raise
+        except Exception as e:
+            logger.error(f"Security check failed for tool '{tool.name}': {e}")
+            raise SecurityViolationError(f"Security validation failed: {e}")
+        
         source_info = self.discovery_sources.get(tool.source)
 
         if not source_info:
