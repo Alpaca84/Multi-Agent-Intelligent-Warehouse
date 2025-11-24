@@ -210,7 +210,9 @@ class ResponseEnhancer:
 
         if issue.field == "content_repetition":
             # Remove repetitive phrases
-            enhanced_response = re.sub(r"(.{10,})\1{2,}", r"\1", enhanced_response)
+            # Use bounded quantifiers to prevent ReDoS: initial group 10-200 chars, repeat 2-10 times
+            # This prevents catastrophic backtracking while still detecting repetitive content
+            enhanced_response = re.sub(r"(.{10,200})\1{2,10}", r"\1", enhanced_response)
             improvement = "Removed repetitive content"
 
         elif issue.field == "punctuation":
