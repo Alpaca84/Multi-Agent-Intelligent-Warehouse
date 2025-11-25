@@ -42,6 +42,13 @@ cp .env.example deploy/compose/.env
 # 6. Run database migrations
 source env/bin/activate
 
+# Load environment variables from .env file (REQUIRED before running migrations)
+# This ensures $POSTGRES_PASSWORD is available for the psql commands below
+# If .env is in deploy/compose/ (recommended):
+set -a && source deploy/compose/.env && set +a
+# OR if .env is in project root:
+# set -a && source .env && set +a
+
 # Option A: Using psql (requires PostgreSQL client installed)
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/000_schema.sql
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/001_equipment_schema.sql
