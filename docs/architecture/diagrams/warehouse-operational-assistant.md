@@ -5,7 +5,7 @@
 ```mermaid
 graph TB
     subgraph UI_LAYER["User Interface Layer"]
-        UI["React Web App<br/>Port 3001<br/>Production Ready"]
+        UI["React Web App<br/>Port 3001 (0.0.0.0)<br/>Node.js 20+<br/>CRACO + Webpack<br/>Production Ready"]
         Mobile["React Native Mobile<br/>Pending"]
         API_GW["FastAPI Gateway<br/>Port 8001<br/>All Endpoints Working"]
     end
@@ -123,6 +123,7 @@ graph TB
     subgraph API_LAYER["API Endpoints"]
         CHAT_API["/api/v1/chat<br/>AI-Powered Chat"]
         EQUIPMENT_API["/api/v1/equipment<br/>Equipment Asset Management"]
+        INVENTORY_API["/api/v1/inventory<br/>Inventory Management"]
         OPERATIONS_API["/api/v1/operations<br/>Workforce Tasks"]
         SAFETY_API["/api/v1/safety<br/>Incidents Policies"]
         FORECAST_API["/api/v1/forecasting<br/>Demand Forecasting"]
@@ -135,9 +136,9 @@ graph TB
         REASONING_API["/api/v1/reasoning<br/>AI Reasoning"]
         AUTH_API["/api/v1/auth<br/>Authentication"]
         HEALTH_API["/api/v1/health<br/>System Health"]
-        MCP_API["/api/v1/mcp<br/>MCP Tool Management"]
+        MCP_API["/api/v1/mcp<br/>MCP Tool Management & Testing"]
         DOCUMENT_API["/api/v1/document<br/>Document Processing Pipeline"]
-        MCP_TEST_API["/api/v1/mcp-test<br/>Enhanced MCP Testing"]
+        MIGRATION_API["/api/v1/migrations<br/>Database Migrations"]
     end
 
     UI --> API_GW
@@ -145,6 +146,7 @@ graph TB
     API_GW --> AUTH_API
     API_GW --> CHAT_API
     API_GW --> EQUIPMENT_API
+    API_GW --> INVENTORY_API
     API_GW --> OPERATIONS_API
     API_GW --> SAFETY_API
     API_GW --> FORECAST_API
@@ -158,7 +160,7 @@ graph TB
     API_GW --> HEALTH_API
     API_GW --> MCP_API
     API_GW --> DOCUMENT_API
-    API_GW --> MCP_TEST_API
+    API_GW --> MIGRATION_API
 
     AUTH_API --> Auth
     Auth --> RBAC
@@ -283,10 +285,10 @@ graph TB
     DOCUMENT_API --> NEMOTRON_70B
     DOCUMENT_API --> INTELLIGENT_ROUTER
 
-    MCP_TESTING --> MCP_TEST_API
-    MCP_TEST_API --> MCP_SERVER
-    MCP_TEST_API --> TOOL_DISCOVERY
-    MCP_TEST_API --> TOOL_BINDING
+    MCP_TESTING --> MCP_API
+    MCP_API --> MCP_SERVER
+    MCP_API --> TOOL_DISCOVERY
+    MCP_API --> TOOL_BINDING
 
     ERP_ADAPTER --> Kafka
     WMS_ADAPTER --> Kafka
@@ -337,7 +339,7 @@ graph TB
     class ERP_ADAPTER,WMS_ADAPTER,IoT_ADAPTER,RFID_ADAPTER,ATTENDANCE_ADAPTER,FORECAST_ADAPTER adapterLayer
     class Kafka,Etcd,Docker infraLayer
     class Prometheus,Grafana,AlertManager,NodeExporter,Cadvisor monitorLayer
-    class CHAT_API,EQUIPMENT_API,OPERATIONS_API,SAFETY_API,FORECAST_API,TRAINING_API,WMS_API,ERP_API,IOT_API,SCANNING_API,ATTENDANCE_API,REASONING_API,AUTH_API,HEALTH_API,MCP_API,DOCUMENT_API,MCP_TEST_API apiLayer
+    class CHAT_API,EQUIPMENT_API,INVENTORY_API,OPERATIONS_API,SAFETY_API,FORECAST_API,TRAINING_API,WMS_API,ERP_API,IOT_API,SCANNING_API,ATTENDANCE_API,REASONING_API,AUTH_API,HEALTH_API,MCP_API,DOCUMENT_API,MIGRATION_API apiLayer
 ```
 
 ## Data Flow Architecture with MCP Integration
@@ -419,7 +421,7 @@ sequenceDiagram
 
 | Component | Status | Technology | Port | Description |
 |-----------|--------|------------|------|-------------|
-| **React Web App** | Complete | React 18, Material-UI | 3001 | Real-time chat, dashboard, authentication |
+| **React Web App** | Complete | React 18, Material-UI, CRACO | 3001 | Real-time chat, dashboard, authentication (binds to 0.0.0.0:3001) |
 | **FastAPI Gateway** | Complete | FastAPI, Pydantic v2 | 8001 | REST API with OpenAPI/Swagger |
 | **JWT Authentication** | Complete | PyJWT, bcrypt | - | 5 user roles, RBAC permissions |
 | **NeMo Guardrails** | Complete | NeMo Guardrails | - | Content safety, compliance checks |
@@ -477,9 +479,10 @@ sequenceDiagram
 | `/api/v1/reasoning` | POST | Working | AI reasoning and analysis |
 | `/api/v1/auth` | POST | Working | Login, token management |
 | `/api/v1/health` | GET | Working | System health checks |
-| `/api/v1/mcp` | GET/POST | Working | MCP tool management and discovery |
+| `/api/v1/mcp` | GET/POST | Working | MCP tool management, discovery, and testing |
 | `/api/v1/document` | GET/POST | Working | Document processing pipeline |
-| `/api/v1/mcp-test` | GET | Working | Enhanced MCP testing dashboard |
+| `/api/v1/inventory` | GET/POST | Working | Inventory management |
+| `/api/v1/migrations` | GET/POST | Working | Database migrations |
 
 ### Infrastructure Components
 
@@ -597,10 +600,12 @@ The Document Extraction Agent implements a comprehensive **6-stage pipeline** us
 
 | Layer | Technology | Version | Status | Purpose |
 |-------|------------|---------|--------|---------|
-| **Frontend** | React | 18.x | Complete | Web UI with Material-UI |
+| **Frontend** | React | 18.2+ | Complete | Web UI with Material-UI |
+| **Frontend** | Node.js | 20.0+ (18.17+ min) | Complete | Runtime environment (LTS recommended) |
+| **Frontend** | CRACO | 7.1+ | Complete | Webpack configuration override |
 | **Frontend** | React Native | - | Pending | Mobile app for field operations |
-| **API Gateway** | FastAPI | 0.104+ | Complete | REST API with OpenAPI/Swagger |
-| **API Gateway** | Pydantic | v2 | Complete | Data validation & serialization |
+| **API Gateway** | FastAPI | 0.119+ | Complete | REST API with OpenAPI/Swagger |
+| **API Gateway** | Pydantic | v2.7+ | Complete | Data validation & serialization |
 | **Orchestration** | LangGraph | Latest | Complete | Multi-agent coordination |
 | **AI/LLM** | NVIDIA NIM | Latest | Complete | Llama 3.1 70B + Embeddings |
 | **Database** | PostgreSQL | 15+ | Complete | Structured data storage |
@@ -614,11 +619,14 @@ The Document Extraction Agent implements a comprehensive **6-stage pipeline** us
 | **Monitoring** | Grafana | 10+ | Complete | Dashboards & visualization |
 | **Monitoring** | AlertManager | 0.25+ | Complete | Alert management |
 | **Security** | NeMo Guardrails | Latest | Complete | Content safety & compliance |
-| **Security** | JWT/PyJWT | Latest | Complete | Authentication & authorization |
+| **Security** | JWT/PyJWT | 2.8+ | Complete | Authentication & authorization (key validation enforced) |
 | **Security** | bcrypt | Latest | Complete | Password hashing |
+| **Security** | aiohttp | 3.13.2 | Complete | HTTP client (client-only, C extensions enabled) |
 | **ML/AI** | XGBoost | 1.6+ | Complete | Gradient boosting for forecasting |
-| **ML/AI** | scikit-learn | 1.0+ | Complete | Machine learning models |
+| **ML/AI** | scikit-learn | 1.5+ | Complete | Machine learning models |
 | **ML/AI** | RAPIDS cuML | Latest | Complete | GPU-accelerated ML (optional) |
+| **ML/AI** | Pillow | 10.3+ | Complete | Image processing (document pipeline) |
+| **ML/AI** | requests | 2.32.4+ | Complete | HTTP library (patched for security) |
 | **Container** | Docker | 24+ | Complete | Containerization |
 | **Container** | Docker Compose | 2.20+ | Complete | Multi-container orchestration |
 
