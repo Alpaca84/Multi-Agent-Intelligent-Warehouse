@@ -321,7 +321,7 @@ Test results are available in:
 ## Support
 
 For MCP testing support:
-- **Issues**: [GitHub Issues](https://github.com/T-DevH/Multi-Agent-Intelligent-Warehouse/issues)
+- **Issues**: [GitHub Issues](https://github.com/NVIDIA-AI-Blueprints/Multi-Agent-Intelligent-Warehouse/issues)
 - **Documentation**: `docs/architecture/mcp-*.md`
 - **API Documentation**: `http://localhost:8001/docs`
 

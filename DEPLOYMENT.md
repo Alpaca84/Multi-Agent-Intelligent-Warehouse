@@ -21,7 +21,7 @@ Complete deployment guide for the Warehouse Operational Assistant with Docker an
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/T-DevH/Multi-Agent-Intelligent-Warehouse.git
+git clone  https://github.com/NVIDIA-AI-Blueprints/Multi-Agent-Intelligent-Warehouse.git
 cd Multi-Agent-Intelligent-Warehouse
 
 # 2. Verify Node.js version (recommended before setup)
@@ -776,6 +776,6 @@ kubectl scale deployment warehouse-assistant --replicas=5 -n warehouse-assistant
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/T-DevH/Multi-Agent-Intelligent-Warehouse/issues)
+- **Issues**: [GitHub Issues](https://github.com/NVIDIA-AI-Blueprints/Multi-Agent-Intelligent-Warehouse/issues)
 - **Documentation**: [docs/](docs/)
 - **Main README**: [README.md](README.md)
