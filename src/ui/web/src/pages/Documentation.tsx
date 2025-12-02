@@ -1567,7 +1567,7 @@ const Documentation: React.FC = () => {
             <Button 
             variant="outlined" 
             startIcon={<GitHubIcon />}
-            href="https://github.com/T-DevH/Multi-Agent-Intelligent-Warehouse"
+            href="https://github.com/NVIDIA-AI-Blueprints/Multi-Agent-Intelligent-Warehouse"
             target="_blank"
             rel="noopener noreferrer"
           >

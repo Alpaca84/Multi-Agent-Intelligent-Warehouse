@@ -54,7 +54,7 @@ This guide provides comprehensive instructions for deploying the Model Context P
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/T-DevH/Multi-Agent-Intelligent-Warehouse.git
+git clone https://github.com/NVIDIA-AI-Blueprints/Multi-Agent-Intelligent-Warehouse.git
 cd Multi-Agent-Intelligent-Warehouse
 ```
 

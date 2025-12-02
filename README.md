@@ -197,7 +197,7 @@ For the fastest local development setup:
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/T-DevH/Multi-Agent-Intelligent-Warehouse.git
+git clone https://github.com/NVIDIA-AI-Blueprints/Multi-Agent-Intelligent-Warehouse.git
 cd Multi-Agent-Intelligent-Warehouse
 
 # 2. Verify Node.js version (recommended before setup)

@@ -629,5 +629,5 @@ The complete OpenAPI specification is available at:
 For API support and questions:
 
 - **Documentation**: [https://docs.warehouse-assistant.com](https://docs.warehouse-assistant.com)
-- **Issues**: [https://github.com/T-DevH/Multi-Agent-Intelligent-Warehouse/issues](https://github.com/T-DevH/Multi-Agent-Intelligent-Warehouse/issues)
+- **Issues**: [https://github.com/NVIDIA-AI-Blueprints/Multi-Agent-Intelligent-Warehouse/issues](https://github.com/NVIDIA-AI-Blueprints/Multi-Agent-Intelligent-Warehouse/issues)
 - **Email**: support@warehouse-assistant.com
