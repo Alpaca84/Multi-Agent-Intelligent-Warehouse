@@ -9,7 +9,7 @@ import os
 from unittest.mock import patch, MagicMock
 
 # Add project root to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 def test_imports():
     """Test that main modules can be imported."""
