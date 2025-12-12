@@ -16,6 +16,9 @@ import os
 import sys
 
 # Try to import RAPIDS cuML, fallback to CPU if not available
+RAPIDS_AVAILABLE = False
+CUDA_AVAILABLE = False
+
 try:
     import cudf
     import cuml
@@ -27,6 +30,7 @@ try:
     from cuml.metrics import mean_squared_error as cu_mean_squared_error
     from cuml.metrics import mean_absolute_error as cu_mean_absolute_error
     RAPIDS_AVAILABLE = True
+    CUDA_AVAILABLE = True  # If RAPIDS is available, CUDA is definitely available
     print("✅ RAPIDS cuML detected - GPU acceleration enabled")
 except ImportError:
     RAPIDS_AVAILABLE = False
