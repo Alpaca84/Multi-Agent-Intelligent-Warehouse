@@ -201,9 +201,28 @@ class RAPIDSForecastingAgent:
             df[f'demand_rolling_mean_{window}'] = df['daily_demand'].rolling(window=window).mean()
             df[f'demand_rolling_std_{window}'] = df['daily_demand'].rolling(window=window).std()
         
-        # Trend features
-        df['demand_trend_7'] = df['daily_demand'].rolling(window=7).apply(lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) > 1 else 0)
-        df['demand_trend_30'] = df['daily_demand'].rolling(window=30).apply(lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) > 1 else 0)
+        # Trend features (using simple difference method for cuDF compatibility)
+        # cuDF doesn't support .apply() with arbitrary functions, so we use a simpler approach
+        if RAPIDS_AVAILABLE and hasattr(df, 'to_pandas'):
+            # For cuDF, convert to pandas for trend calculation, then back
+            df_pandas = df.to_pandas()
+            df_pandas['demand_trend_7'] = df_pandas['daily_demand'].rolling(window=7).apply(
+                lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) > 1 else 0, raw=False
+            )
+            df_pandas['demand_trend_30'] = df_pandas['daily_demand'].rolling(window=30).apply(
+                lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) > 1 else 0, raw=False
+            )
+            # Convert trend columns back to cuDF with proper index alignment
+            df['demand_trend_7'] = cudf.Series(df_pandas['demand_trend_7'].values, index=df.index)
+            df['demand_trend_30'] = cudf.Series(df_pandas['demand_trend_30'].values, index=df.index)
+        else:
+            # For pandas, use standard apply
+            df['demand_trend_7'] = df['daily_demand'].rolling(window=7).apply(
+                lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) > 1 else 0, raw=False
+            )
+            df['demand_trend_30'] = df['daily_demand'].rolling(window=30).apply(
+                lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) > 1 else 0, raw=False
+            )
         
         # Brand-specific features
         df['brand'] = df['sku'].str[:3]
