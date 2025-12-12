@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Complete deployment guide for the Warehouse Operational Assistant with Docker and Kubernetes (Helm) options.
+Complete deployment guide for the Warehouse Operational Assistant with Docker deployment options.
 
 ## Table of Contents
 
@@ -10,7 +10,6 @@ Complete deployment guide for the Warehouse Operational Assistant with Docker an
 - [NVIDIA NIMs Deployment & Configuration](#nvidia-nims-deployment--configuration)
 - [Deployment Options](#deployment-options)
   - [Option 1: Docker Deployment](#option-1-docker-deployment)
-  - [Option 2: Kubernetes/Helm Deployment](#option-2-kuberneteshelm-deployment)
 - [Post-Deployment Setup](#post-deployment-setup)
 - [Access Points](#access-points)
 - [Monitoring & Maintenance](#monitoring--maintenance)
@@ -94,13 +93,6 @@ npm start
 - Docker Compose 2.0+
 - 8GB+ RAM
 - 20GB+ disk space
-
-### For Kubernetes/Helm Deployment
-- Kubernetes 1.24+
-- Helm 3.0+
-- kubectl configured for your cluster
-- 16GB+ RAM (recommended)
-- 50GB+ disk space
 
 ### Common Prerequisites
 - Python 3.9+ (for local development)
@@ -570,115 +562,6 @@ docker-compose -f deploy/compose/docker-compose.yaml up -d
    docker-compose -f deploy/compose/docker-compose.yaml up -d
    ```
 
-### Option 2: Kubernetes/Helm Deployment
-
-#### Prerequisites Setup
-
-1. **Create namespace:**
-   ```bash
-   kubectl create namespace warehouse-assistant
-   ```
-
-2. **Create secrets:**
-   ```bash
-   kubectl create secret generic warehouse-secrets \
-     --from-literal=db-password=your-db-password \
-     --from-literal=jwt-secret=your-jwt-secret \
-     --from-literal=nvidia-api-key=your-nvidia-api-key \
-     --from-literal=rail-api-key=your-rail-api-key \
-     --from-literal=admin-password=your-admin-password \
-     --namespace=warehouse-assistant
-   ```
-
-3. **Create config map:**
-   ```bash
-   kubectl create configmap warehouse-config \
-     --from-literal=environment=production \
-     --from-literal=log-level=INFO \
-     --from-literal=db-host=postgres-service \
-     --from-literal=milvus-host=milvus-service \
-     --from-literal=redis-host=redis-service \
-     --namespace=warehouse-assistant
-   ```
-
-#### Deploy with Helm
-
-1. **Navigate to Helm chart directory:**
-   ```bash
-   cd deploy/helm/warehouse-assistant
-   ```
-
-2. **Install the chart:**
-   ```bash
-   helm install warehouse-assistant . \
-     --namespace warehouse-assistant \
-     --create-namespace \
-     --set image.tag=latest \
-     --set environment=production \
-     --set replicaCount=3 \
-     --set postgres.enabled=true \
-     --set redis.enabled=true \
-     --set milvus.enabled=true
-   ```
-
-3. **Upgrade deployment:**
-   ```bash
-   helm upgrade warehouse-assistant . \
-     --namespace warehouse-assistant \
-     --set image.tag=latest \
-     --set replicaCount=5
-   ```
-
-4. **View deployment status:**
-   ```bash
-   helm status warehouse-assistant --namespace warehouse-assistant
-   kubectl get pods -n warehouse-assistant
-   ```
-
-5. **Access logs:**
-   ```bash
-   kubectl logs -f deployment/warehouse-assistant -n warehouse-assistant
-   ```
-
-#### Helm Configuration
-
-Edit `deploy/helm/warehouse-assistant/values.yaml` to customize:
-
-```yaml
-replicaCount: 3
-image:
-  repository: warehouse-assistant
-  tag: latest
-  pullPolicy: IfNotPresent
-
-environment: production
-logLevel: INFO
-
-resources:
-  requests:
-    memory: "512Mi"
-    cpu: "250m"
-  limits:
-    memory: "1Gi"
-    cpu: "500m"
-
-postgres:
-  enabled: true
-  storage: 20Gi
-
-redis:
-  enabled: true
-
-milvus:
-  enabled: true
-  storage: 50Gi
-
-service:
-  type: LoadBalancer
-  port: 80
-  targetPort: 8001
-```
-
 ## Post-Deployment Setup
 
 ### Database Migrations
@@ -691,9 +574,6 @@ docker-compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -
 
 # Or from host using psql
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/000_schema.sql
-
-# Kubernetes
-kubectl exec -it deployment/postgres -n warehouse-assistant -- psql -U warehouse -d warehouse -f /migrations/000_schema.sql
 ```
 
 **Required migration files:**
@@ -712,9 +592,6 @@ docker-compose -f deploy/compose/docker-compose.dev.yaml exec chain_server pytho
 # Or from host (recommended for development)
 source env/bin/activate
 python scripts/setup/create_default_users.py
-
-# Kubernetes
-kubectl exec -it deployment/warehouse-assistant -n warehouse-assistant -- python scripts/setup/create_default_users.py
 ```
 
 **⚠️ Security Note:** Users are created securely via the setup script using environment variables. The SQL schema does not contain hardcoded password hashes.
@@ -727,10 +604,6 @@ curl http://localhost:8001/health
 
 # API version
 curl http://localhost:8001/api/v1/version
-
-# Service status (Kubernetes)
-kubectl get pods -n warehouse-assistant
-kubectl get services -n warehouse-assistant
 ```
 
 ## Access Points
@@ -809,16 +682,6 @@ PGPASSWORD=${POSTGRES_PASSWORD:-changeme} pg_dump -h localhost -p 5435 -U wareho
 docker-compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse warehouse < backup_20240101.sql
 # Or from host
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse warehouse < backup_20240101.sql
-```
-
-**Kubernetes backup:**
-
-```bash
-# Backup
-kubectl exec -n warehouse-assistant deployment/postgres -- pg_dump -U warehouse warehouse > backup.sql
-
-# Restore
-kubectl exec -i -n warehouse-assistant deployment/postgres -- psql -U warehouse warehouse < backup.sql
 ```
 
 ## Troubleshooting
@@ -949,10 +812,6 @@ But port 3001 is not accessible/opened.
 # Docker
 docker-compose down
 # Or change ports in docker-compose.yaml
-
-# Kubernetes
-kubectl get services -n warehouse-assistant
-# Check for port conflicts
 ```
 
 #### Database Connection Errors
@@ -960,8 +819,6 @@ kubectl get services -n warehouse-assistant
 ```bash
 # Check database status (development)
 docker-compose -f deploy/compose/docker-compose.dev.yaml ps timescaledb
-# Or
-kubectl get pods -n warehouse-assistant | grep postgres
 
 # Test connection
 docker-compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -U warehouse -d warehouse -c "SELECT 1;"
@@ -974,8 +831,6 @@ PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse
 ```bash
 # Check logs
 docker-compose logs api
-# Or
-kubectl logs -f deployment/warehouse-assistant -n warehouse-assistant
 
 # Verify environment variables
 docker-compose exec api env | grep -E "DB_|JWT_|POSTGRES_"
@@ -983,7 +838,7 @@ docker-compose exec api env | grep -E "DB_|JWT_|POSTGRES_"
 
 #### Password Not Working
 
-1. Check `DEFAULT_ADMIN_PASSWORD` in `.env` or Kubernetes secrets
+1. Check `DEFAULT_ADMIN_PASSWORD` in `.env`
 2. Recreate users: `python scripts/setup/create_default_users.py`
 3. Default password is `changeme` if not set
 
@@ -1017,9 +872,6 @@ LIMIT 10;
 ```bash
 # Docker Compose
 docker-compose up -d --scale api=3
-
-# Kubernetes
-kubectl scale deployment warehouse-assistant --replicas=5 -n warehouse-assistant
 ```
 
 ## Additional Resources
