@@ -49,11 +49,11 @@ set -a && source deploy/compose/.env && set +a
 # set -a && source .env && set +a
 
 # Docker Compose: Using Docker Compose (Recommended - no psql client needed)
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < data/postgres/000_schema.sql
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < data/postgres/001_equipment_schema.sql
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < data/postgres/002_document_schema.sql
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < data/postgres/004_inventory_movements_schema.sql
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < scripts/setup/create_model_tracking_tables.sql
+docker compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < data/postgres/000_schema.sql
+docker compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < data/postgres/001_equipment_schema.sql
+docker compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < data/postgres/002_document_schema.sql
+docker compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < data/postgres/004_inventory_movements_schema.sql
+docker compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse -d warehouse < scripts/setup/create_model_tracking_tables.sql
 
 
 # 7. Create default users
@@ -153,7 +153,7 @@ cp .env.example .env
 nano .env  # or your preferred editor
 ```
 
-**Note:** If you use `docker-compose -f deploy/compose/docker-compose.dev.yaml`, Docker Compose will:
+**Note:** If you use `docker compose -f deploy/compose/docker-compose.dev.yaml`, Docker Compose will:
 - First check for `deploy/compose/.env`
 - Then check for `.env` in your current working directory
 - Use the first one it finds
@@ -491,7 +491,7 @@ After deployment, run database migrations:
 
 ```bash
 # Docker (development - using timescaledb service)
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -U warehouse -d warehouse -f /docker-entrypoint-initdb.d/000_schema.sql
+docker compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -U warehouse -d warehouse -f /docker-entrypoint-initdb.d/000_schema.sql
 
 # Or from host using psql
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -f data/postgres/000_schema.sql
@@ -508,7 +508,7 @@ PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse
 
 ```bash
 # Docker (development)
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec chain_server python scripts/setup/create_default_users.py
+docker compose -f deploy/compose/docker-compose.dev.yaml exec chain_server python scripts/setup/create_default_users.py
 
 # Or from host (recommended for development)
 source env/bin/activate
@@ -577,13 +577,13 @@ scrape_configs:
 
 ```bash
 # Weekly VACUUM (development)
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -U warehouse -d warehouse -c "VACUUM ANALYZE;"
+docker compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -U warehouse -d warehouse -c "VACUUM ANALYZE;"
 
 # Or from host
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -c "VACUUM ANALYZE;"
 
 # Monthly REINDEX
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -U warehouse -d warehouse -c "REINDEX DATABASE warehouse;"
+docker compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -U warehouse -d warehouse -c "REINDEX DATABASE warehouse;"
 # Or from host
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -c "REINDEX DATABASE warehouse;"
 ```
@@ -594,13 +594,13 @@ PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse
 
 ```bash
 # Create backup (development)
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb pg_dump -U warehouse warehouse > backup_$(date +%Y%m%d).sql
+docker compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb pg_dump -U warehouse warehouse > backup_$(date +%Y%m%d).sql
 
 # Or from host
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} pg_dump -h localhost -p 5435 -U warehouse warehouse > backup_$(date +%Y%m%d).sql
 
 # Restore backup
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse warehouse < backup_20240101.sql
+docker compose -f deploy/compose/docker-compose.dev.yaml exec -T timescaledb psql -U warehouse warehouse < backup_20240101.sql
 # Or from host
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse warehouse < backup_20240101.sql
 ```
@@ -707,7 +707,7 @@ But port 3001 is not accessible/opened.
 4. **Verify correct URL:**
    - **Same machine**: `http://localhost:3001`
    - **Different machine**: `http://<server-ip>:3001` (use actual server IP, not 172.19.0.1)
-   - **Docker**: May need port mapping in docker-compose
+   - **Docker**: May need port mapping in docker compose
 
 5. **Test connectivity:**
    ```bash
@@ -731,7 +731,7 @@ But port 3001 is not accessible/opened.
 
 ```bash
 # Docker
-docker-compose down
+docker compose down
 # Or change ports in docker-compose.yaml
 ```
 
@@ -739,10 +739,10 @@ docker-compose down
 
 ```bash
 # Check database status (development)
-docker-compose -f deploy/compose/docker-compose.dev.yaml ps timescaledb
+docker compose -f deploy/compose/docker-compose.dev.yaml ps timescaledb
 
 # Test connection
-docker-compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -U warehouse -d warehouse -c "SELECT 1;"
+docker compose -f deploy/compose/docker-compose.dev.yaml exec timescaledb psql -U warehouse -d warehouse -c "SELECT 1;"
 # Or from host
 PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse -d warehouse -c "SELECT 1;"
 ```
@@ -751,10 +751,10 @@ PGPASSWORD=${POSTGRES_PASSWORD:-changeme} psql -h localhost -p 5435 -U warehouse
 
 ```bash
 # Check logs
-docker-compose logs api
+docker compose logs api
 
 # Verify environment variables
-docker-compose exec api env | grep -E "DB_|JWT_|POSTGRES_"
+docker compose exec api env | grep -E "DB_|JWT_|POSTGRES_"
 ```
 
 #### Password Not Working
@@ -767,10 +767,10 @@ docker-compose exec api env | grep -E "DB_|JWT_|POSTGRES_"
 
 ```bash
 # Rebuild Docker image
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Or reinstall dependencies
-docker-compose exec api pip install -r requirements.txt
+docker compose exec api pip install -r requirements.txt
 ```
 
 ### Performance Tuning
@@ -792,7 +792,7 @@ LIMIT 10;
 
 ```bash
 # Docker Compose
-docker-compose up -d --scale api=3
+docker compose up -d --scale api=3
 ```
 
 ## GPU Acceleration with RAPIDS
