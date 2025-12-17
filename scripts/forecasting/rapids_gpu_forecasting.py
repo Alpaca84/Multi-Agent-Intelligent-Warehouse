@@ -181,6 +181,26 @@ class RAPIDSForecastingAgent:
         if 'date' in df.columns:
             df['date'] = pd.to_datetime(df['date'])
         
+        # Convert Decimal types to float before cuDF conversion
+        # PostgreSQL NUMERIC/DECIMAL types come as Decimal objects from asyncpg
+        # cuDF doesn't support Decimal128Column for indexing operations (needed for .shift(), .rolling())
+        from decimal import Decimal
+        for col in df.columns:
+            if df[col].dtype == 'object':
+                # Check if column contains Decimal types
+                if len(df) > 0:
+                    sample_value = df[col].iloc[0] if not df[col].isna().all() else None
+                    if isinstance(sample_value, Decimal):
+                        # Convert Decimal to float
+                        df[col] = df[col].astype(float)
+                        logger.debug(f"Converted {col} from Decimal to float")
+                    elif pd.api.types.is_numeric_dtype(df[col]):
+                        # Try to convert numeric object types to float
+                        try:
+                            df[col] = pd.to_numeric(df[col], errors='coerce')
+                        except Exception:
+                            pass
+        
         # Convert to cuDF if RAPIDS is available (not just if GPU is available)
         if RAPIDS_AVAILABLE:
             try:
