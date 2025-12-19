@@ -16,6 +16,29 @@ Complete deployment guide for the Warehouse Operational Assistant.
 
 ## Quick Start
 
+### Setup Options
+
+**Option 1: Interactive Jupyter Notebook Setup (Recommended for First-Time Users)**
+
+📓 **[Complete Setup Guide (Jupyter Notebook)](notebooks/setup/complete_setup_guide.ipynb)**
+
+The interactive notebook provides:
+- ✅ Automated environment validation and checks
+- ✅ Step-by-step guided setup with explanations
+- ✅ Interactive API key configuration (NVIDIA, Brev, etc.)
+- ✅ Database setup and migration automation
+- ✅ User creation and demo data generation
+- ✅ Backend and frontend startup from within the notebook
+- ✅ Comprehensive error handling and troubleshooting
+- ✅ Service health checks and verification
+
+**To use the notebook:**
+1. Open `notebooks/setup/complete_setup_guide.ipynb` in Jupyter Lab/Notebook
+2. Follow the interactive cells step by step
+3. The notebook will guide you through the entire setup process
+
+**Option 2: Command-Line Setup (For Experienced Users)**
+
 ### Local Development (Fastest Setup)
 
 ```bash
@@ -464,24 +487,28 @@ curl http://localhost:8001/api/v1/health
 
 ## Deployment Options
 
-### Complete Setup Guide
+### Complete Setup Guide (Jupyter Notebook)
 
 For a comprehensive, step-by-step setup guide with automated checks and interactive instructions, see:
 
 📓 **[Complete Setup Guide (Jupyter Notebook)](notebooks/setup/complete_setup_guide.ipynb)**
 
 This interactive notebook provides:
-- Automated environment validation
-- Step-by-step setup instructions
-- Interactive API key configuration
-- Database setup and migration guidance
-- User creation and demo data generation
-- Backend and frontend startup instructions
+- ✅ Automated environment validation and checks
+- ✅ Step-by-step guided setup with explanations
+- ✅ Interactive API key configuration (NVIDIA, Brev, etc.)
+- ✅ Database setup and migration automation
+- ✅ User creation and demo data generation
+- ✅ Backend and frontend startup from within the notebook
+- ✅ Comprehensive error handling and troubleshooting
+- ✅ Service health checks and verification
 
 **To use the notebook:**
 1. Open `notebooks/setup/complete_setup_guide.ipynb` in Jupyter Lab/Notebook
 2. Follow the interactive cells step by step
 3. The notebook will guide you through the entire setup process
+
+**Note:** This is the same notebook mentioned in the [Quick Start](#quick-start) section above. It's the recommended approach for first-time users.
 
 ## Post-Deployment Setup
 
