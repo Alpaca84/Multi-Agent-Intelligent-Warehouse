@@ -180,6 +180,30 @@ For more security information, see [docs/secrets.md](docs/secrets.md) and [SECUR
 
 **For complete deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).**
 
+### Setup Options
+
+**Option 1: Interactive Jupyter Notebook Setup (Recommended for First-Time Users)**
+
+📓 **[Complete Setup Guide (Jupyter Notebook)](notebooks/setup/complete_setup_guide.ipynb)**
+
+The interactive notebook provides:
+- ✅ Automated environment validation and checks
+- ✅ Step-by-step guided setup with explanations
+- ✅ Interactive API key configuration
+- ✅ Database setup and migration automation
+- ✅ User creation and demo data generation
+- ✅ Backend and frontend startup from within the notebook
+- ✅ Comprehensive error handling and troubleshooting
+
+**To use the notebook:**
+1. Open `notebooks/setup/complete_setup_guide.ipynb` in Jupyter Lab/Notebook
+2. Follow the interactive cells step by step
+3. The notebook will guide you through the entire setup process
+
+**Option 2: Command-Line Setup (For Experienced Users)**
+
+See the [Local Development Setup](#local-development-setup) section below for manual command-line setup.
+
 ### Prerequisites
 
 - **Python 3.9+** (check with `python3 --version`)
