@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """
-Stage 5: Large LLM Judge & Validator with Llama 3.1 Nemotron 70B
+Stage 5: Large LLM Judge & Validator with Llama 3.3 Nemotron Super 49B
 Comprehensive evaluation framework for document quality and accuracy.
 """
 
@@ -47,7 +47,7 @@ class JudgeEvaluation:
 
 class LargeLLMJudge:
     """
-    Stage 5: Large LLM Judge using Llama 3.1 Nemotron 70B Instruct NIM.
+    Stage 5: Large LLM Judge using Llama 3.3 Nemotron Super 49B NIM.
 
     Evaluation Framework:
     1. Completeness Check (Score: 1-5)
@@ -57,19 +57,22 @@ class LargeLLMJudge:
     """
 
     def __init__(self):
-        self.api_key = os.getenv("LLAMA_70B_API_KEY", "")
-        self.base_url = os.getenv(
-            "LLAMA_70B_URL", "https://integrate.api.nvidia.com/v1"
-        )
-        # Large LLM (70B) models need more time for complex evaluation prompts
+        # Use NVIDIA_API_KEY (can be Brev API key) - same as main LLM service
+        self.api_key = os.getenv("NVIDIA_API_KEY", "")
+        # Use LLM_NIM_URL (defaults to api.brev.dev/v1 for 49B model) - same as main LLM service
+        self.base_url = os.getenv("LLM_NIM_URL", "https://api.brev.dev/v1")
+        # Use LLM_MODEL from .env (contains the unique 49B model identifier)
+        self.model = os.getenv("LLM_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1")
+        # Large LLM (49B) models need more time for complex evaluation prompts
         # Default: 120 seconds (2 minutes), configurable via LLAMA_70B_TIMEOUT env var
+        # Note: Environment variable name kept as LLAMA_70B_TIMEOUT for backward compatibility
         self.timeout = int(os.getenv("LLAMA_70B_TIMEOUT", "120"))
 
     async def initialize(self):
         """Initialize the Large LLM Judge."""
         try:
             if not self.api_key:
-                logger.warning("LLAMA_70B_API_KEY not found, using mock implementation")
+                logger.warning("NVIDIA_API_KEY not found, using mock implementation")
                 return
 
             # Test API connection
@@ -210,7 +213,7 @@ class LargeLLMJudge:
         return prompt
 
     async def _call_judge_api(self, prompt: str) -> Dict[str, Any]:
-        """Call Llama 3.1 Nemotron 70B API for evaluation."""
+        """Call Llama 3.3 Nemotron Super 49B API for evaluation."""
         try:
             messages = [{"role": "user", "content": prompt}]
             
@@ -224,7 +227,7 @@ class LargeLLMJudge:
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": "meta/llama-3.1-70b-instruct",
+                        "model": self.model,
                         "messages": messages,
                         "max_tokens": 2000,
                         "temperature": 0.1,
