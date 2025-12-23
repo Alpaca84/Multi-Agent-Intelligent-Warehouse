@@ -95,7 +95,7 @@ class SmallLLMProcessor:
             Structured data extracted from the document
         """
         try:
-            logger.info(f"Processing document with Small LLM (Llama 3.1 70B)")
+            logger.info(f"Processing document with Small LLM (Llama Nemotron Nano VL 8B)")
 
             # Try multimodal processing first, fallback to text-only if it fails
             if not self.api_key:
@@ -128,7 +128,7 @@ class SmallLLMProcessor:
             return {
                 "structured_data": structured_data,
                 "confidence": result.get("confidence", 0.8),
-                "model_used": "Llama-3.1-70B-Instruct",
+                "model_used": "Llama-Nemotron-Nano-VL-8B",
                 "processing_timestamp": datetime.now().isoformat(),
                 "multimodal_processed": False,  # Always text-only for now
             }
@@ -215,7 +215,7 @@ class SmallLLMProcessor:
     async def _call_text_only_api(
         self, ocr_text: str, document_type: str
     ) -> Dict[str, Any]:
-        """Call Llama 3.1 70B API with text-only input."""
+        """Call Llama Nemotron Nano VL 8B API with text-only input."""
         try:
             # Create a text-only prompt for document processing
             prompt = f"""
@@ -245,7 +245,7 @@ class SmallLLMProcessor:
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": "meta/llama-3.1-70b-instruct",
+                        "model": "meta/llama-3.1-8b-instruct",  # Fallback model for text-only processing
                         "messages": messages,
                         "max_tokens": 2000,
                         "temperature": 0.1,
@@ -392,7 +392,7 @@ class SmallLLMProcessor:
                     },
                 ),
                 "processing_metadata": {
-                    "model_used": "Llama-3.1-70B-Instruct",
+                    "model_used": "Llama-Nemotron-Nano-VL-8B",
                     "timestamp": datetime.now().isoformat(),
                     "multimodal": result.get("multimodal_processed", False),
                 },
@@ -423,7 +423,7 @@ class SmallLLMProcessor:
                     "accuracy": 0.5,
                 },
                 "processing_metadata": {
-                    "model_used": "Llama-3.1-70B-Instruct",
+                    "model_used": "Llama-Nemotron-Nano-VL-8B",
                     "timestamp": datetime.now().isoformat(),
                     "multimodal": False,
                     "error": str(e),

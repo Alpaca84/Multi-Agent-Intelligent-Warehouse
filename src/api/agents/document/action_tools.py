@@ -46,7 +46,7 @@ class DocumentActionTools:
     
     # Model name constants
     MODEL_SMALL_LLM = "Llama Nemotron Nano VL 8B"
-    MODEL_LARGE_JUDGE = "Llama 3.1 Nemotron 70B"
+    MODEL_LARGE_JUDGE = "Llama 3.3 Nemotron Super 49B"
     MODEL_OCR = "NeMoRetriever-OCR-v1"
 
     def __init__(self):
@@ -506,7 +506,7 @@ class DocumentActionTools:
                     "OCR Extraction (NeMoRetriever-OCR-v1)",
                     "Small LLM Processing (Llama Nemotron Nano VL 8B)",
                     "Embedding & Indexing (nv-embedqa-e5-v5)",
-                    "Large LLM Judge (Llama 3.1 Nemotron 70B)",
+                    "Large LLM Judge (Llama 3.3 Nemotron Super 49B)",
                     "Intelligent Routing",
                 ],
             }

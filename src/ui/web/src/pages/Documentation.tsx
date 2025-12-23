@@ -607,7 +607,7 @@ const Documentation: React.FC = () => {
                     Stage 5: Large LLM Judge
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 2 }}>
-                    <strong>Model:</strong> Llama 3.1 Nemotron 70B Instruct NIM
+                    <strong>Model:</strong> Llama 3.3 Nemotron Super 49B NIM
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Comprehensive quality validation with 4 evaluation criteria: completeness, accuracy, compliance, and quality scoring.

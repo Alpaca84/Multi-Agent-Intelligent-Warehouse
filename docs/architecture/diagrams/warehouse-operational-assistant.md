@@ -569,7 +569,7 @@ The Warehouse Operational Assistant uses multiple NVIDIA NIMs (NVIDIA Inference 
 | **NeMo OCR** | NeMoRetriever-OCR-v1 | Intelligent OCR with layout understanding | Cloud or Self-hosted | `NEMO_OCR_URL` | `https://integrate.api.nvidia.com/v1` |
 | **Nemotron Parse** | Nemotron Parse | Advanced document parsing and extraction | Cloud or Self-hosted | `NEMO_PARSE_URL` | `https://integrate.api.nvidia.com/v1` |
 | **Small LLM** | nemotron-nano-12b-v2-vl | Structured data extraction and entity recognition | Cloud or Self-hosted | `LLAMA_NANO_VL_URL` | `https://integrate.api.nvidia.com/v1` |
-| **Large LLM Judge** | Llama 3.3 Nemotron Super 49B | Quality validation and confidence scoring | Cloud or Self-hosted | `LLAMA_70B_URL` | `https://integrate.api.nvidia.com/v1` |
+| **Large LLM Judge** | Llama 3.3 Nemotron Super 49B | Quality validation and confidence scoring | Cloud or Self-hosted | `LLM_NIM_URL` | `https://api.brev.dev/v1` |
 | **NeMo Guardrails** | NeMo Guardrails | Content safety and compliance validation | Cloud or Self-hosted | `RAIL_API_KEY` (uses NVIDIA endpoint) | `https://integrate.api.nvidia.com/v1` |
 
 ### NIM Deployment Options

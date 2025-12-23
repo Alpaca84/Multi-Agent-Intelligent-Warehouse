@@ -243,7 +243,7 @@ The system uses the following NVIDIA NIMs:
 | **NeMo OCR** | NeMoRetriever-OCR-v1 | Intelligent OCR with layout understanding | `NEMO_OCR_URL` | `https://integrate.api.nvidia.com/v1` |
 | **Nemotron Parse** | Nemotron Parse | Advanced document parsing and extraction | `NEMO_PARSE_URL` | `https://integrate.api.nvidia.com/v1` |
 | **Small LLM** | nemotron-nano-12b-v2-vl | Structured data extraction and entity recognition | `LLAMA_NANO_VL_URL` | `https://integrate.api.nvidia.com/v1` |
-| **Large LLM Judge** | Llama 3.3 Nemotron Super 49B | Quality validation and confidence scoring | `LLAMA_70B_URL` | `https://integrate.api.nvidia.com/v1` |
+| **Large LLM Judge** | Llama 3.3 Nemotron Super 49B | Quality validation and confidence scoring | `LLM_NIM_URL` | `https://api.brev.dev/v1` |
 | **NeMo Guardrails** | NeMo Guardrails | Content safety and compliance validation | `RAIL_API_URL` | `https://integrate.api.nvidia.com/v1` |
 
 ### Deployment Options
@@ -281,7 +281,7 @@ NEMO_RETRIEVER_URL=https://integrate.api.nvidia.com/v1
 NEMO_OCR_URL=https://integrate.api.nvidia.com/v1
 NEMO_PARSE_URL=https://integrate.api.nvidia.com/v1
 LLAMA_NANO_VL_URL=https://integrate.api.nvidia.com/v1
-LLAMA_70B_URL=https://integrate.api.nvidia.com/v1
+LLM_NIM_URL=https://api.brev.dev/v1
 
 # NeMo Guardrails
 RAIL_API_URL=https://integrate.api.nvidia.com/v1
@@ -325,7 +325,7 @@ Deploy NIMs on your own infrastructure for data privacy, cost control, and custo
    NEMO_OCR_URL=http://your-nim-host:8003/v1
    NEMO_PARSE_URL=http://your-nim-host:8004/v1
    LLAMA_NANO_VL_URL=http://your-nim-host:8005/v1
-   LLAMA_70B_URL=http://your-nim-host:8006/v1
+   LLM_NIM_URL=http://your-nim-host:8006/v1
    
    # Self-hosted NeMo Guardrails
    RAIL_API_URL=http://your-nim-host:8007/v1

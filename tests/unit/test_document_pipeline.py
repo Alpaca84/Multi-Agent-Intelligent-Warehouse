@@ -300,7 +300,7 @@ async def main():
         "NEMO_RETRIEVER_API_KEY",
         "NEMO_OCR_API_KEY", 
         "LLAMA_NANO_VL_API_KEY",
-        "LLAMA_70B_API_KEY"
+        "NVIDIA_API_KEY"
     ]
     
     logger.info("\n🔑 Environment Variables Check:")

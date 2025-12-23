@@ -78,7 +78,7 @@ class DocumentExtractionAgent:
     2. Intelligent OCR (NeMoRetriever-OCR-v1 + Nemotron Parse)
     3. Small LLM Processing (Llama Nemotron Nano VL 8B)
     4. Embedding & Indexing (nv-embedqa-e5-v5)
-    5. Large LLM Judge (Llama 3.1 Nemotron 70B)
+    5. Large LLM Judge (Llama 3.3 Nemotron Super 49B)
     6. Intelligent Routing (Quality-based routing)
     """
 
@@ -234,7 +234,7 @@ class DocumentExtractionAgent:
             # STAGE 5: Large LLM Judge & Validator
             logger.info(f"Stage 5: Large LLM judging for {document_id}")
 
-            # Judge with Llama 3.1 Nemotron 70B
+            # Judge with Llama 3.3 Nemotron Super 49B
             judge_result = await self.large_llm_judge.evaluate_document(
                 llm_result["structured_data"], entities, document_type
             )

@@ -523,7 +523,7 @@ const DocumentExtraction: React.FC = () => {
             { name: '2. Intelligent OCR', description: 'NeMoRetriever-OCR-v1 + Nemotron Parse', color: 'primary' },
             { name: '3. Small LLM Processing', description: 'Llama Nemotron Nano VL 8B', color: 'primary' },
             { name: '4. Embedding & Indexing', description: 'nv-embedqa-e5-v5', color: 'primary' },
-            { name: '5. Large LLM Judge', description: 'Llama 3.1 Nemotron 70B', color: 'primary' },
+            { name: '5. Large LLM Judge', description: 'Llama 3.3 Nemotron Super 49B', color: 'primary' },
             { name: '6. Intelligent Routing', description: 'Quality-based routing', color: 'primary' },
           ].map((stage, index) => (
             <ListItem key={index}>
