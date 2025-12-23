@@ -70,7 +70,20 @@ const Login: React.FC = () => {
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 2,
+                backgroundColor: '#161B22',
+                border: '1px solid #F85149',
+                '& .MuiAlert-icon': {
+                  color: '#F85149',
+                },
+                '& .MuiAlert-message': {
+                  color: '#E6EDF3',
+                },
+              }}
+            >
               {error}
             </Alert>
           )}
@@ -102,21 +115,64 @@ const Login: React.FC = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2 }}
               disabled={loading}
+              sx={{ 
+                mt: 3, 
+                mb: 2,
+                backgroundColor: '#76B900',
+                color: '#000000',
+                fontWeight: 500,
+                textTransform: 'none',
+                py: 1.5,
+                fontSize: '0.9375rem',
+                '&:hover': {
+                  backgroundColor: '#8FD600',
+                },
+                '&:disabled': {
+                  backgroundColor: '#21262D',
+                  color: '#8B949E',
+                },
+              }}
             >
-              {loading ? <CircularProgress size={24} /> : 'Sign In'}
+              {loading ? <CircularProgress size={24} sx={{ color: '#8B949E' }} /> : 'Sign In'}
             </Button>
           </form>
 
-          <Box sx={{ mt: 2, p: 2, backgroundColor: '#f0f0f0', borderRadius: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              <strong>Demo Credentials:</strong>
+          <Box 
+            sx={{ 
+              mt: 2, 
+              p: 2, 
+              backgroundColor: '#0D1117', 
+              borderRadius: 1,
+              border: '1px solid #30363D',
+            }}
+          >
+            <Typography 
+              variant="body2" 
+              sx={{
+                color: '#8B949E',
+                fontSize: '0.875rem',
+                mb: 0.5,
+              }}
+            >
+              <strong style={{ color: '#E6EDF3' }}>Demo Credentials:</strong>
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography 
+              variant="body2" 
+              sx={{
+                color: '#8B949E',
+                fontSize: '0.875rem',
+              }}
+            >
               Username: admin
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography 
+              variant="body2" 
+              sx={{
+                color: '#8B949E',
+                fontSize: '0.875rem',
+              }}
+            >
               Password: (set via DEFAULT_ADMIN_PASSWORD env var)
             </Typography>
           </Box>

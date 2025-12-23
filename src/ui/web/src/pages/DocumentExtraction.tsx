@@ -512,9 +512,24 @@ const DocumentExtraction: React.FC = () => {
   };
 
   const ProcessingPipelineCard = () => (
-    <Card>
+    <Card
+      sx={{
+        backgroundColor: '#161B22',
+        border: '1px solid #30363D',
+        height: '100%',
+      }}
+    >
       <CardContent>
-        <Typography variant="h6" gutterBottom>
+        <Typography 
+          variant="h6" 
+          gutterBottom
+          sx={{
+            fontWeight: 600,
+            fontSize: '1.125rem',
+            color: '#E6EDF3',
+            mb: 2,
+          }}
+        >
           NVIDIA NeMo Processing Pipeline
         </Typography>
         <List dense>
@@ -526,13 +541,45 @@ const DocumentExtraction: React.FC = () => {
             { name: '5. Large LLM Judge', description: 'Llama 3.3 Nemotron Super 49B', color: 'primary' },
             { name: '6. Intelligent Routing', description: 'Quality-based routing', color: 'primary' },
           ].map((stage, index) => (
-            <ListItem key={index}>
-              <ListItemIcon>
-                <Chip label={stage.name.split('.')[0]} color={stage.color as any} size="small" />
+            <ListItem key={index} sx={{ py: 0.5 }}>
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                <Chip 
+                  label={stage.name.split('.')[0]} 
+                  size="small"
+                  sx={{
+                    backgroundColor: '#76B900',
+                    color: '#000000',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    minWidth: 32,
+                  }}
+                />
               </ListItemIcon>
               <ListItemText 
-                primary={stage.name}
-                secondary={stage.description}
+                primary={
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: '#E6EDF3',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {stage.name}
+                  </Typography>
+                }
+                secondary={
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: '#8B949E',
+                      fontSize: '0.8125rem',
+                      mt: 0.25,
+                    }}
+                  >
+                    {stage.description}
+                  </Typography>
+                }
               />
             </ListItem>
           ))}
@@ -542,32 +589,66 @@ const DocumentExtraction: React.FC = () => {
   );
 
   const DocumentUploadCard = () => (
-    <Card>
+    <Card
+      sx={{
+        backgroundColor: '#161B22',
+        border: '1px solid #30363D',
+      }}
+    >
       <CardContent>
-        <Typography variant="h6" gutterBottom>
+        <Typography 
+          variant="h6" 
+          gutterBottom
+          sx={{
+            fontWeight: 600,
+            fontSize: '1.125rem',
+            color: '#E6EDF3',
+            mb: 2,
+          }}
+        >
           Upload Documents
         </Typography>
         
         {isUploading && (
           <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                mb: 1,
+                color: '#8B949E',
+                fontSize: '0.875rem',
+              }}
+            >
               Uploading document... {uploadProgress}%
             </Typography>
-            <LinearProgress variant="determinate" value={uploadProgress} />
+            <LinearProgress 
+              variant="determinate" 
+              value={uploadProgress}
+              sx={{
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: '#21262D',
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: '#76B900',
+                },
+              }}
+            />
           </Box>
         )}
         
         <Box
           sx={{
-            border: '2px dashed #ccc',
+            border: '2px dashed #30363D',
             borderRadius: 2,
             p: 4,
             textAlign: 'center',
             cursor: isUploading ? 'not-allowed' : 'pointer',
             opacity: isUploading ? 0.6 : 1,
+            backgroundColor: '#0D1117',
+            transition: 'all 0.2s ease-in-out',
             '&:hover': {
-              borderColor: isUploading ? '#ccc' : 'primary.main',
-              backgroundColor: isUploading ? 'transparent' : 'action.hover',
+              borderColor: isUploading ? '#30363D' : '#76B900',
+              backgroundColor: isUploading ? '#0D1117' : 'rgba(118, 185, 0, 0.05)',
             },
           }}
           onClick={() => {
@@ -658,8 +739,22 @@ const DocumentExtraction: React.FC = () => {
                     }
                   }}
                   disabled={isUploading}
+                  sx={{
+                    backgroundColor: '#76B900',
+                    color: '#000000',
+                    fontWeight: 500,
+                    textTransform: 'none',
+                    px: 3,
+                    '&:hover': {
+                      backgroundColor: '#8FD600',
+                    },
+                    '&:disabled': {
+                      backgroundColor: '#21262D',
+                      color: '#8B949E',
+                    },
+                  }}
                 >
-                  Upload Document
+                  {isUploading ? 'Uploading...' : 'Upload Document'}
                 </Button>
                 <Button 
                   variant="outlined" 
@@ -669,6 +764,20 @@ const DocumentExtraction: React.FC = () => {
                     setFilePreview(null);
                   }}
                   disabled={isUploading}
+                  sx={{
+                    borderColor: '#30363D',
+                    color: '#E6EDF3',
+                    textTransform: 'none',
+                    px: 3,
+                    '&:hover': {
+                      borderColor: '#76B900',
+                      backgroundColor: 'rgba(118, 185, 0, 0.1)',
+                    },
+                    '&:disabled': {
+                      borderColor: '#21262D',
+                      color: '#8B949E',
+                    },
+                  }}
                 >
                   Cancel
                 </Button>
@@ -690,8 +799,21 @@ const DocumentExtraction: React.FC = () => {
           )}
         </Box>
         
-        <Alert severity="info" sx={{ mt: 2 }}>
-          <Typography variant="body2">
+        <Alert 
+          severity="info" 
+          sx={{ 
+            mt: 2,
+            backgroundColor: '#161B22',
+            border: '1px solid #30363D',
+            '& .MuiAlert-icon': {
+              color: '#58A6FF',
+            },
+            '& .MuiAlert-message': {
+              color: '#E6EDF3',
+            },
+          }}
+        >
+          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
             Documents are processed through NVIDIA's NeMo models for intelligent extraction, 
             validation, and routing. Processing typically takes 30-60 seconds.
           </Typography>
@@ -701,24 +823,63 @@ const DocumentExtraction: React.FC = () => {
   );
 
   const ProcessingStatusCard = ({ document }: { document: DocumentItem }) => (
-    <Card>
+    <Card
+      sx={{
+        backgroundColor: '#161B22',
+        border: '1px solid #30363D',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          borderColor: '#76B900',
+          boxShadow: '0 4px 12px rgba(118, 185, 0, 0.15)',
+        },
+      }}
+    >
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6">{document.filename}</Typography>
+          <Typography 
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              fontSize: '1.125rem',
+              color: '#E6EDF3',
+            }}
+          >
+            {document.filename}
+          </Typography>
           <Chip 
             label={document.status} 
-            color={document.status === 'completed' ? 'success' : 'primary'} 
-            size="small" 
+            size="small"
+            sx={{
+              backgroundColor: document.status === 'completed' ? '#3FB950' : '#76B900',
+              color: document.status === 'completed' ? '#000000' : '#000000',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+            }}
           />
         </Box>
         
         <LinearProgress 
           variant="determinate" 
-          value={document.progress} 
-          sx={{ mb: 2 }} 
+          value={document.progress}
+          sx={{ 
+            mb: 2,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: '#21262D',
+            '& .MuiLinearProgress-bar': {
+              backgroundColor: '#76B900',
+            },
+          }}
         />
         
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            mb: 2,
+            color: '#8B949E',
+            fontSize: '0.875rem',
+          }}
+        >
           {document.progress}% Complete
         </Typography>
         
@@ -727,37 +888,74 @@ const DocumentExtraction: React.FC = () => {
             <ListItem key={index}>
               <ListItemIcon>
                 {stage.completed ? (
-                  <CheckCircle color="success" sx={{ fontSize: 20 }} />
+                  <CheckCircle sx={{ fontSize: 20, color: '#3FB950' }} />
                 ) : stage.current ? (
-                  <CircularProgress size={20} color="primary" />
+                  <CircularProgress size={20} sx={{ color: '#76B900' }} />
                 ) : (
-                  <div style={{ 
-                    width: 20, 
-                    height: 20, 
-                    borderRadius: '50%', 
-                    backgroundColor: '#e0e0e0',
-                    border: '2px solid #ccc'
-                  }} />
+                  <Box
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      backgroundColor: '#21262D',
+                      border: '2px solid #30363D',
+                    }}
+                  />
                 )}
               </ListItemIcon>
               <ListItemText 
                 primary={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: stage.current ? 'bold' : 'normal',
-                      color: stage.completed ? 'success.main' : stage.current ? 'primary.main' : 'text.secondary'
-                    }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontWeight: stage.current ? 600 : 400,
+                        color: stage.completed ? '#3FB950' : stage.current ? '#76B900' : '#8B949E',
+                        fontSize: '0.875rem',
+                      }}
+                    >
                       {stage.name}
                     </Typography>
                     {stage.current && (
-                      <Chip label="Processing" size="small" color="primary" />
+                      <Chip 
+                        label="Processing" 
+                        size="small"
+                        sx={{
+                          backgroundColor: '#76B900',
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.625rem',
+                          height: 20,
+                        }}
+                      />
                     )}
                     {stage.completed && (
-                      <Chip label="Complete" size="small" color="success" />
+                      <Chip 
+                        label="Complete" 
+                        size="small"
+                        sx={{
+                          backgroundColor: '#3FB950',
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.625rem',
+                          height: 20,
+                        }}
+                      />
                     )}
                   </Box>
                 }
-                secondary={stage.description}
+                secondary={
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: '#8B949E',
+                      fontSize: '0.8125rem',
+                      mt: 0.5,
+                    }}
+                  >
+                    {stage.description}
+                  </Typography>
+                }
               />
             </ListItem>
           ))}
@@ -766,53 +964,227 @@ const DocumentExtraction: React.FC = () => {
     </Card>
   );
 
-  const CompletedDocumentCard = ({ document }: { document: DocumentItem }) => (
-    <Card>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6">{document.filename}</Typography>
-          <Box>
-            <Chip label="Completed" color="success" size="small" sx={{ mr: 1 }} />
-            <Chip label={document.routingDecision || "Auto-Approved"} color="success" size="small" />
+  const CompletedDocumentCard = ({ document }: { document: DocumentItem }) => {
+    const qualityScore = document.qualityScore || 0;
+    const qualityPercentage = (qualityScore / 5.0) * 100;
+    
+    return (
+      <Card
+        sx={{
+          backgroundColor: '#161B22',
+          border: '1px solid #30363D',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            borderColor: '#76B900',
+            boxShadow: '0 4px 12px rgba(118, 185, 0, 0.15)',
+          },
+        }}
+      >
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography 
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                fontSize: '1.125rem',
+                color: '#E6EDF3',
+              }}
+            >
+              {document.filename}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Chip 
+                label="Completed" 
+                size="small"
+                sx={{
+                  backgroundColor: '#3FB950',
+                  color: '#000000',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                }}
+              />
+              <Chip 
+                label={document.routingDecision || "Auto-Approved"} 
+                size="small"
+                sx={{
+                  backgroundColor: '#76B900',
+                  color: '#000000',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                }}
+              />
+            </Box>
           </Box>
-        </Box>
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Quality Score: {document.qualityScore ? `${document.qualityScore}/5.0` : 'N/A'} | 
-          Processing Time: {document.processingTime ? `${document.processingTime}s` : 'N/A'}
-        </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button 
-            size="small" 
-            startIcon={<ViewIcon />}
-            onClick={() => handleViewResults(document)}
-          >
-            View Results
-          </Button>
-          <Button size="small" startIcon={<DownloadIcon />}>
-            Download
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
+          
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: '#8B949E',
+                  fontSize: '0.875rem',
+                }}
+              >
+                Quality Score:
+              </Typography>
+              <Box
+                sx={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 56,
+                  height: 56,
+                }}
+              >
+                <CircularProgress
+                  variant="determinate"
+                  value={qualityPercentage}
+                  size={56}
+                  thickness={4}
+                  sx={{
+                    color: qualityPercentage >= 80 ? '#3FB950' : qualityPercentage >= 60 ? '#76B900' : '#D29922',
+                    position: 'absolute',
+                  }}
+                />
+                <Box
+                  sx={{
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                    position: 'absolute',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    component="div"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      color: '#E6EDF3',
+                    }}
+                  >
+                    {qualityPercentage.toFixed(0)}%
+                  </Typography>
+                </Box>
+              </Box>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: '#8B949E',
+                  fontSize: '0.875rem',
+                }}
+              >
+                {document.qualityScore ? `${document.qualityScore}/5.0` : 'N/A'}
+              </Typography>
+            </Box>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#8B949E',
+                fontSize: '0.875rem',
+              }}
+            >
+              Processing Time: {document.processingTime ? `${document.processingTime}s` : 'N/A'}
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              size="small" 
+              startIcon={<ViewIcon />}
+              onClick={() => handleViewResults(document)}
+              variant="contained"
+              sx={{
+                backgroundColor: '#76B900',
+                color: '#000000',
+                fontWeight: 500,
+                textTransform: 'none',
+                '&:hover': {
+                  backgroundColor: '#8FD600',
+                },
+              }}
+            >
+              View Results
+            </Button>
+            <Button 
+              size="small" 
+              startIcon={<DownloadIcon />}
+              variant="outlined"
+              sx={{
+                borderColor: '#30363D',
+                color: '#E6EDF3',
+                textTransform: 'none',
+                '&:hover': {
+                  borderColor: '#76B900',
+                  backgroundColor: 'rgba(118, 185, 0, 0.1)',
+                },
+              }}
+            >
+              Download
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Document Extraction & Processing
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        Upload warehouse documents for intelligent extraction and processing using NVIDIA NeMo models
-      </Typography>
+    <Box sx={{ p: 0 }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography 
+          variant="h4" 
+          gutterBottom
+          sx={{
+            fontWeight: 600,
+            fontSize: '2rem',
+            color: '#E6EDF3',
+            mb: 1,
+          }}
+        >
+          Document Extraction & Processing
+        </Typography>
+        <Typography 
+          variant="body1" 
+          sx={{ 
+            mb: 3,
+            color: '#8B949E',
+            fontSize: '0.9375rem',
+          }}
+        >
+          Upload warehouse documents for intelligent extraction and processing using NVIDIA NeMo models
+        </Typography>
+      </Box>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={activeTab} onChange={handleTabChange} aria-label="document processing tabs">
-          <Tab label="Upload Documents" icon={<UploadIcon />} />
-          <Tab label="Processing Status" icon={<SearchIcon />} />
-          <Tab label="Completed Documents" icon={<ApprovedIcon />} />
-          <Tab label="Analytics" icon={<AnalyticsIcon />} />
+      <Box sx={{ borderBottom: '1px solid #30363D', mb: 3 }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={handleTabChange} 
+          aria-label="document processing tabs"
+          sx={{
+            '& .MuiTab-root': {
+              color: '#8B949E',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.9375rem',
+              minHeight: 48,
+              '&.Mui-selected': {
+                color: '#76B900',
+              },
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: '#76B900',
+            },
+          }}
+        >
+          <Tab label="Upload Documents" icon={<UploadIcon />} iconPosition="start" />
+          <Tab label="Processing Status" icon={<SearchIcon />} iconPosition="start" />
+          <Tab label="Completed Documents" icon={<ApprovedIcon />} iconPosition="start" />
+          <Tab label="Analytics" icon={<AnalyticsIcon />} iconPosition="start" />
         </Tabs>
       </Box>
 
@@ -832,11 +1204,31 @@ const DocumentExtraction: React.FC = () => {
         <Grid container spacing={3}>
           {processingDocuments.length === 0 ? (
             <Grid item xs={12}>
-              <Paper sx={{ p: 4, textAlign: 'center' }}>
-                <Typography variant="h6" color="text.secondary">
+              <Paper 
+                sx={{ 
+                  p: 4, 
+                  textAlign: 'center',
+                  backgroundColor: '#161B22',
+                  border: '1px solid #30363D',
+                }}
+              >
+                <Typography 
+                  variant="h6" 
+                  sx={{
+                    color: '#8B949E',
+                    fontWeight: 500,
+                    mb: 1,
+                  }}
+                >
                   No documents currently processing
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography 
+                  variant="body2" 
+                  sx={{
+                    color: '#8B949E',
+                    fontSize: '0.875rem',
+                  }}
+                >
                   Upload a document to see processing status
                 </Typography>
               </Paper>
@@ -855,11 +1247,31 @@ const DocumentExtraction: React.FC = () => {
         <Grid container spacing={3}>
           {completedDocuments.length === 0 ? (
             <Grid item xs={12}>
-              <Paper sx={{ p: 4, textAlign: 'center' }}>
-                <Typography variant="h6" color="text.secondary">
+              <Paper 
+                sx={{ 
+                  p: 4, 
+                  textAlign: 'center',
+                  backgroundColor: '#161B22',
+                  border: '1px solid #30363D',
+                }}
+              >
+                <Typography 
+                  variant="h6" 
+                  sx={{
+                    color: '#8B949E',
+                    fontWeight: 500,
+                    mb: 1,
+                  }}
+                >
                   No completed documents
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography 
+                  variant="body2" 
+                  sx={{
+                    color: '#8B949E',
+                    fontSize: '0.875rem',
+                  }}
+                >
                   Processed documents will appear here
                 </Typography>
               </Paper>
@@ -877,9 +1289,23 @@ const DocumentExtraction: React.FC = () => {
       <TabPanel value={activeTab} index={3}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
-            <Card>
+            <Card
+              sx={{
+                backgroundColor: '#161B22',
+                border: '1px solid #30363D',
+              }}
+            >
               <CardContent>
-                <Typography variant="h6" gutterBottom>
+                <Typography 
+                  variant="h6" 
+                  gutterBottom
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: '1.125rem',
+                    color: '#E6EDF3',
+                    mb: 2,
+                  }}
+                >
                   Processing Statistics
                 </Typography>
                 {analyticsData ? (
@@ -910,9 +1336,23 @@ const DocumentExtraction: React.FC = () => {
           </Grid>
           
           <Grid item xs={12} md={8}>
-            <Card>
+            <Card
+              sx={{
+                backgroundColor: '#161B22',
+                border: '1px solid #30363D',
+              }}
+            >
               <CardContent>
-                <Typography variant="h6" gutterBottom>
+                <Typography 
+                  variant="h6" 
+                  gutterBottom
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: '1.125rem',
+                    color: '#E6EDF3',
+                    mb: 2,
+                  }}
+                >
                   Quality Score Trends
                 </Typography>
                 {analyticsData && analyticsData.trends && analyticsData.trends.quality_trends ? (
@@ -1003,10 +1443,10 @@ const DocumentExtraction: React.FC = () => {
                           <Line 
                             type="monotone" 
                             dataKey="documents" 
-                            stroke="#4caf50" 
+                            stroke="#76B900" 
                             strokeWidth={2}
-                            dot={{ fill: '#4caf50', strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, stroke: '#4caf50', strokeWidth: 2 }}
+                            dot={{ fill: '#76B900', strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: '#76B900', strokeWidth: 2 }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
@@ -1038,21 +1478,53 @@ const DocumentExtraction: React.FC = () => {
         onClose={() => setResultsDialogOpen(false)}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: '#161B22',
+            border: '1px solid #30363D',
+          },
+        }}
       >
-        <DialogTitle>
+        <DialogTitle
+          sx={{
+            backgroundColor: '#161B22',
+            borderBottom: '1px solid #30363D',
+            pb: 2,
+          }}
+        >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">
+            <Typography 
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                fontSize: '1.25rem',
+                color: '#E6EDF3',
+              }}
+            >
               Document Results - {selectedDocument?.filename}
             </Typography>
             <Button
               onClick={() => setResultsDialogOpen(false)}
               startIcon={<CloseIcon />}
+              sx={{
+                color: '#8B949E',
+                textTransform: 'none',
+                '&:hover': {
+                  backgroundColor: '#21262D',
+                  color: '#E6EDF3',
+                },
+              }}
             >
               Close
             </Button>
           </Box>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent
+          sx={{
+            backgroundColor: '#0D1117',
+            pt: 3,
+          }}
+        >
           {documentResults ? (
             <Box>
               {/* Mock Data Warning */}
@@ -1082,24 +1554,46 @@ const DocumentExtraction: React.FC = () => {
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        <strong>Quality Score:</strong> 
+                      <Typography 
+                        variant="body2"
+                        sx={{
+                          color: '#8B949E',
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        <strong style={{ color: '#E6EDF3' }}>Quality Score:</strong>{' '}
                         <Chip 
-                          label={`${documentResults.quality_score}/5.0`} 
-                          color={documentResults.quality_score >= 4 ? 'success' : documentResults.quality_score >= 3 ? 'warning' : 'error'}
+                          label={`${documentResults.quality_score}/5.0`}
                           size="small"
-                          sx={{ ml: 1 }}
+                          sx={{ 
+                            ml: 1,
+                            backgroundColor: documentResults.quality_score >= 4 ? '#3FB950' : documentResults.quality_score >= 3 ? '#76B900' : '#D29922',
+                            color: '#000000',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                          }}
                         />
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        <strong>Routing Decision:</strong> 
+                      <Typography 
+                        variant="body2"
+                        sx={{
+                          color: '#8B949E',
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        <strong style={{ color: '#E6EDF3' }}>Routing Decision:</strong>{' '}
                         <Chip 
-                          label={documentResults.routing_decision} 
-                          color={documentResults.routing_decision === 'auto_approve' ? 'success' : documentResults.routing_decision === 'flag_review' ? 'warning' : 'error'}
+                          label={documentResults.routing_decision}
                           size="small"
-                          sx={{ ml: 1 }}
+                          sx={{ 
+                            ml: 1,
+                            backgroundColor: documentResults.routing_decision === 'auto_approve' ? '#3FB950' : documentResults.routing_decision === 'flag_review' ? '#76B900' : '#F85149',
+                            color: '#000000',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                          }}
                         />
                       </Typography>
                     </Grid>
@@ -1406,8 +1900,16 @@ const DocumentExtraction: React.FC = () => {
                             <Grid container spacing={2}>
                               {Object.entries(combinedInfo).map(([key, value]) => (
                                 <Grid item xs={12} sm={6} key={key}>
-                                  <Typography variant="body2">
-                                    <strong>{key.replace(/_/g, ' ').toUpperCase()}:</strong> {String(value)}
+                                  <Typography 
+                                    variant="body2"
+                                    sx={{
+                                      fontSize: '0.875rem',
+                                    }}
+                                  >
+                                    <strong style={{ color: '#E6EDF3' }}>
+                                      {key.replace(/_/g, ' ').toUpperCase()}:
+                                    </strong>{' '}
+                                    <span style={{ color: '#8B949E' }}>{String(value)}</span>
                                   </Typography>
                                 </Grid>
                               ))}
