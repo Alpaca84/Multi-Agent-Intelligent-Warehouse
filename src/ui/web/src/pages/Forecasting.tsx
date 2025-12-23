@@ -1181,11 +1181,13 @@ const ForecastingPage: React.FC = () => {
               <Box sx={{ 
                 maxHeight: 300, 
                 overflow: 'auto', 
-                backgroundColor: '#f5f5f5', 
+                backgroundColor: 'background.default', 
                 p: 2, 
                 borderRadius: 1,
                 fontFamily: 'monospace',
-                fontSize: '0.875rem'
+                fontSize: '0.875rem',
+                border: '1px solid',
+                borderColor: 'divider'
               }}>
                 {(trainingStatus as any).logs.map((log: any, index: number) => (
                   <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
@@ -1333,10 +1335,12 @@ const ForecastingPage: React.FC = () => {
               <Box sx={{ 
                 maxHeight: 200, 
                 overflow: 'auto', 
-                backgroundColor: '#f5f5f5', 
+                backgroundColor: 'background.default', 
                 p: 2, 
                 borderRadius: 1,
                 fontFamily: 'monospace',
+                border: '1px solid',
+                borderColor: 'divider',
                 fontSize: '0.875rem'
               }}>
                 {(trainingStatus as any).logs.slice(-10).map((log: any, index: number) => (
