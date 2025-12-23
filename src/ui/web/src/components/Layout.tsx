@@ -210,7 +210,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               letterSpacing: '0.01em',
             }}
           >
-            Warehouse Operational Assistant
+                    Multi-Agent-Intelligent-Warehouse (MAIW)
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Typography 
