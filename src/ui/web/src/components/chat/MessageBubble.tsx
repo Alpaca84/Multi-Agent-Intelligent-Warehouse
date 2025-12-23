@@ -65,6 +65,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onQuickReply,
 }) => {
   const [expanded, setExpanded] = React.useState(false);
+  const [imageError, setImageError] = React.useState(false);
 
   const getAgentIcon = (route?: string) => {
     switch (route) {
@@ -385,29 +386,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {/* Avatar */}
         {!isUser && (
           <Avatar
-            src="/assistant-avatar.png"
+            src={imageError ? undefined : "/assistant-avatar.png"}
             alt="Assistant Avatar"
             sx={{
               width: 32,
               height: 32,
               border: '2px solid',
               borderColor: 'primary.main',
+              backgroundColor: imageError ? getAgentColor(message.route) : 'transparent',
               '& .MuiAvatar-img': {
                 objectFit: 'cover',
               },
             }}
-            onError={(e) => {
+            onError={() => {
               // Fallback to emoji icon if image fails to load
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              const parent = target.parentElement;
-              if (parent) {
-                parent.textContent = getAgentIcon(message.route);
-                parent.style.backgroundColor = getAgentColor(message.route);
-              }
+              setImageError(true);
             }}
           >
-            {getAgentIcon(message.route)}
+            {imageError ? getAgentIcon(message.route) : null}
           </Avatar>
         )}
 
