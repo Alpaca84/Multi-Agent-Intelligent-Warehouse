@@ -189,8 +189,7 @@ export const nvidiaTheme = createTheme({
     '0 80px 240px rgba(0, 0, 0, 0.3), 0 80px 160px rgba(0, 0, 0, 0.4)',
     '0 84px 252px rgba(0, 0, 0, 0.3), 0 84px 168px rgba(0, 0, 0, 0.4)',
     '0 88px 264px rgba(0, 0, 0, 0.3), 0 88px 176px rgba(0, 0, 0, 0.4)',
-    '0 92px 276px rgba(0, 0, 0, 0.3), 0 92px 184px rgba(0, 0, 0, 0.4)',
-  ],
+  ] as any,
   components: {
     MuiCssBaseline: {
       styleOverrides: {
