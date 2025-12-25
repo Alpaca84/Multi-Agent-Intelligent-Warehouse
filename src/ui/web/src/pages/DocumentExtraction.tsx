@@ -95,6 +95,13 @@ interface DocumentResults {
   routing_decision: string;
   processing_stages: string[];
   is_mock_data?: boolean;  // Indicates if results are mock/default data
+  processing_summary?: {
+    extracted_fields?: Record<string, any>;
+    confidence_scores?: Record<string, number>;
+    total_processing_time?: number;
+    stages_completed?: string[];
+    is_mock_data?: boolean;
+  };
 }
 
 interface AnalyticsData {
@@ -429,15 +436,94 @@ const DocumentExtraction: React.FC = () => {
         console.warn('⚠️ Document results contain mock/default data. The document may not have been fully processed or the original file is no longer available.');
       }
       
+      // Extract quality_score and routing_decision properly
+      let qualityScore = 0;
+      if (response.quality_score) {
+        if (typeof response.quality_score === 'object') {
+          // Handle Pydantic model or plain object
+          qualityScore = (response.quality_score as any).overall_score || 
+                        (response.quality_score as any).quality_score || 
+                        (typeof (response.quality_score as any).overall_score === 'number' ? (response.quality_score as any).overall_score : 0);
+        } else if (typeof response.quality_score === 'number') {
+          qualityScore = response.quality_score;
+        }
+      }
+      
+      // Fallback: Try to extract from validation stage in extraction_results
+      if (qualityScore === 0 && response.extraction_results && Array.isArray(response.extraction_results)) {
+        const validationStage = response.extraction_results.find((r: any) => r.stage === 'validation');
+        if (validationStage && validationStage.processed_data) {
+          const processedData = validationStage.processed_data;
+          if (processedData.overall_score !== undefined) {
+            qualityScore = processedData.overall_score;
+          } else if (processedData.quality_score !== undefined) {
+            qualityScore = processedData.quality_score;
+          }
+        }
+      }
+      
+      let routingDecision = 'unknown';
+      if (response.routing_decision) {
+        if (typeof response.routing_decision === 'object') {
+          // Handle Pydantic model or plain object
+          const action = (response.routing_decision as any).routing_action;
+          if (action) {
+            routingDecision = typeof action === 'string' ? action : (action as any).value || String(action);
+          }
+        } else if (typeof response.routing_decision === 'string') {
+          routingDecision = response.routing_decision;
+        }
+      }
+      
+      // Fallback: Try to extract from routing stage in extraction_results
+      if (routingDecision === 'unknown' && response.extraction_results && Array.isArray(response.extraction_results)) {
+        const routingStage = response.extraction_results.find((r: any) => r.stage === 'routing');
+        if (routingStage) {
+          // Check processed_data first
+          if (routingStage.processed_data) {
+            const processedData = routingStage.processed_data;
+            if (processedData.routing_action) {
+              routingDecision = typeof processedData.routing_action === 'string' 
+                ? processedData.routing_action 
+                : String(processedData.routing_action);
+            }
+          }
+          // Also check raw_data
+          if (routingDecision === 'unknown' && routingStage.raw_data) {
+            const rawData = routingStage.raw_data;
+            if (rawData.routing_action) {
+              routingDecision = typeof rawData.routing_action === 'string' 
+                ? rawData.routing_action 
+                : String(rawData.routing_action);
+            }
+          }
+        }
+      }
+      
+      // Debug logging
+      if (routingDecision === 'unknown') {
+        console.log('Routing Decision Debug:', {
+          response_routing_decision: response.routing_decision,
+          extraction_results: response.extraction_results?.map((r: any) => ({ stage: r.stage, has_processed_data: !!r.processed_data })),
+        });
+      }
+      
       // Transform the API response to match frontend expectations
       const transformedResults: DocumentResults = {
         document_id: response.document_id,
         extracted_data: {},
         confidence_scores: {},
-        quality_score: response.quality_score?.overall_score || response.processing_summary?.quality_score || 0,
-        routing_decision: response.routing_decision?.routing_action || 'unknown',
+        quality_score: qualityScore || response.processing_summary?.quality_score || 0,
+        routing_decision: routingDecision || 'unknown',
         processing_stages: response.extraction_results?.map((result: any) => result.stage) || [],
         is_mock_data: isMockData,  // Track if this is mock data
+        processing_summary: response.processing_summary || {
+          extracted_fields: response.extracted_fields,
+          confidence_scores: response.confidence_scores,
+          total_processing_time: response.processing_summary?.total_processing_time,
+          stages_completed: response.extraction_results?.map((result: any) => result.stage) || [],
+          is_mock_data: isMockData,
+        },
       };
       
       // Update document with actual quality score and processing time from API
@@ -454,47 +540,98 @@ const DocumentExtraction: React.FC = () => {
         )
       );
       
-      // Flatten extraction results into extracted_data and collect models
-      const allModels: string[] = [];
-      if (response.extraction_results && Array.isArray(response.extraction_results)) {
-        response.extraction_results.forEach((result: any) => {
-          // Collect model information
-          if (result.model_used) {
-            allModels.push(result.model_used);
-          }
-          
-          if (result.processed_data) {
-            // For LLM processing stage, extract structured_data
-            if (result.stage === 'llm_processing' && result.processed_data.structured_data) {
-              const structuredData = result.processed_data.structured_data;
-              // Extract fields from structured_data
-              if (structuredData.extracted_fields) {
-                Object.assign(transformedResults.extracted_data, structuredData.extracted_fields);
-              }
-              // Also store the full structured_data for reference
-              transformedResults.extracted_data.structured_data = structuredData;
-            } else {
-              // For other stages (OCR, etc.), merge processed_data directly
-              Object.assign(transformedResults.extracted_data, result.processed_data);
+      // Use extracted_fields from backend if available (new format from Phase 1)
+      // Check both response.extracted_fields and response.processing_summary.extracted_fields
+      const extractedFields = response.extracted_fields || response.processing_summary?.extracted_fields;
+      const confidenceScores = response.confidence_scores || response.processing_summary?.confidence_scores;
+      
+      // Debug: Log what we received from backend
+      console.log('🔍 Backend Response Debug:', {
+        has_extracted_fields: !!extractedFields,
+        extracted_fields_keys: extractedFields ? Object.keys(extractedFields) : [],
+        extracted_fields_sample: extractedFields ? {
+          invoice_number: extractedFields.invoice_number,
+          order_number: extractedFields.order_number,
+          invoice_date: extractedFields.invoice_date,
+        } : null,
+        has_processing_summary: !!response.processing_summary,
+        processing_summary_extracted_fields: response.processing_summary?.extracted_fields,
+        has_confidence_scores: !!confidenceScores,
+      });
+      
+      if (extractedFields && typeof extractedFields === 'object' && Object.keys(extractedFields).length > 0) {
+        // Backend already extracted and flattened the fields
+        // Handle both flat values and nested {value: "...", confidence: 0.8} structures
+        Object.entries(extractedFields).forEach(([key, value]) => {
+          if (value && typeof value === 'object' && !Array.isArray(value) && 'value' in value) {
+            // Nested structure: extract the value
+            transformedResults.extracted_data[key] = (value as any).value;
+            if ((value as any).confidence !== undefined) {
+              transformedResults.confidence_scores[key] = (value as any).confidence;
             }
-            
-            // Map confidence scores to individual fields
-            if (result.confidence_score !== undefined) {
-              // For each field in processed_data, assign the same confidence score
-              Object.keys(result.processed_data).forEach(fieldKey => {
-                transformedResults.confidence_scores[fieldKey] = result.confidence_score;
-              });
-            }
+          } else {
+            // Flat value
+            transformedResults.extracted_data[key] = value;
           }
         });
-        
-        // Store all models used in processing_metadata
-        if (allModels.length > 0) {
-          transformedResults.extracted_data.processing_metadata = {
-            ...transformedResults.extracted_data.processing_metadata,
-            models_used: allModels.join(', '),
-            model_count: allModels.length,
-          };
+        // Use confidence_scores from backend if available
+        if (confidenceScores && typeof confidenceScores === 'object') {
+          Object.assign(transformedResults.confidence_scores, confidenceScores);
+        }
+      } else {
+        // Fallback: Flatten extraction results into extracted_data and collect models
+        const allModels: string[] = [];
+        if (response.extraction_results && Array.isArray(response.extraction_results)) {
+          response.extraction_results.forEach((result: any) => {
+            // Collect model information
+            if (result.model_used) {
+              allModels.push(result.model_used);
+            }
+            
+            if (result.processed_data) {
+              // For LLM processing stage, extract structured_data
+              if (result.stage === 'llm_processing' && result.processed_data.structured_data) {
+                const structuredData = result.processed_data.structured_data;
+                // Extract fields from structured_data - handle nested value structure
+                if (structuredData.extracted_fields) {
+                  Object.entries(structuredData.extracted_fields).forEach(([key, value]: [string, any]) => {
+                    if (value && typeof value === 'object' && 'value' in value) {
+                      transformedResults.extracted_data[key] = value.value;
+                      if (value.confidence !== undefined) {
+                        transformedResults.confidence_scores[key] = value.confidence;
+                      }
+                    } else {
+                      transformedResults.extracted_data[key] = value;
+                    }
+                  });
+                }
+                // Also store the full structured_data for reference
+                transformedResults.extracted_data.structured_data = structuredData;
+              } else {
+                // For other stages (OCR, etc.), merge processed_data directly
+                Object.assign(transformedResults.extracted_data, result.processed_data);
+              }
+              
+              // Map confidence scores to individual fields
+              if (result.confidence_score !== undefined) {
+                // For each field in processed_data, assign the same confidence score
+                Object.keys(result.processed_data).forEach(fieldKey => {
+                  if (!transformedResults.confidence_scores[fieldKey]) {
+                    transformedResults.confidence_scores[fieldKey] = result.confidence_score;
+                  }
+                });
+              }
+            }
+          });
+          
+          // Store all models used in processing_metadata
+          if (allModels.length > 0) {
+            transformedResults.extracted_data.processing_metadata = {
+              ...transformedResults.extracted_data.processing_metadata,
+              models_used: allModels.join(', '),
+              model_count: allModels.length,
+            };
+          }
         }
       }
       
@@ -1609,165 +1746,8 @@ const DocumentExtraction: React.FC = () => {
                 </Box>
               ) : documentResults && documentResults.extracted_data && Object.keys(documentResults.extracted_data).length > 0 ? (
                 <>
-                  {/* Invoice Details */}
-                  {documentResults.extracted_data.document_type === 'invoice' && (() => {
-                    // Extract invoice fields from structured_data or directly from extracted_data
-                    const structuredData = documentResults.extracted_data.structured_data;
-                    let extractedFields = structuredData?.extracted_fields || documentResults.extracted_data.extracted_fields || {};
-                    
-                    // Fallback: If extracted_fields is empty, try to parse from extracted_text
-                    const extractedText = documentResults.extracted_data.extracted_text || '';
-                    if (Object.keys(extractedFields).length === 0 && extractedText) {
-                      // Parse invoice fields from text using regex patterns
-                      const parsedFields: Record<string, any> = {};
-                      
-                      // Invoice Number patterns
-                      const invoiceNumMatch = extractedText.match(/Invoice Number:\s*([A-Z0-9-]+)/i) || 
-                                            extractedText.match(/Invoice #:\s*([A-Z0-9-]+)/i) ||
-                                            extractedText.match(/INV[-\s]*([A-Z0-9-]+)/i);
-                      if (invoiceNumMatch) parsedFields.invoice_number = { value: invoiceNumMatch[1] };
-                      
-                      // Order Number patterns
-                      const orderNumMatch = extractedText.match(/Order Number:\s*(\d+)/i) ||
-                                          extractedText.match(/Order #:\s*(\d+)/i) ||
-                                          extractedText.match(/PO[-\s]*(\d+)/i);
-                      if (orderNumMatch) parsedFields.order_number = { value: orderNumMatch[1] };
-                      
-                      // Invoice Date patterns
-                      // Use bounded quantifier {1,200} instead of + to prevent ReDoS
-                      // Bounded quantifier limits maximum match length, preventing quadratic runtime
-                      // Date fields are unlikely to exceed 200 characters
-                      const invoiceDateMatch = extractedText.match(/Invoice Date:\s*([^+\n]{1,200})(?=\n|$)/i) ||
-                                             extractedText.match(/Date:\s*([^+\n]{1,200})(?=\n|$)/i);
-                      if (invoiceDateMatch) parsedFields.invoice_date = { value: invoiceDateMatch[1].trim() };
-                      
-                      // Due Date patterns
-                      // Use bounded quantifier {1,200} instead of + to prevent ReDoS
-                      const dueDateMatch = extractedText.match(/Due Date:\s*([^+\n]{1,200})(?=\n|$)/i) ||
-                                         extractedText.match(/Payment Due:\s*([^+\n]{1,200})(?=\n|$)/i);
-                      if (dueDateMatch) parsedFields.due_date = { value: dueDateMatch[1].trim() };
-                      
-                      // Service patterns
-                      // Use bounded quantifier {1,500} instead of + to prevent ReDoS
-                      // Service descriptions may be longer, so allow up to 500 characters
-                      const serviceMatch = extractedText.match(/Service:\s*([^+\n]{1,500})(?=\n|$)/i) ||
-                                         extractedText.match(/Description:\s*([^+\n]{1,500})(?=\n|$)/i);
-                      if (serviceMatch) parsedFields.service = { value: serviceMatch[1].trim() };
-                      
-                      // Rate/Price patterns
-                      const rateMatch = extractedText.match(/Rate\/Price:\s*\$?([0-9,]+\.?\d*)/i) ||
-                                      extractedText.match(/Price:\s*\$?([0-9,]+\.?\d*)/i) ||
-                                      extractedText.match(/Rate:\s*\$?([0-9,]+\.?\d*)/i);
-                      if (rateMatch) parsedFields.rate = { value: `$${rateMatch[1]}` };
-                      
-                      // Sub Total patterns
-                      const subtotalMatch = extractedText.match(/Sub Total:\s*\$?([0-9,]+\.?\d*)/i) ||
-                                          extractedText.match(/Subtotal:\s*\$?([0-9,]+\.?\d*)/i);
-                      if (subtotalMatch) parsedFields.subtotal = { value: `$${subtotalMatch[1]}` };
-                      
-                      // Tax patterns
-                      const taxMatch = extractedText.match(/Tax:\s*\$?([0-9,]+\.?\d*)/i) ||
-                                     extractedText.match(/Tax Amount:\s*\$?([0-9,]+\.?\d*)/i);
-                      if (taxMatch) parsedFields.tax = { value: `$${taxMatch[1]}` };
-                      
-                      // Total patterns
-                      const totalMatch = extractedText.match(/Total:\s*\$?([0-9,]+\.?\d*)/i) ||
-                                       extractedText.match(/Total Due:\s*\$?([0-9,]+\.?\d*)/i) ||
-                                       extractedText.match(/Amount Due:\s*\$?([0-9,]+\.?\d*)/i);
-                      if (totalMatch) parsedFields.total = { value: `$${totalMatch[1]}` };
-                      
-                      // Use parsed fields if we found any
-                      if (Object.keys(parsedFields).length > 0) {
-                        extractedFields = parsedFields;
-                      }
-                    }
-                    
-                    // Helper function to get field value with fallback
-                    // Handles both nested structure {field: {value: "...", confidence: 0.9}} and flat structure {field: "..."}
-                    const getField = (fieldName: string, altNames: string[] = []) => {
-                      const names = [fieldName, ...altNames];
-                      for (const name of names) {
-                        // Try exact match first
-                        let fieldData = extractedFields[name] || 
-                                      extractedFields[name.toLowerCase()] || 
-                                      extractedFields[name.replace(/_/g, ' ')] ||
-                                      extractedFields[name.replace(/\s+/g, '_')];
-                        
-                        if (fieldData) {
-                          // If it's a nested object with 'value' key, extract the value
-                          if (typeof fieldData === 'object' && fieldData !== null && 'value' in fieldData) {
-                            const value = fieldData.value;
-                            if (value && value !== 'N/A' && value !== '') {
-                              return value;
-                            }
-                          }
-                          // If it's a string or number directly
-                          else if (typeof fieldData === 'string' || typeof fieldData === 'number') {
-                            if (fieldData !== 'N/A' && fieldData !== '') {
-                              return String(fieldData);
-                            }
-                          }
-                        }
-                      }
-                      return 'N/A';
-                    };
-                    
-                    return (
-                      <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                          <Typography variant="h6" gutterBottom>
-                            💰 Invoice Details
-                          </Typography>
-                          <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6}>
-                              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                                <Typography variant="subtitle2" color="text.secondary">
-                                  Invoice Information
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Invoice Number:</strong> {getField('invoice_number', ['invoiceNumber', 'invoice_no', 'invoice_id'])}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Order Number:</strong> {getField('order_number', ['orderNumber', 'order_no', 'po_number', 'purchase_order'])}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Invoice Date:</strong> {getField('invoice_date', ['date', 'invoiceDate', 'issue_date'])}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Due Date:</strong> {getField('due_date', ['dueDate', 'payment_due_date', 'payment_date'])}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                                <Typography variant="subtitle2" color="text.secondary">
-                                  Financial Information
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Service:</strong> {getField('service', ['service_description', 'description', 'item_description'])}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Rate/Price:</strong> {getField('rate', ['price', 'unit_price', 'rate_per_unit'])}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Sub Total:</strong> {getField('subtotal', ['sub_total', 'subtotal_amount', 'amount_before_tax'])}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Tax:</strong> {getField('tax', ['tax_amount', 'tax_total', 'vat', 'gst'])}
-                                </Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                                  <strong>Total:</strong> {getField('total', ['total_amount', 'grand_total', 'amount_due', 'total_due'])}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                          </Grid>
-                        </CardContent>
-                      </Card>
-                    );
-                  })()}
-
                   {/* Extracted Text */}
-                  {documentResults.extracted_data.extracted_text && (
+                  {(documentResults.extracted_data.extracted_text || documentResults.extracted_data.text) && (
                     <Card sx={{ mb: 3 }}>
                       <CardContent>
                         <Typography variant="h6" gutterBottom>
@@ -1783,7 +1763,7 @@ const DocumentExtraction: React.FC = () => {
                           borderColor: 'grey.300'
                         }}>
                           <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                            {documentResults.extracted_data.extracted_text}
+                            {documentResults.extracted_data.extracted_text || documentResults.extracted_data.text}
                           </Typography>
                         </Box>
                         <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
@@ -1791,8 +1771,8 @@ const DocumentExtraction: React.FC = () => {
                             Confidence: 
                           </Typography>
                           <Chip 
-                            label={`${Math.round((documentResults.confidence_scores?.extracted_text || 0) * 100)}%`}
-                            color={documentResults.confidence_scores?.extracted_text >= 0.8 ? 'success' : documentResults.confidence_scores?.extracted_text >= 0.6 ? 'warning' : 'error'}
+                            label={`${Math.round((documentResults.confidence_scores?.extracted_text || documentResults.confidence_scores?.text || 0) * 100)}%`}
+                            color={(documentResults.confidence_scores?.extracted_text || documentResults.confidence_scores?.text || 0) >= 0.8 ? 'success' : (documentResults.confidence_scores?.extracted_text || documentResults.confidence_scores?.text || 0) >= 0.6 ? 'warning' : 'error'}
                             size="small"
                             sx={{ ml: 1 }}
                           />
@@ -1921,7 +1901,7 @@ const DocumentExtraction: React.FC = () => {
                     return null;
                   })()}
 
-                  {/* Raw Data Table */}
+                  {/* Raw Data Table - Filtered to show only relevant extracted fields */}
                   <Card sx={{ mb: 3 }}>
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
@@ -1937,28 +1917,158 @@ const DocumentExtraction: React.FC = () => {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {Object.entries(documentResults.extracted_data).map(([key, value]) => (
-                              <TableRow key={key}>
-                                <TableCell>{key.replace(/_/g, ' ').toUpperCase()}</TableCell>
-                                <TableCell>
-                                  <Typography variant="body2" sx={{ 
-                                    maxWidth: 300, 
-                                    overflow: 'hidden', 
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }}>
-                                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                                  </Typography>
-                                </TableCell>
-                                <TableCell>
-                                  <Chip 
-                                    label={`${Math.round((documentResults.confidence_scores?.[key] || 0) * 100)}%`}
-                                    color={documentResults.confidence_scores?.[key] >= 0.8 ? 'success' : documentResults.confidence_scores?.[key] >= 0.6 ? 'warning' : 'error'}
-                                    size="small"
-                                  />
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                            {(() => {
+                              // Filter out internal processing fields
+                              const internalFields = [
+                                'extraction_results',
+                                'processing_metadata',
+                                'quality_assessment',
+                                'quality_score',
+                                'routing_decision',
+                                'images',
+                                'processed_pages',
+                                'page_results',
+                                'words',
+                                'elements',
+                                'layout_enhanced',
+                                'processing_timestamp',
+                                'ocr_text',
+                                'multimodal_processed',
+                                'raw_entities',
+                                'raw_response',
+                                'judge_evaluation',
+                                'metadata',
+                              ];
+                              
+                              // Get structured fields from llm_processing if available
+                              const structuredData = documentResults.extracted_data.structured_data;
+                              const extractedFields = structuredData?.extracted_fields || documentResults.extracted_data.extracted_fields || {};
+                              
+                              // Combine all relevant fields
+                              const relevantFields: Record<string, any> = {};
+                              
+                              // Add extracted fields from structured_data - these are the most important
+                              Object.entries(extractedFields).forEach(([key, value]) => {
+                                if (value && typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                                  // Handle nested structure: {value: "...", confidence: 0.8, source: "ocr"}
+                                  if ('value' in value) {
+                                    const valueObj = value as { value: any; confidence?: number };
+                                    relevantFields[key] = valueObj.value;
+                                    // Store confidence if available
+                                    if (valueObj.confidence !== undefined && !documentResults.confidence_scores[key]) {
+                                      documentResults.confidence_scores[key] = valueObj.confidence;
+                                    }
+                                  } else {
+                                    // If it's an object but no 'value' key, use the whole object
+                                    relevantFields[key] = value;
+                                  }
+                                } else if (value !== null && value !== undefined && value !== '') {
+                                  relevantFields[key] = value;
+                                }
+                              });
+                              
+                              // Add other relevant fields (excluding internal ones) - but prioritize extracted_fields
+                              Object.entries(documentResults.extracted_data).forEach(([key, value]) => {
+                                // Skip if already in relevantFields (from extracted_fields)
+                                if (relevantFields[key] !== undefined) {
+                                  return;
+                                }
+                                
+                                if (!internalFields.includes(key) && 
+                                    key !== 'structured_data' && 
+                                    key !== 'extracted_fields' &&
+                                    value !== null && 
+                                    value !== undefined &&
+                                    value !== '') {
+                                  // Skip if it's a complex object that's already handled
+                                  if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 10) {
+                                    return; // Skip large nested objects
+                                  }
+                                  // Only add simple fields or arrays
+                                  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || Array.isArray(value)) {
+                                    relevantFields[key] = value;
+                                  }
+                                }
+                              });
+                              
+                              // Sort fields for better display
+                              const sortedFields = Object.entries(relevantFields).sort(([a], [b]) => {
+                                // Put invoice-related fields first
+                                const invoiceFields = ['invoice_number', 'order_number', 'invoice_date', 'due_date', 'total', 'subtotal', 'tax', 'service', 'rate'];
+                                const aIndex = invoiceFields.indexOf(a);
+                                const bIndex = invoiceFields.indexOf(b);
+                                if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                                if (aIndex !== -1) return -1;
+                                if (bIndex !== -1) return 1;
+                                return a.localeCompare(b);
+                              });
+                              
+                              if (sortedFields.length === 0) {
+                                return (
+                                  <TableRow>
+                                    <TableCell colSpan={3} align="center">
+                                      <Typography variant="body2" color="text.secondary">
+                                        No extracted fields available. The document may still be processing.
+                                      </Typography>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              }
+                              
+                              return sortedFields.map(([key, value]) => {
+                                // Format value for display
+                                let displayValue: string;
+                                if (typeof value === 'object' && value !== null) {
+                                  if (Array.isArray(value)) {
+                                    displayValue = value.length > 0 ? `[${value.length} items]` : '[]';
+                                  } else if ('value' in value && typeof value.value !== 'object') {
+                                    displayValue = String(value.value);
+                                  } else {
+                                    displayValue = JSON.stringify(value).substring(0, 200);
+                                    if (JSON.stringify(value).length > 200) displayValue += '...';
+                                  }
+                                } else {
+                                  displayValue = String(value);
+                                }
+                                
+                                // Get confidence score
+                                const confidence = documentResults.confidence_scores?.[key] || 
+                                                 (typeof value === 'object' && value !== null && 'confidence' in value ? value.confidence : 0);
+                                
+                                return (
+                                  <TableRow key={key}>
+                                    <TableCell>
+                                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {key.replace(/_/g, ' ').toUpperCase()}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Typography 
+                                        variant="body2" 
+                                        sx={{ 
+                                          maxWidth: 400, 
+                                          overflow: 'hidden', 
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          fontFamily: displayValue.length > 50 ? 'monospace' : 'inherit',
+                                          fontSize: displayValue.length > 50 ? '0.75rem' : '0.875rem',
+                                        }}
+                                        title={displayValue}
+                                      >
+                                        {displayValue}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Chip 
+                                        label={`${Math.round(confidence * 100)}%`}
+                                        color={confidence >= 0.8 ? 'success' : confidence >= 0.6 ? 'warning' : 'error'}
+                                        size="small"
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              });
+                            })()}
                           </TableBody>
                         </Table>
                       </TableContainer>

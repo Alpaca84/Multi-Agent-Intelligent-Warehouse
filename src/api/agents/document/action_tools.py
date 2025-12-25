@@ -53,8 +53,10 @@ class DocumentActionTools:
         self.nim_client = None
         self.supported_file_types = ["pdf", "png", "jpg", "jpeg", "tiff", "bmp"]
         self.max_file_size = 50 * 1024 * 1024  # 50MB
-        self.document_statuses = {}  # Track document processing status
-        self.status_file = Path("document_statuses.json")  # Persistent storage
+        self.document_statuses = {}  # Track document processing status (fallback)
+        self.status_file = Path("document_statuses.json")  # Persistent storage (fallback)
+        self.db_service = None  # Database service for persistence
+        self.use_database = True  # Flag to enable/disable database usage
 
     def _get_value(self, obj, key: str, default=None):
         """Get value from object (dict or object with attributes)."""
@@ -312,7 +314,18 @@ class DocumentActionTools:
         """Initialize document processing tools."""
         try:
             self.nim_client = await get_nim_client()
-            self._load_status_data()  # Load persistent status data (not async)
+            self._load_status_data()  # Load persistent status data (not async) - fallback
+            
+            # Initialize database service
+            try:
+                from src.api.services.document import get_document_db_service
+                self.db_service = await get_document_db_service()
+                logger.info("Document Action Tools initialized with database persistence")
+            except Exception as db_error:
+                logger.warning(f"Database service not available, using file-based fallback: {db_error}")
+                self.use_database = False
+                self.db_service = None
+            
             logger.info("Document Action Tools initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Document Action Tools: {_sanitize_log_data(str(e))}")
@@ -467,12 +480,52 @@ class DocumentActionTools:
 
             # Initialize document status tracking
             logger.info(f"Initializing document status for {_sanitize_log_data(document_id)}")
+            
+            filename = os.path.basename(file_path)
+            file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+            file_type = os.path.splitext(filename)[1].lower().lstrip('.')
+            
+            # Create document in database if available
+            if self.use_database and self.db_service:
+                try:
+                    await self.db_service.create_document(
+                        document_id=document_id,
+                        filename=filename,
+                        file_path=file_path,
+                        file_type=file_type,
+                        file_size=file_size,
+                        user_id="anonymous",  # Will be updated from actual user_id if available
+                        document_type=document_type,
+                        metadata={},
+                    )
+                    
+                    # Create processing stages in database
+                    stages = [
+                        "preprocessing",
+                        "ocr_extraction",
+                        "llm_processing",
+                        "validation",
+                        "routing",
+                    ]
+                    for stage_name in stages:
+                        await self.db_service.create_processing_stage(
+                            document_id=document_id,
+                            stage_name=stage_name,
+                            status="pending" if stage_name != "preprocessing" else "processing",
+                        )
+                    
+                    logger.info(f"Created document record in database: {document_id}")
+                except Exception as db_error:
+                    logger.warning(f"Failed to create document in database, using fallback: {db_error}")
+                    self.use_database = False
+            
+            # Fallback: in-memory status tracking
             self.document_statuses[document_id] = {
                 "status": ProcessingStage.UPLOADED,
                 "current_stage": "Preprocessing",
                 "progress": 0,
                 "file_path": file_path,  # Store the file path for local processing
-                "filename": os.path.basename(file_path),
+                "filename": filename,
                 "document_type": document_type,
                 "stages": [
                     {
@@ -489,7 +542,7 @@ class DocumentActionTools:
                 "estimated_completion": datetime.now().timestamp() + 60,
             }
 
-            # Save status data to persistent storage
+            # Save status data to persistent storage (fallback)
             self._save_status_data()
 
             # Start document processing pipeline
@@ -519,20 +572,94 @@ class DocumentActionTools:
         try:
             logger.info(f"Getting status for document: {_sanitize_log_data(document_id)}")
 
-            # In real implementation, this would query the database
-            # For now, return mock status
-            status = await self._get_processing_status(document_id)
+            # Try database first
+            if self.use_database and self.db_service:
+                try:
+                    db_status = await self.db_service.get_document_status(document_id)
+                    if db_status:
+                        logger.debug(f"Retrieved status from database for {document_id}")
+                        # Convert upload_timestamp to timestamp if it's a datetime
+                        est_completion = db_status.get("upload_timestamp")
+                        if est_completion:
+                            if isinstance(est_completion, datetime):
+                                est_completion = est_completion.timestamp()
+                            elif isinstance(est_completion, str):
+                                try:
+                                    dt = datetime.fromisoformat(est_completion.replace('Z', '+00:00'))
+                                    est_completion = dt.timestamp()
+                                except ValueError:
+                                    est_completion = None
+                        
+                        return {
+                            "success": True,
+                            "document_id": db_status["document_id"],
+                            "status": db_status["status"],
+                            "current_stage": db_status["current_stage"],
+                            "progress": db_status["progress"],
+                            "stages": db_status["stages"],
+                            "estimated_completion": est_completion,
+                            "error_message": None,
+                        }
+                except Exception as db_error:
+                    logger.warning(f"Failed to get status from database, using fallback: {db_error}", exc_info=True)
 
-            return {
-                "success": True,
-                "document_id": document_id,
-                "status": status["status"],
-                "current_stage": status["current_stage"],
-                "progress": status["progress"],
-                "stages": status["stages"],
-                "estimated_completion": status.get("estimated_completion"),
-                "error_message": status.get("error_message"),
-            }
+            # Fallback to in-memory status
+            try:
+                status = await self._get_processing_status(document_id)
+                
+                # If we have in-memory status but database is available, try to sync it
+                if self.use_database and self.db_service and status:
+                    try:
+                        # Check if document exists in database
+                        db_status = await self.db_service.get_document_status(document_id)
+                        if not db_status and document_id in self.document_statuses:
+                            # Document exists in memory but not in DB - create it
+                            doc_status = self.document_statuses[document_id]
+                            file_path = doc_status.get("file_path", "")
+                            if file_path and os.path.exists(file_path):
+                                await self.db_service.create_document(
+                                    document_id=document_id,
+                                    filename=doc_status.get("filename", ""),
+                                    file_path=file_path,
+                                    file_type=os.path.splitext(file_path)[1].lower().lstrip('.'),
+                                    file_size=os.path.getsize(file_path),
+                                    user_id="anonymous",
+                                    document_type=doc_status.get("document_type", "invoice"),
+                                )
+                                # Create stages
+                                for stage_info in doc_status.get("stages", []):
+                                    await self.db_service.create_processing_stage(
+                                        document_id=document_id,
+                                        stage_name=stage_info.get("name", ""),
+                                        status=stage_info.get("status", "pending"),
+                                    )
+                                logger.info(f"Synced document {document_id} from memory to database")
+                    except Exception as sync_error:
+                        logger.warning(f"Failed to sync document to database: {sync_error}")
+                
+                return {
+                    "success": True,
+                    "document_id": document_id,
+                    "status": status.get("status", "unknown"),
+                    "current_stage": status.get("current_stage", "Unknown"),
+                    "progress": status.get("progress", 0),
+                    "stages": status.get("stages", []),
+                    "estimated_completion": status.get("estimated_completion"),
+                    "error_message": status.get("error_message"),
+                }
+            except Exception as status_error:
+                logger.error(f"Failed to get processing status: {status_error}", exc_info=True)
+                # Return minimal status to prevent 500 error
+                return {
+                    "success": True,
+                    "document_id": document_id,
+                    "status": "unknown",
+                    "current_stage": "Unknown",
+                    "progress": 0,
+                    "stages": [],
+                    "estimated_completion": None,
+                    "error_message": None,
+                }
 
         except Exception as e:
             return self._create_error_response("get document status", e)
@@ -542,7 +669,195 @@ class DocumentActionTools:
         try:
             logger.info(f"Extracting data from document: {_sanitize_log_data(document_id)}")
             
-            # Verify document exists in status tracking
+            # Try database first
+            if self.use_database and self.db_service:
+                try:
+                    db_results = await self.db_service.get_extraction_results(document_id)
+                    if db_results and db_results.get("extraction_results"):
+                        logger.debug(f"Retrieved extraction results from database for {document_id}")
+                        
+                        # Convert dictionary format to list of ExtractionResult objects
+                        from .models.document_models import ExtractionResult, QualityScore, RoutingDecision, QualityDecision, RoutingAction
+                        
+                        extraction_results_list = []
+                        extraction_dict = db_results["extraction_results"]
+                        
+                        # Convert each stage result to ExtractionResult
+                        for stage_name, stage_data in extraction_dict.items():
+                            if isinstance(stage_data, dict):
+                                extraction_results_list.append(
+                                    ExtractionResult(
+                                        stage=stage_name,
+                                        raw_data=stage_data.get("raw_data", {}),
+                                        processed_data=stage_data.get("processed_data", {}),
+                                        confidence_score=stage_data.get("confidence_score", 0.0),
+                                        processing_time_ms=stage_data.get("processing_time_ms", 0),
+                                        model_used=stage_data.get("model_used", ""),
+                                        metadata=stage_data.get("metadata", {}),
+                                    )
+                                )
+                        
+                        # Convert quality_score if available
+                        quality_score_obj = None
+                        if db_results.get("quality_score"):
+                            qs = db_results["quality_score"]
+                            try:
+                                quality_score_obj = QualityScore(
+                                    overall_score=qs.get("overall_score", 0.0),
+                                    completeness_score=qs.get("completeness_score", 0.0),
+                                    accuracy_score=qs.get("accuracy_score", 0.0),
+                                    compliance_score=qs.get("compliance_score", 0.0),
+                                    quality_score=qs.get("quality_score", 0.0),
+                                    decision=QualityDecision(qs.get("decision", "REVIEW_REQUIRED")),
+                                    reasoning=qs.get("reasoning", {}),
+                                    issues_found=qs.get("issues_found", []),
+                                    confidence=qs.get("confidence", 0.0),
+                                    judge_model=qs.get("judge_model", ""),
+                                )
+                                logger.debug(f"Created QualityScore object with overall_score: {quality_score_obj.overall_score}")
+                            except Exception as qs_error:
+                                logger.warning(f"Failed to create QualityScore object: {qs_error}", exc_info=True)
+                        
+                        # Also try to extract from validation stage if quality_score not in DB
+                        if not quality_score_obj:
+                            for ext_result in extraction_results_list:
+                                if ext_result.stage == "validation" and ext_result.processed_data:
+                                    try:
+                                        processed_data = ext_result.processed_data
+                                        if isinstance(processed_data, dict) and ("overall_score" in processed_data or "decision" in processed_data):
+                                            quality_score_obj = QualityScore(
+                                                overall_score=processed_data.get("overall_score", 0.0),
+                                                completeness_score=processed_data.get("completeness_score", 0.0),
+                                                accuracy_score=processed_data.get("accuracy_score", 0.0),
+                                                compliance_score=processed_data.get("compliance_score", 0.0),
+                                                quality_score=processed_data.get("quality_score", processed_data.get("overall_score", 0.0)),
+                                                decision=QualityDecision(processed_data.get("decision", "REVIEW_REQUIRED")),
+                                                reasoning=processed_data.get("reasoning", {}),
+                                                issues_found=processed_data.get("issues_found", []),
+                                                confidence=processed_data.get("confidence", ext_result.confidence_score),
+                                                judge_model=ext_result.model_used or "",
+                                            )
+                                            logger.info(f"Extracted quality_score from validation stage: {quality_score_obj.overall_score}")
+                                            break
+                                    except Exception as qs_error:
+                                        logger.warning(f"Failed to extract QualityScore from validation stage: {qs_error}")
+                        
+                        # Convert routing_decision if available
+                        routing_decision_obj = None
+                        if db_results.get("routing_decision"):
+                            rd = db_results["routing_decision"]
+                            try:
+                                routing_decision_obj = RoutingDecision(
+                                    routing_action=RoutingAction(rd.get("routing_action", "flag_review")),
+                                    routing_reason=rd.get("routing_reason", ""),
+                                    wms_integration_status=rd.get("wms_integration_status", "pending"),
+                                    wms_integration_data=rd.get("wms_integration_data", {}),
+                                    human_review_required=rd.get("human_review_required", False),
+                                )
+                                logger.debug(f"Created RoutingDecision object with action: {routing_decision_obj.routing_action}")
+                            except Exception as rd_error:
+                                logger.warning(f"Failed to create RoutingDecision object: {rd_error}", exc_info=True)
+                        
+                        # Also try to extract from routing stage if routing_decision not in DB
+                        if not routing_decision_obj:
+                            for ext_result in extraction_results_list:
+                                if ext_result.stage == "routing" and ext_result.processed_data:
+                                    try:
+                                        processed_data = ext_result.processed_data
+                                        if isinstance(processed_data, dict) and "routing_action" in processed_data:
+                                            routing_decision_obj = RoutingDecision(
+                                                routing_action=RoutingAction(processed_data.get("routing_action", "flag_review")),
+                                                routing_reason=processed_data.get("routing_reason", ""),
+                                                wms_integration_status=processed_data.get("wms_integration_status", "pending"),
+                                                wms_integration_data=processed_data.get("wms_integration_data", {}),
+                                                human_review_required=processed_data.get("human_review_required", False),
+                                            )
+                                            logger.info(f"Extracted routing_decision from routing stage: {routing_decision_obj.routing_action}")
+                                            break
+                                    except Exception as rd_error:
+                                        logger.warning(f"Failed to extract RoutingDecision from routing stage: {rd_error}")
+                        
+                        # Extract structured fields from llm_processing stage for frontend
+                        extracted_fields_dict = {}
+                        confidence_scores_dict = {}
+                        
+                        for ext_result in extraction_results_list:
+                            if ext_result.stage == "llm_processing" and ext_result.processed_data:
+                                processed_data = ext_result.processed_data
+                                if isinstance(processed_data, dict):
+                                    # Extract structured_data.extracted_fields
+                                    structured_data = processed_data.get("structured_data", {})
+                                    if isinstance(structured_data, dict):
+                                        extracted_fields = structured_data.get("extracted_fields", {})
+                                        if isinstance(extracted_fields, dict):
+                                            for field_name, field_value in extracted_fields.items():
+                                                if isinstance(field_value, dict) and "value" in field_value:
+                                                    extracted_fields_dict[field_name] = field_value["value"]
+                                                    if "confidence" in field_value:
+                                                        confidence_scores_dict[field_name] = field_value["confidence"]
+                                                elif field_value:
+                                                    extracted_fields_dict[field_name] = field_value
+                                    
+                                    # Also add other useful fields from structured_data
+                                    if "document_type" in structured_data:
+                                        extracted_fields_dict["document_type"] = structured_data["document_type"]
+                                    
+                                    # Store full structured_data for reference
+                                    extracted_fields_dict["structured_data"] = structured_data
+                            
+                            # Also extract text from OCR stage
+                            elif ext_result.stage == "ocr_extraction" and ext_result.processed_data:
+                                processed_data = ext_result.processed_data
+                                if isinstance(processed_data, dict):
+                                    # Extract text field
+                                    if "text" in processed_data:
+                                        extracted_fields_dict["text"] = processed_data["text"]
+                                        extracted_fields_dict["extracted_text"] = processed_data["text"]
+                                        # Use OCR confidence if available, otherwise use stage confidence
+                                        ocr_confidence = processed_data.get("confidence", ext_result.confidence_score)
+                                        if ocr_confidence:
+                                            confidence_scores_dict["text"] = ocr_confidence
+                                            confidence_scores_dict["extracted_text"] = ocr_confidence
+                                    # Also extract other OCR fields
+                                    if "total_pages" in processed_data:
+                                        extracted_fields_dict["total_pages"] = processed_data["total_pages"]
+                            
+                            # Add document metadata from preprocessing
+                            elif ext_result.stage == "preprocessing" and ext_result.processed_data:
+                                processed_data = ext_result.processed_data
+                                if isinstance(processed_data, dict):
+                                    if "total_pages" in processed_data:
+                                        extracted_fields_dict["total_pages"] = processed_data["total_pages"]
+                                        # Assign confidence score for total_pages
+                                        if ext_result.confidence_score:
+                                            confidence_scores_dict["total_pages"] = ext_result.confidence_score
+                                    if "document_type" in processed_data:
+                                        extracted_fields_dict["document_type"] = processed_data.get("document_type", "pdf")
+                                        # Assign confidence score for document_type
+                                        if ext_result.confidence_score:
+                                            confidence_scores_dict["document_type"] = ext_result.confidence_score
+                        
+                        # Merge extracted_fields_dict with extraction_results_list for backward compatibility
+                        # The frontend expects both the list format and the flattened dict
+                        logger.info(f"Returning extracted_fields for document {_sanitize_log_data(document_id)}:")
+                        logger.info(f"  - extracted_fields keys: {list(extracted_fields_dict.keys()) if extracted_fields_dict else 'empty'}")
+                        logger.info(f"  - Sample invoice_number: {extracted_fields_dict.get('invoice_number', 'NOT FOUND')}")
+                        logger.info(f"  - Sample order_number: {extracted_fields_dict.get('order_number', 'NOT FOUND')}")
+                        
+                        return {
+                            "success": True,
+                            "document_id": document_id,
+                            "extracted_data": extraction_results_list,  # List format for API
+                            "extracted_fields": extracted_fields_dict,  # Flattened dict for frontend
+                            "confidence_scores": confidence_scores_dict,
+                            "processing_stages": [r.stage for r in extraction_results_list],
+                            "quality_score": quality_score_obj,
+                            "routing_decision": routing_decision_obj,
+                        }
+                except Exception as db_error:
+                    logger.warning(f"Failed to get extraction results from database: {db_error}", exc_info=True)
+            
+            # Fallback: Verify document exists in status tracking
             success, doc_status, error_response = self._get_document_status_or_error(document_id, "extract document data")
             if not success:
                 error_response["extracted_data"] = {}
@@ -729,6 +1044,21 @@ class DocumentActionTools:
 
         exists, doc_status = self._check_document_exists(document_id)
         if not exists:
+            # Try database as fallback
+            if self.use_database and self.db_service:
+                try:
+                    db_status = await self.db_service.get_document_status(document_id)
+                    if db_status:
+                        return {
+                            "status": db_status["status"],
+                            "current_stage": db_status["current_stage"],
+                            "progress": db_status["progress"],
+                            "stages": db_status["stages"],
+                            "estimated_completion": db_status.get("upload_timestamp"),
+                        }
+                except Exception as db_error:
+                    logger.warning(f"Database lookup failed: {db_error}")
+            
             logger.warning(f"Document {_sanitize_log_data(document_id)} not found in status tracking")
             return {
                 "status": ProcessingStage.FAILED,
@@ -798,7 +1128,189 @@ class DocumentActionTools:
             serialized_validation = self._serialize_processing_result(validation_result)
             serialized_routing = self._serialize_processing_result(routing_result)
 
-            # Store results in document_statuses
+            # Store results in database if available
+            if self.use_database and self.db_service:
+                try:
+                    # Save extraction results for each stage
+                    await self.db_service.save_extraction_result(
+                        document_id=document_id,
+                        stage="preprocessing",
+                        raw_data=serialized_preprocessing,
+                        processed_data=serialized_preprocessing,
+                        confidence_score=preprocessing_result.get("confidence", 0.8),
+                        processing_time_ms=preprocessing_result.get("processing_time_ms", 0),
+                        model_used="NeMo Retriever",
+                    )
+                    
+                    await self.db_service.save_extraction_result(
+                        document_id=document_id,
+                        stage="ocr_extraction",
+                        raw_data=serialized_ocr,
+                        processed_data=serialized_ocr,
+                        confidence_score=ocr_result.get("confidence", 0.8),
+                        processing_time_ms=ocr_result.get("processing_time_ms", 0),
+                        model_used=ocr_result.get("model_used", "NeMoRetriever-OCR-v1"),
+                    )
+                    
+                    await self.db_service.save_extraction_result(
+                        document_id=document_id,
+                        stage="llm_processing",
+                        raw_data=serialized_llm,
+                        processed_data=serialized_llm,
+                        confidence_score=llm_result.get("confidence", 0.8),
+                        processing_time_ms=llm_result.get("processing_time_ms", 0),
+                        model_used=llm_result.get("model_used", "Llama Nemotron Nano VL 8B"),
+                    )
+                    
+                    # Save validation stage extraction result
+                    if validation_result:
+                        await self.db_service.save_extraction_result(
+                            document_id=document_id,
+                            stage="validation",
+                            raw_data=serialized_validation,
+                            processed_data=serialized_validation,
+                            confidence_score=validation_result.get("confidence", 0.0) if isinstance(validation_result, dict) else (getattr(validation_result, "confidence", 0.0) if hasattr(validation_result, "confidence") else 0.0),
+                            processing_time_ms=validation_result.get("processing_time_ms", 0) if isinstance(validation_result, dict) else 0,
+                            model_used=self.MODEL_LARGE_JUDGE,
+                        )
+                    
+                    # Save routing stage extraction result
+                    if routing_result:
+                        await self.db_service.save_extraction_result(
+                            document_id=document_id,
+                            stage="routing",
+                            raw_data=serialized_routing,
+                            processed_data=serialized_routing,
+                            confidence_score=0.8,  # Routing doesn't have confidence, use default
+                            processing_time_ms=routing_result.get("processing_time_ms", 0) if isinstance(routing_result, dict) else 0,
+                            model_used="Intelligent Router",
+                        )
+                    
+                    # Save quality score if available
+                    # Handle both JudgeEvaluation object and dict
+                    if validation_result:
+                        # Convert JudgeEvaluation to dict if needed
+                        if hasattr(validation_result, "__dict__"):
+                            validation_dict = validation_result.__dict__
+                        elif isinstance(validation_result, dict):
+                            validation_dict = validation_result
+                        else:
+                            validation_dict = {}
+                        
+                        # Extract quality data - handle different structures
+                        quality_data = validation_dict.get("quality", {})
+                        if isinstance(quality_data, dict) and quality_data:
+                            # Has quality data
+                            overall_score = validation_dict.get("overall_score", 0.0)
+                            if overall_score > 0 or quality_data.get("score", 0) > 0:
+                                await self.db_service.save_quality_score(
+                                    document_id=document_id,
+                                    overall_score=overall_score,
+                                    completeness_score=quality_data.get("score", validation_dict.get("completeness", {}).get("score", 0.0)),
+                                    accuracy_score=validation_dict.get("accuracy", {}).get("score", 0.0),
+                                    compliance_score=validation_dict.get("compliance", {}).get("score", 0.0),
+                                    quality_score=quality_data.get("score", 0.0),
+                                    decision=validation_dict.get("decision", "REVIEW_REQUIRED"),
+                                    reasoning=validation_dict.get("reasoning", {}),
+                                    issues_found=validation_dict.get("issues_found", []),
+                                    confidence=validation_dict.get("confidence", 0.0),
+                                    judge_model=self.MODEL_LARGE_JUDGE,
+                                )
+                                logger.info(f"Saved quality score for document {document_id}: overall_score={overall_score}")
+                        elif validation_dict.get("overall_score", 0) > 0:
+                            # Has overall_score but no quality dict
+                            await self.db_service.save_quality_score(
+                                document_id=document_id,
+                                overall_score=validation_dict.get("overall_score", 0.0),
+                                completeness_score=validation_dict.get("completeness_score", 0.0),
+                                accuracy_score=validation_dict.get("accuracy_score", 0.0),
+                                compliance_score=validation_dict.get("compliance_score", 0.0),
+                                quality_score=validation_dict.get("quality_score", validation_dict.get("overall_score", 0.0)),
+                                decision=validation_dict.get("decision", "REVIEW_REQUIRED"),
+                                reasoning=validation_dict.get("reasoning", {}),
+                                issues_found=validation_dict.get("issues_found", []),
+                                confidence=validation_dict.get("confidence", 0.0),
+                                judge_model=self.MODEL_LARGE_JUDGE,
+                            )
+                            logger.info(f"Saved quality score for document {document_id}: overall_score={validation_dict.get('overall_score', 0.0)}")
+                        else:
+                            logger.warning(f"Validation result for document {document_id} has no quality data to save")
+                    
+                    # Save routing decision if available
+                    if routing_result:
+                        # Convert to dict if needed
+                        if hasattr(routing_result, "__dict__"):
+                            routing_dict = routing_result.__dict__
+                        elif isinstance(routing_result, dict):
+                            routing_dict = routing_result
+                        else:
+                            routing_dict = {}
+                        
+                        routing_action = routing_dict.get("routing_action", "flag_review")
+                        # Handle enum values
+                        if hasattr(routing_action, "value"):
+                            routing_action = routing_action.value
+                        
+                        await self.db_service.save_routing_decision(
+                            document_id=document_id,
+                            routing_action=str(routing_action),
+                            routing_reason=routing_dict.get("routing_reason", ""),
+                            wms_integration_status=routing_dict.get("wms_integration_status", "pending"),
+                            wms_integration_data=routing_dict.get("wms_integration_data", {}),
+                            human_review_required=routing_dict.get("human_review_required", False),
+                        )
+                        logger.info(f"Saved routing decision for document {document_id}: routing_action={routing_action}")
+                    
+                    # Update document status to completed
+                    await self.db_service.update_document_status(
+                        document_id=document_id,
+                        status=ProcessingStage.COMPLETED.value,
+                        processing_stage=ProcessingStage.COMPLETED.value,
+                    )
+                    
+                    # Update all stages to completed (only if they actually completed)
+                    # Don't mark failed stages as completed
+                    stages = ["preprocessing", "ocr_extraction", "llm_processing"]
+                    for stage_name in stages:
+                        await self.db_service.update_processing_stage(
+                            document_id=document_id,
+                            stage_name=stage_name,
+                            status="completed",
+                        )
+                    
+                    # Update validation stage - check if it actually completed
+                    validation_status = "failed"
+                    if validation_result:
+                        if isinstance(validation_result, dict):
+                            validation_status = "completed" if validation_result.get("overall_score", 0) > 0 or validation_result.get("decision") else "failed"
+                        elif hasattr(validation_result, "overall_score"):
+                            validation_status = "completed" if validation_result.overall_score > 0 else "failed"
+                    
+                    await self.db_service.update_processing_stage(
+                        document_id=document_id,
+                        stage_name="validation",
+                        status=validation_status,
+                    )
+                    
+                    # Update routing stage - check if it actually completed
+                    routing_status = "failed"
+                    if routing_result:
+                        if isinstance(routing_result, dict):
+                            routing_status = "completed" if routing_result.get("routing_action") else "failed"
+                        elif hasattr(routing_result, "routing_action"):
+                            routing_status = "completed"
+                    
+                    await self.db_service.update_processing_stage(
+                        document_id=document_id,
+                        stage_name="routing",
+                        status=routing_status,
+                    )
+                    
+                    logger.info(f"Stored processing results in database for document: {document_id}")
+                except Exception as db_error:
+                    logger.warning(f"Failed to store results in database, using fallback: {db_error}")
+
+            # Fallback: Store results in document_statuses
             exists, doc_status = self._check_document_exists(document_id)
             if exists:
                 self.document_statuses[document_id]["processing_results"] = {
@@ -884,6 +1396,28 @@ class DocumentActionTools:
     ) -> None:
         """Update document status (used for error handling)."""
         try:
+            # Update database if available
+            if self.use_database and self.db_service:
+                try:
+                    await self.db_service.update_document_status(
+                        document_id=document_id,
+                        status=status,
+                        processing_stage=status,
+                        error_message=error_message,
+                    )
+                    # Update all stages to failed
+                    stages = ["preprocessing", "ocr_extraction", "llm_processing", "validation", "routing"]
+                    for stage_name in stages:
+                        await self.db_service.update_processing_stage(
+                            document_id=document_id,
+                            stage_name=stage_name,
+                            status="failed",
+                            error_message=error_message,
+                        )
+                except Exception as db_error:
+                    logger.warning(f"Failed to update database status: {db_error}")
+            
+            # Fallback: update in-memory status
             exists, doc_status = self._check_document_exists(document_id)
             if exists:
                 self.document_statuses[document_id]["status"] = ProcessingStage.FAILED
