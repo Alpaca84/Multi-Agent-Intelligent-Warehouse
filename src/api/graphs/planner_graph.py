@@ -29,11 +29,59 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.tools import tool
+from dataclasses import asdict
 import logging
 import asyncio
 import threading
 
 logger = logging.getLogger(__name__)
+
+# Constants for error responses
+DEFAULT_ERROR_RESPONSE = {
+    "natural_language": "",
+    "structured_data": {"error": ""},
+    "recommendations": [],
+    "confidence": 0.0,
+    "response_type": "error",
+}
+
+
+def _extract_message_text(state: WarehouseState) -> Optional[str]:
+    """
+    Extract text from the latest message in state.
+    
+    Args:
+        state: Warehouse state dictionary
+        
+    Returns:
+        Message text or None if no messages
+    """
+    if not state.get("messages"):
+        return None
+    
+    latest_message = state["messages"][-1]
+    if isinstance(latest_message, HumanMessage):
+        return latest_message.content
+    else:
+        return str(latest_message.content)
+
+
+def _create_error_response(agent_name: str, error: Exception) -> Dict[str, Any]:
+    """
+    Create standardized error response for agent failures.
+    
+    Args:
+        agent_name: Name of the agent that failed
+        error: Exception that occurred
+        
+    Returns:
+        Standardized error response dictionary
+    """
+    error_msg = str(error)
+    response = DEFAULT_ERROR_RESPONSE.copy()
+    response["natural_language"] = f"Error processing {agent_name} request: {error_msg}"
+    response["structured_data"] = {"error": error_msg}
+    return response
 
 
 class WarehouseState(TypedDict):
@@ -312,14 +360,9 @@ class IntentClassifier:
 def handle_ambiguous_query(state: WarehouseState) -> WarehouseState:
     """Handle ambiguous queries with clarifying questions."""
     try:
-        if not state["messages"]:
+        message_text = _extract_message_text(state)
+        if not message_text:
             return state
-
-        latest_message = state["messages"][-1]
-        if isinstance(latest_message, HumanMessage):
-            message_text = latest_message.content
-        else:
-            message_text = str(latest_message.content)
 
         message_lower = message_text.lower()
 
@@ -415,16 +458,11 @@ def route_intent(state: WarehouseState) -> WarehouseState:
     """Route user message to appropriate agent based on intent classification."""
     try:
         # Get the latest user message
-        if not state["messages"]:
+        message_text = _extract_message_text(state)
+        if not message_text:
             state["user_intent"] = "general"
             state["routing_decision"] = "general"
             return state
-
-        latest_message = state["messages"][-1]
-        if isinstance(latest_message, HumanMessage):
-            message_text = latest_message.content
-        else:
-            message_text = str(latest_message.content)
 
         # Classify intent
         intent = IntentClassifier.classify_intent(message_text)
@@ -450,23 +488,15 @@ def route_intent(state: WarehouseState) -> WarehouseState:
 async def equipment_agent(state: WarehouseState) -> WarehouseState:
     """Handle equipment-related queries using the Equipment & Asset Operations Agent."""
     try:
-        from src.api.agents.inventory.equipment_agent import get_equipment_agent
-
-        # Get the latest user message
-        if not state["messages"]:
-            state["agent_responses"]["inventory"] = "No message to process"
+        message_text = _extract_message_text(state)
+        if not message_text:
+            state["agent_responses"]["equipment"] = "No message to process"
             return state
-
-        latest_message = state["messages"][-1]
-        if isinstance(latest_message, HumanMessage):
-            message_text = latest_message.content
-        else:
-            message_text = str(latest_message.content)
 
         # Get session ID from context
         session_id = state.get("session_id", "default")
 
-        # Process with Equipment & Asset Operations Agent (sync wrapper)
+        # Process with Equipment & Asset Operations Agent
         response = await _process_equipment_query(
             query=message_text, session_id=session_id, context=state.get("context", {})
         )
@@ -480,13 +510,7 @@ async def equipment_agent(state: WarehouseState) -> WarehouseState:
 
     except Exception as e:
         logger.error(f"Error in equipment agent: {e}")
-        state["agent_responses"]["equipment"] = {
-            "natural_language": f"Error processing equipment request: {str(e)}",
-            "structured_data": {"error": str(e)},
-            "recommendations": [],
-            "confidence": 0.0,
-            "response_type": "error",
-        }
+        state["agent_responses"]["equipment"] = _create_error_response("equipment", e)
 
     return state
 
@@ -494,21 +518,15 @@ async def equipment_agent(state: WarehouseState) -> WarehouseState:
 async def operations_agent(state: WarehouseState) -> WarehouseState:
     """Handle operations-related queries using the Operations Coordination Agent."""
     try:
-        # Get the latest user message
-        if not state["messages"]:
+        message_text = _extract_message_text(state)
+        if not message_text:
             state["agent_responses"]["operations"] = "No message to process"
             return state
-
-        latest_message = state["messages"][-1]
-        if isinstance(latest_message, HumanMessage):
-            message_text = latest_message.content
-        else:
-            message_text = str(latest_message.content)
 
         # Get session ID from context
         session_id = state.get("session_id", "default")
 
-        # Process with Operations Coordination Agent (sync wrapper)
+        # Process with Operations Coordination Agent
         response = await _process_operations_query(
             query=message_text, session_id=session_id, context=state.get("context", {})
         )
@@ -522,13 +540,7 @@ async def operations_agent(state: WarehouseState) -> WarehouseState:
 
     except Exception as e:
         logger.error(f"Error in operations agent: {e}")
-        state["agent_responses"]["operations"] = {
-            "natural_language": f"Error processing operations request: {str(e)}",
-            "structured_data": {"error": str(e)},
-            "recommendations": [],
-            "confidence": 0.0,
-            "response_type": "error",
-        }
+        state["agent_responses"]["operations"] = _create_error_response("operations", e)
 
     return state
 
@@ -536,21 +548,15 @@ async def operations_agent(state: WarehouseState) -> WarehouseState:
 async def safety_agent(state: WarehouseState) -> WarehouseState:
     """Handle safety and compliance queries using the Safety & Compliance Agent."""
     try:
-        # Get the latest user message
-        if not state["messages"]:
+        message_text = _extract_message_text(state)
+        if not message_text:
             state["agent_responses"]["safety"] = "No message to process"
             return state
-
-        latest_message = state["messages"][-1]
-        if isinstance(latest_message, HumanMessage):
-            message_text = latest_message.content
-        else:
-            message_text = str(latest_message.content)
 
         # Get session ID from context
         session_id = state.get("session_id", "default")
 
-        # Process with Safety & Compliance Agent (sync wrapper)
+        # Process with Safety & Compliance Agent
         response = await _process_safety_query(
             query=message_text, session_id=session_id, context=state.get("context", {})
         )
@@ -564,13 +570,7 @@ async def safety_agent(state: WarehouseState) -> WarehouseState:
 
     except Exception as e:
         logger.error(f"Error in safety agent: {e}")
-        state["agent_responses"]["safety"] = {
-            "natural_language": f"Error processing safety request: {str(e)}",
-            "structured_data": {"error": str(e)},
-            "recommendations": [],
-            "confidence": 0.0,
-            "response_type": "error",
-        }
+        state["agent_responses"]["safety"] = _create_error_response("safety", e)
 
     return state
 
@@ -578,16 +578,10 @@ async def safety_agent(state: WarehouseState) -> WarehouseState:
 async def document_agent(state: WarehouseState) -> WarehouseState:
     """Handle document-related queries using the Document Extraction Agent."""
     try:
-        # Get the latest user message
-        if not state["messages"]:
+        message_text = _extract_message_text(state)
+        if not message_text:
             state["agent_responses"]["document"] = "No message to process"
             return state
-
-        latest_message = state["messages"][-1]
-        if isinstance(latest_message, HumanMessage):
-            message_text = latest_message.content
-        else:
-            message_text = str(latest_message.content)
 
         # Get session ID from context
         session_id = state.get("session_id", "default")
@@ -606,13 +600,7 @@ async def document_agent(state: WarehouseState) -> WarehouseState:
 
     except Exception as e:
         logger.error(f"Error in document agent: {e}")
-        state["agent_responses"]["document"] = {
-            "natural_language": f"Error processing document request: {str(e)}",
-            "structured_data": {"error": str(e)},
-            "recommendations": [],
-            "confidence": 0.0,
-            "response_type": "error",
-        }
+        state["agent_responses"]["document"] = _create_error_response("document", e)
 
     return state
 
@@ -839,10 +827,32 @@ def route_intent(text: str) -> str:
     return IntentClassifier.classify_intent(text)
 
 
+def _create_fallback_response(response_class: type, agent_name: str, error: Exception) -> Any:
+    """
+    Create fallback response for agent processing failures.
+    
+    Args:
+        response_class: Response class to instantiate
+        agent_name: Name of the agent
+        error: Exception that occurred
+        
+    Returns:
+        Fallback response instance
+    """
+    return response_class(
+        response_type="error",
+        data={"error": str(error)},
+        natural_language=f"Error processing {agent_name} query: {str(error)}",
+        recommendations=[],
+        confidence=0.0,
+        actions_taken=[],
+    )
+
+
 async def _process_safety_query(query: str, session_id: str, context: Dict) -> Any:
     """Async safety agent processing."""
     try:
-        from src.api.agents.safety.safety_agent import get_safety_agent
+        from src.api.agents.safety.safety_agent import get_safety_agent, SafetyResponse
 
         # Get safety agent
         safety_agent = await get_safety_agent()
@@ -853,29 +863,18 @@ async def _process_safety_query(query: str, session_id: str, context: Dict) -> A
         )
 
         # Convert SafetyResponse to dict
-        from dataclasses import asdict
-
         return asdict(response)
 
     except Exception as e:
         logger.error(f"Safety processing failed: {e}")
-        # Return a fallback response
         from src.api.agents.safety.safety_agent import SafetyResponse
-
-        return SafetyResponse(
-            response_type="error",
-            data={"error": str(e)},
-            natural_language=f"Error processing safety query: {str(e)}",
-            recommendations=[],
-            confidence=0.0,
-            actions_taken=[],
-        )
+        return _create_fallback_response(SafetyResponse, "safety", e)
 
 
 async def _process_operations_query(query: str, session_id: str, context: Dict) -> Any:
     """Async operations agent processing."""
     try:
-        from src.api.agents.operations.operations_agent import get_operations_agent
+        from src.api.agents.operations.operations_agent import get_operations_agent, OperationsResponse
 
         # Get operations agent
         operations_agent = await get_operations_agent()
@@ -886,29 +885,18 @@ async def _process_operations_query(query: str, session_id: str, context: Dict) 
         )
 
         # Convert OperationsResponse to dict
-        from dataclasses import asdict
-
         return asdict(response)
 
     except Exception as e:
         logger.error(f"Operations processing failed: {e}")
-        # Return a fallback response
         from src.api.agents.operations.operations_agent import OperationsResponse
-
-        return OperationsResponse(
-            response_type="error",
-            data={"error": str(e)},
-            natural_language=f"Error processing operations query: {str(e)}",
-            recommendations=[],
-            confidence=0.0,
-            actions_taken=[],
-        )
+        return _create_fallback_response(OperationsResponse, "operations", e)
 
 
 async def _process_equipment_query(query: str, session_id: str, context: Dict) -> Any:
     """Async equipment agent processing."""
     try:
-        from src.api.agents.inventory.equipment_agent import get_equipment_agent
+        from src.api.agents.inventory.equipment_agent import get_equipment_agent, EquipmentResponse
 
         # Get equipment agent
         equipment_agent = await get_equipment_agent()
@@ -919,20 +907,9 @@ async def _process_equipment_query(query: str, session_id: str, context: Dict) -
         )
 
         # Convert EquipmentResponse to dict
-        from dataclasses import asdict
-
         return asdict(response)
 
     except Exception as e:
         logger.error(f"Equipment processing failed: {e}")
-        # Return a fallback response
         from src.api.agents.inventory.equipment_agent import EquipmentResponse
-
-        return EquipmentResponse(
-            response_type="error",
-            data={"error": str(e)},
-            natural_language=f"Error processing equipment query: {str(e)}",
-            recommendations=[],
-            confidence=0.0,
-            actions_taken=[],
-        )
+        return _create_fallback_response(EquipmentResponse, "equipment", e)
