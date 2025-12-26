@@ -21,11 +21,19 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Report as ReportIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { safetyAPI, SafetyIncident, userAPI, User } from '../services/api';
+import { useDialogForm } from '../components/common';
 
 const Safety: React.FC = () => {
-  const [open, setOpen] = useState(false);
-  const [selectedIncident, setSelectedIncident] = useState<SafetyIncident | null>(null);
-  const [formData, setFormData] = useState<Partial<SafetyIncident>>({});
+  const {
+    open,
+    setOpen,
+    selectedItem: selectedIncident,
+    setSelectedItem: setSelectedIncident,
+    formData,
+    setFormData,
+    handleOpen,
+    handleClose,
+  } = useDialogForm<SafetyIncident>();
   const queryClient = useQueryClient();
 
   const { data: incidents, isLoading, error } = useQuery({
@@ -49,27 +57,9 @@ const Safety: React.FC = () => {
     mutationFn: safetyAPI.reportIncident,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      setOpen(false);
-      setFormData({});
+      handleClose();
     },
   });
-
-  const handleOpen = (incident?: SafetyIncident) => {
-    if (incident) {
-      setSelectedIncident(incident);
-      setFormData(incident);
-    } else {
-      setSelectedIncident(null);
-      setFormData({});
-    }
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedIncident(null);
-    setFormData({});
-  };
 
   const handleSubmit = () => {
     if (formData.severity && formData.description && formData.reported_by) {

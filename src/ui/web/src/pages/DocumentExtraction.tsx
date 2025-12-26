@@ -45,27 +45,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { documentAPI } from '../services/api';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`document-tabpanel-${index}`}
-      aria-labelledby={`document-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+import { TabPanel } from '../components/common';
 
 interface DocumentProcessingStage {
   name: string;
@@ -1325,7 +1305,7 @@ const DocumentExtraction: React.FC = () => {
         </Tabs>
       </Box>
 
-      <TabPanel value={activeTab} index={0}>
+      <TabPanel value={activeTab} index={0} idPrefix="document">
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <DocumentUploadCard />
@@ -1337,7 +1317,7 @@ const DocumentExtraction: React.FC = () => {
         </Grid>
       </TabPanel>
 
-      <TabPanel value={activeTab} index={1}>
+      <TabPanel value={activeTab} index={1} idPrefix="document">
         <Grid container spacing={3}>
           {processingDocuments.length === 0 ? (
             <Grid item xs={12}>
@@ -1380,7 +1360,7 @@ const DocumentExtraction: React.FC = () => {
         </Grid>
       </TabPanel>
 
-      <TabPanel value={activeTab} index={2}>
+      <TabPanel value={activeTab} index={2} idPrefix="document">
         <Grid container spacing={3}>
           {completedDocuments.length === 0 ? (
             <Grid item xs={12}>
@@ -1423,7 +1403,7 @@ const DocumentExtraction: React.FC = () => {
         </Grid>
       </TabPanel>
 
-      <TabPanel value={activeTab} index={3}>
+      <TabPanel value={activeTab} index={3} idPrefix="document">
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
             <Card

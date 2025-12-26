@@ -75,32 +75,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { forecastingAPI } from '../services/forecastingAPI';
 import { trainingAPI, TrainingRequest, TrainingStatus } from '../services/trainingAPI';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`forecast-tabpanel-${index}`}
-      aria-labelledby={`forecast-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
+import { TabPanel } from '../components/common';
 
 const ForecastingPage: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -375,7 +350,7 @@ const ForecastingPage: React.FC = () => {
       </Box>
 
       {/* Forecast Summary Tab */}
-      <TabPanel value={selectedTab} index={0}>
+      <TabPanel value={selectedTab} index={0} idPrefix="forecast">
         <Typography variant="h5" gutterBottom>
           Product Demand Forecasts
         </Typography>
@@ -421,7 +396,7 @@ const ForecastingPage: React.FC = () => {
       </TabPanel>
 
       {/* Reorder Recommendations Tab */}
-      <TabPanel value={selectedTab} index={1}>
+      <TabPanel value={selectedTab} index={1} idPrefix="forecast">
         <Typography variant="h5" gutterBottom>
           Reorder Recommendations
         </Typography>
@@ -470,7 +445,7 @@ const ForecastingPage: React.FC = () => {
       </TabPanel>
 
       {/* Model Performance Tab */}
-      <TabPanel value={selectedTab} index={2}>
+      <TabPanel value={selectedTab} index={2} idPrefix="forecast">
         <Typography variant="h5" gutterBottom>
           Model Performance Metrics
         </Typography>
@@ -637,7 +612,7 @@ const ForecastingPage: React.FC = () => {
       </TabPanel>
 
       {/* Business Intelligence Tab */}
-      <TabPanel value={selectedTab} index={3}>
+      <TabPanel value={selectedTab} index={3} idPrefix="forecast">
         <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <AnalyticsIcon color="primary" />
           Enhanced Business Intelligence Dashboard
@@ -1045,7 +1020,7 @@ const ForecastingPage: React.FC = () => {
       </TabPanel>
 
       {/* Training Tab */}
-      <TabPanel value={selectedTab} index={4}>
+      <TabPanel value={selectedTab} index={4} idPrefix="forecast">
         <Typography variant="h5" gutterBottom>
           Model Training & Management
         </Typography>

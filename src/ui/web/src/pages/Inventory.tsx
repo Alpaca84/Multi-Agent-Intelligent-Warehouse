@@ -33,28 +33,7 @@ import {
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { inventoryAPI, InventoryItem } from '../services/inventoryAPI';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: Readonly<TabPanelProps>) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`inventory-tabpanel-${index}`}
-      aria-labelledby={`inventory-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+import { TabPanel } from '../components/common';
 
 const InventoryPage: React.FC = () => {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
@@ -291,25 +270,25 @@ const InventoryPage: React.FC = () => {
       </Box>
 
       {/* All Products Tab */}
-      <TabPanel value={tabValue} index={0}>
+      <TabPanel value={tabValue} index={0} idPrefix="inventory">
         <InventoryTable items={filteredItems} />
       </TabPanel>
 
       {/* Low Stock Tab */}
-      <TabPanel value={tabValue} index={1}>
+      <TabPanel value={tabValue} index={1} idPrefix="inventory">
         <InventoryTable items={getLowStockItems()} />
       </TabPanel>
 
       {/* Brand Tabs */}
-      <TabPanel value={tabValue} index={2}>
+      <TabPanel value={tabValue} index={2} idPrefix="inventory">
         <InventoryTable items={getBrandItems('LAY')} />
       </TabPanel>
 
-      <TabPanel value={tabValue} index={3}>
+      <TabPanel value={tabValue} index={3} idPrefix="inventory">
         <InventoryTable items={getBrandItems('DOR')} />
       </TabPanel>
 
-      <TabPanel value={tabValue} index={4}>
+      <TabPanel value={tabValue} index={4} idPrefix="inventory">
         <InventoryTable items={getBrandItems('CHE')} />
       </TabPanel>
     </Box>

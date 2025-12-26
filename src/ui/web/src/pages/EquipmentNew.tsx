@@ -51,29 +51,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { equipmentAPI, EquipmentAsset } from '../services/api';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`equipment-tabpanel-${index}`}
-      aria-labelledby={`equipment-tab-${index}`}
-      style={{ width: '100%' }}
-      {...other}
-    >
-      {value === index && <Box sx={{ width: '100%' }}>{children}</Box>}
-    </div>
-  );
-}
+import { TabPanel } from '../components/common';
 
 const EquipmentNew: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -392,7 +370,7 @@ const EquipmentNew: React.FC = () => {
       </Box>
 
       {/* Assets Tab */}
-      <TabPanel value={activeTab} index={0}>
+      <TabPanel value={activeTab} index={0} idPrefix="equipment" fullWidth>
         <Paper sx={{ height: 600, width: '100%' }}>
           <DataGrid
             rows={equipmentAssets || []}
@@ -424,7 +402,7 @@ const EquipmentNew: React.FC = () => {
       </TabPanel>
 
       {/* Assignments Tab */}
-      <TabPanel value={activeTab} index={1}>
+      <TabPanel value={activeTab} index={1} idPrefix="equipment" fullWidth>
         <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="h6" gutterBottom>
             Active Assignments
@@ -470,7 +448,7 @@ const EquipmentNew: React.FC = () => {
       </TabPanel>
 
       {/* Maintenance Tab */}
-      <TabPanel value={activeTab} index={2}>
+      <TabPanel value={activeTab} index={2} idPrefix="equipment" fullWidth>
         <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="h6" gutterBottom>
             Maintenance Schedule
@@ -505,7 +483,7 @@ const EquipmentNew: React.FC = () => {
       </TabPanel>
 
       {/* Telemetry Tab */}
-      <TabPanel value={activeTab} index={3}>
+      <TabPanel value={activeTab} index={3} idPrefix="equipment" fullWidth>
         <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="h6" gutterBottom>
             Equipment Telemetry

@@ -21,11 +21,19 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { operationsAPI, Task, userAPI, User } from '../services/api';
+import { useDialogForm } from '../components/common';
 
 const Operations: React.FC = () => {
-  const [open, setOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [formData, setFormData] = useState<Partial<Task>>({});
+  const {
+    open,
+    setOpen,
+    selectedItem: selectedTask,
+    setSelectedItem: setSelectedTask,
+    formData,
+    setFormData,
+    handleOpen,
+    handleClose,
+  } = useDialogForm<Task>();
   const queryClient = useQueryClient();
 
   const { data: tasks, isLoading, error } = useQuery({
@@ -48,28 +56,9 @@ const Operations: React.FC = () => {
       operationsAPI.assignTask(taskId, assignee),
       onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-        setOpen(false);
-        setSelectedTask(null);
-        setFormData({});
+        handleClose();
     }
   });
-
-  const handleOpen = (task?: Task) => {
-    if (task) {
-      setSelectedTask(task);
-      setFormData(task);
-    } else {
-      setSelectedTask(null);
-      setFormData({});
-    }
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedTask(null);
-    setFormData({});
-  };
 
   const handleSubmit = () => {
     if (selectedTask && formData.assignee) {
