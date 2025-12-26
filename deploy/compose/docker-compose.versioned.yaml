@@ -18,7 +18,7 @@ services:
       - GIT_SHA=${GIT_SHA:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
       - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/warehouse_ops
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-warehouse_ops}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - MILVUS_HOST=milvus

@@ -22,6 +22,7 @@ This script creates comprehensive forecasts using multiple ML models.
 import asyncio
 import asyncpg
 import json
+import os
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -34,7 +35,12 @@ import warnings
 warnings.filterwarnings('ignore')
 
 class AllSKUForecastingEngine:
-    def __init__(self):
+    def __init__(self, random_seed=42):
+        """Initialize forecasting engine with a random seed for reproducibility."""
+        self.random_seed = random_seed
+        # Initialize numpy random number generator with seed
+        self.rng = np.random.default_rng(random_seed)
+        
         self.db_config = {
             'host': 'localhost',
             'port': 5435,
@@ -49,7 +55,7 @@ class AllSKUForecastingEngine:
             'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
             'Linear Regression': LinearRegression(),
             'Ridge Regression': Ridge(alpha=1.0),
-            'Support Vector Regression': SVR(kernel='rbf', C=1.0, gamma='scale')
+            'Support Vector Regression': SVR(kernel='rbf', C=1.0, gamma='scale', random_state=42)
         }
         
         # Try to import XGBoost
@@ -134,9 +140,9 @@ class AllSKUForecastingEngine:
                 holiday_factor = 1.2
             
             # Random noise
-            # Security: Using np.random is appropriate here - generating forecast noise only
+            # Security: Using seeded random number generator for forecast noise only
             # For security-sensitive values (tokens, keys, passwords), use secrets module instead
-            noise = np.random.normal(0, 0.1)
+            noise = self.rng.normal(0, 0.1)
             
             # Calculate final demand
             final_demand = base_demand * seasonal_factor * monthly_factor * weekend_factor * holiday_factor
@@ -187,9 +193,9 @@ class AllSKUForecastingEngine:
         df['demand_monthly_seasonal'] = df.groupby('month')['demand'].transform('mean') - df['demand'].mean()
         
         # Promotional features
-        # Security: Using np.random is appropriate here - generating forecast variations only
+        # Security: Using seeded random number generator for forecast variations only
         # For security-sensitive values (tokens, keys, passwords), use secrets module instead
-        df['promotional_boost'] = np.random.uniform(0.8, 1.2, len(df))
+        df['promotional_boost'] = self.rng.uniform(0.8, 1.2, len(df))
         
         # Interaction features
         df['weekend_summer'] = df['is_weekend'] * df['is_summer']
