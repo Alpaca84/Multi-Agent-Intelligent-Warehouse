@@ -24,6 +24,7 @@ import httpx
 import json
 import asyncio
 import hashlib
+import math
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone
@@ -333,11 +334,12 @@ class NIMClient:
         }
         
         # Add optional parameters if they differ from defaults
-        if top_p != 1.0:
+        # Use math.isclose() for floating point comparisons to avoid precision issues
+        if not math.isclose(top_p, 1.0, rel_tol=1e-09, abs_tol=1e-09):
             payload["top_p"] = top_p
-        if frequency_penalty != 0.0:
+        if not math.isclose(frequency_penalty, 0.0, abs_tol=1e-09):
             payload["frequency_penalty"] = frequency_penalty
-        if presence_penalty != 0.0:
+        if not math.isclose(presence_penalty, 0.0, abs_tol=1e-09):
             payload["presence_penalty"] = presence_penalty
 
         last_exception = None
