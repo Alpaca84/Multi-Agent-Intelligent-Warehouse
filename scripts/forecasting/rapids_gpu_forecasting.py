@@ -29,6 +29,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 import os
 import sys
+import anyio
 
 # Try to import RAPIDS cuML, fallback to CPU if not available
 RAPIDS_AVAILABLE = False
@@ -709,15 +710,15 @@ class RAPIDSForecastingAgent:
         
         # Save to root for runtime use
         output_file = "rapids_gpu_forecasts.json"
-        with open(output_file, 'w') as f:
-            json.dump(forecasts, f, indent=2)
+        async with await anyio.open_file(output_file, 'w') as f:
+            await f.write(json.dumps(forecasts, indent=2))
         
         # Also save to data/sample/forecasts/ for reference
         sample_dir = Path("data/sample/forecasts")
         sample_dir.mkdir(parents=True, exist_ok=True)
         sample_file = sample_dir / "rapids_gpu_forecasts.json"
-        with open(sample_file, 'w') as f:
-            json.dump(forecasts, f, indent=2)
+        async with await anyio.open_file(sample_file, 'w') as f:
+            await f.write(json.dumps(forecasts, indent=2))
         
         logger.info(f"🎉 RAPIDS GPU forecasting complete!")
         logger.info(f"📊 Generated forecasts for {successful_forecasts}/{len(skus)} SKUs")
