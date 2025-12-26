@@ -376,7 +376,11 @@ def parse_requirements_file(requirements_file: Path) -> List[Dict[str, str]]:
                 line = line.split('#')[0].strip()
             
             # Match package name and version constraints
-            match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9._-]*)([<>=!]+.*)?$', line)
+            # Optimized regex to prevent catastrophic backtracking:
+            # - Package name: starts with alphanumeric/underscore/hyphen, followed by alphanumeric/dot/underscore/hyphen
+            # - Version: optional, starts with comparison operators, followed by any chars except newline
+            # Using non-greedy quantifier and negated character class to avoid backtracking
+            match = re.match(r'^([a-zA-Z0-9_-][a-zA-Z0-9._-]*?)([<>=!]+[^\n]*)?$', line)
             if match:
                 package_name = match.group(1)
                 # For now, we'll get the actual installed version from PyPI
