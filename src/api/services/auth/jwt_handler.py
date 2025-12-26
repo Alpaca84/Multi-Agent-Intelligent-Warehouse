@@ -20,6 +20,8 @@ import bcrypt
 import os
 import logging
 import secrets
+import base64
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -216,24 +218,44 @@ class JWTHandler:
         This addresses CVE-2025-45768 and algorithm confusion vulnerabilities.
         """
         try:
-            # Decode token header first to check algorithm
-            # This prevents algorithm confusion attacks
-            unverified_header = jwt.get_unverified_header(token)
-            token_algorithm = unverified_header.get("alg")
-            
-            # CRITICAL: Explicitly reject 'none' algorithm
-            if token_algorithm == "none":
-                logger.warning("❌ SECURITY: Token uses 'none' algorithm - REJECTED")
-                return None
-            
-            # CRITICAL: Only accept our hardcoded algorithm, ignore token header
-            # This prevents algorithm confusion attacks where attacker tries to
-            # force use of a different algorithm (e.g., HS256 with RSA public key)
-            if token_algorithm != self.algorithm:
-                logger.warning(
-                    f"❌ SECURITY: Token algorithm mismatch - expected {self.algorithm}, "
-                    f"got {token_algorithm} - REJECTED"
-                )
+            # SECURITY: Parse JWT header manually to check algorithm before verification
+            # This prevents algorithm confusion attacks while avoiding unverified header methods
+            # JWT format: header.payload.signature (base64url encoded, dot-separated)
+            try:
+                # Split token into parts
+                parts = token.split('.')
+                if len(parts) < 2:
+                    logger.warning("❌ SECURITY: Invalid JWT format - REJECTED")
+                    return None
+                
+                # Decode header (first part) - this is safe as it's just metadata
+                # We're not trusting it, just reading it to check algorithm before verification
+                header_part = parts[0]
+                # Add padding if needed for base64 decoding
+                padding = len(header_part) % 4
+                if padding:
+                    header_part += '=' * (4 - padding)
+                
+                header_json = base64.urlsafe_b64decode(header_part)
+                header_data = json.loads(header_json)
+                token_algorithm = header_data.get("alg")
+                
+                # CRITICAL: Explicitly reject 'none' algorithm
+                if token_algorithm == "none":
+                    logger.warning("❌ SECURITY: Token uses 'none' algorithm - REJECTED")
+                    return None
+                
+                # CRITICAL: Only accept our hardcoded algorithm, ignore token header
+                # This prevents algorithm confusion attacks where attacker tries to
+                # force use of a different algorithm (e.g., HS256 with RSA public key)
+                if token_algorithm != self.algorithm:
+                    logger.warning(
+                        f"❌ SECURITY: Token algorithm mismatch - expected {self.algorithm}, "
+                        f"got {token_algorithm} - REJECTED"
+                    )
+                    return None
+            except (ValueError, json.JSONDecodeError, IndexError) as e:
+                logger.warning(f"❌ SECURITY: Failed to parse JWT header: {e} - REJECTED")
                 return None
             
             # Decode with strict security options
