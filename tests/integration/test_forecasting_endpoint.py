@@ -34,6 +34,67 @@ BASE_API = f"{BACKEND_URL}/api/v1"
 # Test results storage
 test_results = []
 
+# Constants
+REQUEST_TIMEOUT = 30
+SECTION_SEPARATOR = "=" * 80
+
+
+def _print_section_header(title: str, number: int = None):
+    """
+    Print a standardized test section header.
+    
+    Args:
+        title: Section title
+        number: Optional section number
+    """
+    print("\n" + SECTION_SEPARATOR)
+    if number is not None:
+        print(f"{number}. {title}")
+    else:
+        print(title)
+    print(SECTION_SEPARATOR)
+
+
+def _validate_data_structure(
+    data: Dict[str, Any],
+    expected_keys: List[str],
+    structure_name: str
+) -> bool:
+    """
+    Validate that data structure contains expected keys.
+    
+    Args:
+        data: Data dictionary to validate
+        expected_keys: List of expected key names
+        structure_name: Name of structure for logging
+        
+    Returns:
+        True if all keys present, False otherwise
+    """
+    missing_keys = [key for key in expected_keys if key not in data]
+    if missing_keys:
+        log_test(f"{structure_name} Structure", "FAIL", f"Missing keys: {missing_keys}")
+        return False
+    else:
+        log_test(f"{structure_name} Structure", "PASS", "All expected keys present")
+        return True
+
+
+def _parse_response_json(response) -> Optional[Dict[str, Any]]:
+    """
+    Safely parse JSON from response.
+    
+    Args:
+        response: requests.Response object
+        
+    Returns:
+        Parsed JSON data or None if parsing fails
+    """
+    try:
+        return response.json() if response.content else {}
+    except json.JSONDecodeError:
+        return None
+
 
 def log_test(name: str, status: str, details: str = "", response_time: float = 0.0):
     """Log test result."""
@@ -65,14 +126,16 @@ def test_endpoint(method: str, endpoint: str, expected_status: int = 200,
     try:
         start_time = time.time()
         
-        if method.upper() == "GET":
-            response = requests.get(url, params=params, timeout=30)
-        elif method.upper() == "POST":
-            response = requests.post(url, json=payload, timeout=30)
-        elif method.upper() == "PUT":
-            response = requests.put(url, json=payload, timeout=30)
-        elif method.upper() == "DELETE":
-            response = requests.delete(url, timeout=30)
+        # Make HTTP request based on method
+        method_upper = method.upper()
+        if method_upper == "GET":
+            response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
+        elif method_upper == "POST":
+            response = requests.post(url, json=payload, timeout=REQUEST_TIMEOUT)
+        elif method_upper == "PUT":
+            response = requests.put(url, json=payload, timeout=REQUEST_TIMEOUT)
+        elif method_upper == "DELETE":
+            response = requests.delete(url, timeout=REQUEST_TIMEOUT)
         else:
             log_test(test_name, "FAIL", f"Unsupported HTTP method: {method}")
             return None
@@ -80,25 +143,25 @@ def test_endpoint(method: str, endpoint: str, expected_status: int = 200,
         elapsed_time = time.time() - start_time
         
         if response.status_code == expected_status:
-            try:
-                data = response.json() if response.content else {}
+            data = _parse_response_json(response)
+            if data is not None:
                 log_test(test_name, "PASS", f"Status: {response.status_code}", elapsed_time)
                 return {"status_code": response.status_code, "data": data, "response_time": elapsed_time}
-            except json.JSONDecodeError:
+            else:
                 log_test(test_name, "PASS", f"Status: {response.status_code} (No JSON body)", elapsed_time)
                 return {"status_code": response.status_code, "data": None, "response_time": elapsed_time}
         else:
             error_msg = f"Expected {expected_status}, got {response.status_code}"
-            try:
-                error_data = response.json()
+            error_data = _parse_response_json(response)
+            if error_data:
                 error_msg += f" - {error_data.get('detail', '')}"
-            except:
+            else:
                 error_msg += f" - {response.text[:100]}"
             log_test(test_name, "FAIL", error_msg, elapsed_time)
             return {"status_code": response.status_code, "error": error_msg, "response_time": elapsed_time}
     
     except requests.exceptions.Timeout:
-        log_test(test_name, "FAIL", "Request timed out after 30 seconds", 30.0)
+        log_test(test_name, "FAIL", f"Request timed out after {REQUEST_TIMEOUT} seconds", float(REQUEST_TIMEOUT))
         return None
     except requests.exceptions.RequestException as e:
         log_test(test_name, "FAIL", f"Request failed: {str(e)}", 0.0)
@@ -107,9 +170,7 @@ def test_endpoint(method: str, endpoint: str, expected_status: int = 200,
 
 def test_frontend_page():
     """Test if frontend Forecasting page is accessible."""
-    print("\n" + "="*80)
-    print("1. TESTING FRONTEND PAGE ACCESSIBILITY")
-    print("="*80)
+    _print_section_header("TESTING FRONTEND PAGE ACCESSIBILITY", 1)
     
     try:
         response = requests.get(f"{FRONTEND_URL}/forecasting", timeout=5, allow_redirects=True)
@@ -126,9 +187,7 @@ def test_frontend_page():
 
 def test_forecasting_health():
     """Test GET /forecasting/health endpoint."""
-    print("\n" + "="*80)
-    print("2. TESTING FORECASTING HEALTH")
-    print("="*80)
+    _print_section_header("TESTING FORECASTING HEALTH", 2)
     
     result = test_endpoint("GET", "/forecasting/health", description="Health check")
     return result
@@ -136,30 +195,21 @@ def test_forecasting_health():
 
 def test_dashboard_endpoint():
     """Test GET /forecasting/dashboard endpoint."""
-    print("\n" + "="*80)
-    print("3. TESTING FORECASTING DASHBOARD")
-    print("="*80)
+    _print_section_header("TESTING FORECASTING DASHBOARD", 3)
     
     result = test_endpoint("GET", "/forecasting/dashboard", description="Dashboard summary")
     
     if result and result.get("data"):
         data = result["data"]
-        # Check for expected keys
         expected_keys = ["business_intelligence", "reorder_recommendations", "model_performance", "forecast_summary"]
-        missing_keys = [key for key in expected_keys if key not in data]
-        if missing_keys:
-            log_test("Dashboard Data Structure", "FAIL", f"Missing keys: {missing_keys}")
-        else:
-            log_test("Dashboard Data Structure", "PASS", "All expected keys present")
+        _validate_data_structure(data, expected_keys, "Dashboard Data")
     
     return result
 
 
 def test_real_time_forecast():
     """Test POST /forecasting/real-time endpoint."""
-    print("\n" + "="*80)
-    print("4. TESTING REAL-TIME FORECAST")
-    print("="*80)
+    _print_section_header("TESTING REAL-TIME FORECAST", 4)
     
     # Test with valid SKU
     payload = {
@@ -186,9 +236,7 @@ def test_real_time_forecast():
 
 def test_reorder_recommendations():
     """Test GET /forecasting/reorder-recommendations endpoint."""
-    print("\n" + "="*80)
-    print("5. TESTING REORDER RECOMMENDATIONS")
-    print("="*80)
+    _print_section_header("TESTING REORDER RECOMMENDATIONS", 5)
     
     result = test_endpoint("GET", "/forecasting/reorder-recommendations", description="Get recommendations")
     
@@ -199,14 +247,8 @@ def test_reorder_recommendations():
             recommendations = data["recommendations"]
             log_test("Reorder Recommendations Format", "PASS", f"Returns dict with recommendations list ({len(recommendations)} items)")
             if len(recommendations) > 0:
-                # Check first item structure
-                first_item = recommendations[0]
                 expected_keys = ["sku", "current_stock", "recommended_order_quantity", "urgency_level"]
-                missing_keys = [key for key in expected_keys if key not in first_item]
-                if missing_keys:
-                    log_test("Reorder Recommendation Structure", "FAIL", f"Missing keys: {missing_keys}")
-                else:
-                    log_test("Reorder Recommendation Structure", "PASS", "All expected keys present")
+                _validate_data_structure(recommendations[0], expected_keys, "Reorder Recommendation")
         elif isinstance(data, list):
             log_test("Reorder Recommendations Format", "PASS", f"Returns list with {len(data)} items")
         else:
@@ -217,9 +259,7 @@ def test_reorder_recommendations():
 
 def test_model_performance():
     """Test GET /forecasting/model-performance endpoint."""
-    print("\n" + "="*80)
-    print("6. TESTING MODEL PERFORMANCE")
-    print("="*80)
+    _print_section_header("TESTING MODEL PERFORMANCE", 6)
     
     result = test_endpoint("GET", "/forecasting/model-performance", description="Get model performance")
     
@@ -230,14 +270,8 @@ def test_model_performance():
             metrics = data["model_metrics"]
             log_test("Model Performance Format", "PASS", f"Returns dict with model_metrics list ({len(metrics)} models)")
             if len(metrics) > 0:
-                # Check first model structure
-                first_model = metrics[0]
                 expected_keys = ["model_name", "accuracy_score", "mape", "last_training_date"]
-                missing_keys = [key for key in expected_keys if key not in first_model]
-                if missing_keys:
-                    log_test("Model Performance Structure", "FAIL", f"Missing keys: {missing_keys}")
-                else:
-                    log_test("Model Performance Structure", "PASS", "All expected keys present")
+                _validate_data_structure(metrics[0], expected_keys, "Model Performance")
         elif isinstance(data, list):
             log_test("Model Performance Format", "PASS", f"Returns list with {len(data)} models")
         else:
@@ -248,9 +282,7 @@ def test_model_performance():
 
 def test_business_intelligence():
     """Test GET /forecasting/business-intelligence endpoint."""
-    print("\n" + "="*80)
-    print("7. TESTING BUSINESS INTELLIGENCE")
-    print("="*80)
+    _print_section_header("TESTING BUSINESS INTELLIGENCE", 7)
     
     # Test basic endpoint
     result = test_endpoint("GET", "/forecasting/business-intelligence", description="Basic BI summary")
@@ -263,9 +295,7 @@ def test_business_intelligence():
 
 def test_batch_forecast():
     """Test POST /forecasting/batch-forecast endpoint."""
-    print("\n" + "="*80)
-    print("8. TESTING BATCH FORECAST")
-    print("="*80)
+    _print_section_header("TESTING BATCH FORECAST", 8)
     
     # Test with valid SKUs
     payload = {
@@ -292,9 +322,7 @@ def test_batch_forecast():
 
 def test_training_endpoints():
     """Test training-related endpoints."""
-    print("\n" + "="*80)
-    print("9. TESTING TRAINING ENDPOINTS")
-    print("="*80)
+    _print_section_header("TESTING TRAINING ENDPOINTS", 9)
     
     # Test get training status
     test_endpoint("GET", "/training/status", description="Get training status")
@@ -315,9 +343,7 @@ def test_training_endpoints():
 
 def generate_summary():
     """Generate test summary."""
-    print("\n" + "="*80)
-    print("TEST SUMMARY")
-    print("="*80)
+    _print_section_header("TEST SUMMARY")
     
     total_tests = len(test_results)
     passed = sum(1 for r in test_results if r["status"] == "PASS")
@@ -349,9 +375,7 @@ def generate_summary():
             print(f"  • {test['name']}: {test['details']}")
     
     # Issues and recommendations
-    print("\n" + "="*80)
-    print("ISSUES & RECOMMENDATIONS")
-    print("="*80)
+    _print_section_header("ISSUES & RECOMMENDATIONS")
     
     issues = []
     recommendations = []
@@ -386,9 +410,7 @@ def generate_summary():
 
 def run_all_tests():
     """Run all forecasting endpoint tests."""
-    print("="*80)
-    print("FORECASTING ENDPOINT COMPREHENSIVE TEST")
-    print("="*80)
+    _print_section_header("FORECASTING ENDPOINT COMPREHENSIVE TEST")
     print(f"Backend URL: {BACKEND_URL}")
     print(f"Frontend URL: {FRONTEND_URL}")
     print(f"Test started: {datetime.now().isoformat()}")
