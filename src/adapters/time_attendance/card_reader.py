@@ -35,6 +35,36 @@ from .base import (
 
 logger = logging.getLogger(__name__)
 
+# Constants
+DEFAULT_TCP_PORT = 8080
+DEFAULT_SERIAL_BAUDRATE = 9600
+DEFAULT_BUFFER_SIZE = 1024
+LARGE_BUFFER_SIZE = 4096
+THREAD_JOIN_TIMEOUT = 1
+
+
+def _parse_connection_string(connection_string: str, prefix: str, default_value: int) -> tuple:
+    """Helper to parse connection string and extract parts with default value."""
+    parts = connection_string.replace(prefix, "").split(":")
+    return parts[0], int(parts[1]) if len(parts) > 1 else default_value
+
+
+def _send_command_and_receive_response(
+    socket_obj: socket.socket,
+    command_data: Dict[str, Any],
+    buffer_size: int = DEFAULT_BUFFER_SIZE
+) -> Optional[Dict[str, Any]]:
+    """Helper to send command and receive response via socket."""
+    try:
+        socket_obj.send(json.dumps(command_data).encode('utf-8'))
+        data = socket_obj.recv(buffer_size)
+        if data:
+            return json.loads(data.decode('utf-8'))
+    except Exception as e:
+        logger.error(f"Error sending command/receiving response: {e}")
+    return None
+
+
 class CardReaderAdapter(BaseTimeAttendanceAdapter):
     """
     Card reader adapter implementation.
@@ -69,9 +99,7 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
         """Connect via TCP/IP."""
         try:
             # Parse TCP connection string
-            parts = self.config.connection_string.replace("tcp://", "").split(":")
-            host = parts[0]
-            port = int(parts[1]) if len(parts) > 1 else 8080
+            host, port = _parse_connection_string(self.config.connection_string, "tcp://", DEFAULT_TCP_PORT)
             
             # Create socket connection
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -96,9 +124,7 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
         """Connect via serial port."""
         try:
             # Parse serial connection string
-            parts = self.config.connection_string.replace("serial://", "").split(":")
-            port = parts[0]
-            baudrate = int(parts[1]) if len(parts) > 1 else 9600
+            port, baudrate = _parse_connection_string(self.config.connection_string, "serial://", DEFAULT_SERIAL_BAUDRATE)
             
             # For serial connection, we would use pyserial
             # This is a simplified implementation
@@ -178,7 +204,7 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
     async def _lookup_employee_by_card(self, card_id: str) -> Optional[str]:
         """Look up employee ID by card ID from the system."""
         try:
-            if not self.connected:
+            if not self.connected or not self.socket:
                 return None
                 
             # Send lookup command
@@ -187,16 +213,8 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
                 "card_id": card_id
             }
             
-            if self.socket:
-                self.socket.send(json.dumps(lookup_data).encode('utf-8'))
-                
-                # Wait for response
-                data = self.socket.recv(1024)
-                if data:
-                    response = json.loads(data.decode('utf-8'))
-                    return response.get("employee_id")
-                    
-            return None
+            response = _send_command_and_receive_response(self.socket, lookup_data)
+            return response.get("employee_id") if response else None
             
         except Exception as e:
             logger.error(f"Failed to lookup employee by card: {e}")
@@ -211,7 +229,7 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
             # Stop reader thread
             if self.reader_thread:
                 self._stop_event.set()
-                self.reader_thread.join(timeout=1)
+                self.reader_thread.join(timeout=THREAD_JOIN_TIMEOUT)
                 
             # Close socket
             if self.socket:
@@ -245,12 +263,8 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
             }
             
             if self.socket:
-                self.socket.send(json.dumps(query_data).encode('utf-8'))
-                
-                # Wait for response
-                data = self.socket.recv(4096)
-                if data:
-                    response = json.loads(data.decode('utf-8'))
+                response = _send_command_and_receive_response(self.socket, query_data, LARGE_BUFFER_SIZE)
+                if response:
                     records = []
                     
                     for record_data in response.get("records", []):
@@ -278,7 +292,7 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
     async def create_attendance_record(self, record: AttendanceRecord) -> bool:
         """Create a new attendance record."""
         try:
-            if not self.connected:
+            if not self.connected or not self.socket:
                 return False
                 
             # Send create command
@@ -287,16 +301,8 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
                 "record": record.to_dict()
             }
             
-            if self.socket:
-                self.socket.send(json.dumps(record_data).encode('utf-8'))
-                
-                # Wait for response
-                data = self.socket.recv(1024)
-                if data:
-                    response = json.loads(data.decode('utf-8'))
-                    return response.get("success", False)
-                    
-            return False
+            response = _send_command_and_receive_response(self.socket, record_data)
+            return response.get("success", False) if response else False
             
         except Exception as e:
             logger.error(f"Failed to create attendance record: {e}")
@@ -305,7 +311,7 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
     async def update_attendance_record(self, record: AttendanceRecord) -> bool:
         """Update an existing attendance record."""
         try:
-            if not self.connected:
+            if not self.connected or not self.socket:
                 return False
                 
             # Send update command
@@ -314,16 +320,8 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
                 "record": record.to_dict()
             }
             
-            if self.socket:
-                self.socket.send(json.dumps(record_data).encode('utf-8'))
-                
-                # Wait for response
-                data = self.socket.recv(1024)
-                if data:
-                    response = json.loads(data.decode('utf-8'))
-                    return response.get("success", False)
-                    
-            return False
+            response = _send_command_and_receive_response(self.socket, record_data)
+            return response.get("success", False) if response else False
             
         except Exception as e:
             logger.error(f"Failed to update attendance record: {e}")
@@ -332,7 +330,7 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
     async def delete_attendance_record(self, record_id: str) -> bool:
         """Delete an attendance record."""
         try:
-            if not self.connected:
+            if not self.connected or not self.socket:
                 return False
                 
             # Send delete command
@@ -341,16 +339,8 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
                 "record_id": record_id
             }
             
-            if self.socket:
-                self.socket.send(json.dumps(delete_data).encode('utf-8'))
-                
-                # Wait for response
-                data = self.socket.recv(1024)
-                if data:
-                    response = json.loads(data.decode('utf-8'))
-                    return response.get("success", False)
-                    
-            return False
+            response = _send_command_and_receive_response(self.socket, delete_data)
+            return response.get("success", False) if response else False
             
         except Exception as e:
             logger.error(f"Failed to delete attendance record: {e}")
@@ -432,7 +422,7 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
     async def register_card(self, card_id: str, employee_id: str) -> bool:
         """Register a card with an employee."""
         try:
-            if not self.connected:
+            if not self.connected or not self.socket:
                 return False
                 
             # Send register command
@@ -442,16 +432,10 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
                 "employee_id": employee_id
             }
             
-            if self.socket:
-                self.socket.send(json.dumps(register_data).encode('utf-8'))
-                
-                # Wait for response
-                data = self.socket.recv(1024)
-                if data:
-                    response = json.loads(data.decode('utf-8'))
-                    if response.get("success", False):
-                        self.card_database[card_id] = employee_id
-                        return True
+            response = _send_command_and_receive_response(self.socket, register_data)
+            if response and response.get("success", False):
+                self.card_database[card_id] = employee_id
+                return True
                         
             return False
             
@@ -462,7 +446,7 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
     async def unregister_card(self, card_id: str) -> bool:
         """Unregister a card."""
         try:
-            if not self.connected:
+            if not self.connected or not self.socket:
                 return False
                 
             # Send unregister command
@@ -471,16 +455,10 @@ class CardReaderAdapter(BaseTimeAttendanceAdapter):
                 "card_id": card_id
             }
             
-            if self.socket:
-                self.socket.send(json.dumps(unregister_data).encode('utf-8'))
-                
-                # Wait for response
-                data = self.socket.recv(1024)
-                if data:
-                    response = json.loads(data.decode('utf-8'))
-                    if response.get("success", False):
-                        self.card_database.pop(card_id, None)
-                        return True
+            response = _send_command_and_receive_response(self.socket, unregister_data)
+            if response and response.get("success", False):
+                self.card_database.pop(card_id, None)
+                return True
                         
             return False
             
