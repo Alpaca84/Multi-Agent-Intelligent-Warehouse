@@ -314,21 +314,22 @@ Deploy NIMs on your own infrastructure for data privacy, cost control, and custo
 2. **Configure environment variables** to point to your self-hosted endpoints:
    ```bash
    # Self-hosted LLM NIM
-   LLM_NIM_URL=http://your-nim-host:8000/v1
+   # Security: Use HTTPS for production deployments. HTTP is only acceptable for localhost/development.
+   LLM_NIM_URL=https://your-nim-host:8000/v1  # Use https:// for production
    LLM_MODEL=nvidia/llama-3.3-nemotron-super-49b-v1
    
    # Self-hosted Embedding NIM
-   EMBEDDING_NIM_URL=http://your-nim-host:8001/v1
+   EMBEDDING_NIM_URL=https://your-nim-host:8001/v1  # Use https:// for production
    
    # Self-hosted Document Processing NIMs
-   NEMO_RETRIEVER_URL=http://your-nim-host:8002/v1
-   NEMO_OCR_URL=http://your-nim-host:8003/v1
-   NEMO_PARSE_URL=http://your-nim-host:8004/v1
-   LLAMA_NANO_VL_URL=http://your-nim-host:8005/v1
-   LLM_NIM_URL=http://your-nim-host:8006/v1
+   NEMO_RETRIEVER_URL=https://your-nim-host:8002/v1  # Use https:// for production
+   NEMO_OCR_URL=https://your-nim-host:8003/v1  # Use https:// for production
+   NEMO_PARSE_URL=https://your-nim-host:8004/v1  # Use https:// for production
+   LLAMA_NANO_VL_URL=https://your-nim-host:8005/v1  # Use https:// for production
+   LLM_NIM_URL=https://your-nim-host:8006/v1  # Use https:// for production
    
    # Self-hosted NeMo Guardrails
-   RAIL_API_URL=http://your-nim-host:8007/v1
+   RAIL_API_URL=https://your-nim-host:8007/v1  # Use https:// for production
    
    # API Key (if your self-hosted NIMs require authentication)
    NVIDIA_API_KEY=your-api-key-here
@@ -337,13 +338,15 @@ Deploy NIMs on your own infrastructure for data privacy, cost control, and custo
 3. **Verify connectivity**:
    ```bash
    # Test LLM endpoint
-   curl -X POST http://your-nim-host:8000/v1/chat/completions \
+   # Security: Use HTTPS for production. HTTP is only acceptable for localhost/development.
+   curl -X POST https://your-nim-host:8000/v1/chat/completions \
      -H "Authorization: Bearer $NVIDIA_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"model":"nvidia/llama-3.3-nemotron-super-49b-v1","messages":[{"role":"user","content":"test"}]}'
    
    # Test Embedding endpoint
-   curl -X POST http://your-nim-host:8001/v1/embeddings \
+   # Security: Use HTTPS for production. HTTP is only acceptable for localhost/development.
+   curl -X POST https://your-nim-host:8001/v1/embeddings \
      -H "Authorization: Bearer $NVIDIA_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"model":"nvidia/llama-3_2-nv-embedqa-1b-v2","input":"test"}'
@@ -364,7 +367,8 @@ Mix cloud and self-hosted NIMs based on your requirements:
 LLM_NIM_URL=https://api.brev.dev/v1
 
 # Use self-hosted for embeddings (for data privacy)
-EMBEDDING_NIM_URL=http://your-nim-host:8001/v1
+# Security: Use HTTPS for production. HTTP is only acceptable for localhost/development.
+EMBEDDING_NIM_URL=https://your-nim-host:8001/v1
 
 # Use cloud for document processing
 NEMO_RETRIEVER_URL=https://integrate.api.nvidia.com/v1
@@ -377,7 +381,8 @@ NEMO_OCR_URL=https://integrate.api.nvidia.com/v1
 
 ```bash
 # Required: API endpoint (cloud or self-hosted)
-LLM_NIM_URL=https://api.brev.dev/v1  # or http://your-nim-host:8000/v1
+# Security: Use HTTPS for production. HTTP is only acceptable for localhost/development.
+LLM_NIM_URL=https://api.brev.dev/v1  # or https://your-nim-host:8000/v1 (use https:// for production)
 
 # Required: Model identifier
 LLM_MODEL=nvcf:nvidia/llama-3.3-nemotron-super-49b-v1:dep-36ZiLbQIG2ZzK7gIIC5yh1E6lGk  # Cloud
@@ -406,7 +411,8 @@ LLM_CACHE_TTL_SECONDS=300
 
 ```bash
 # Required: API endpoint (cloud or self-hosted)
-EMBEDDING_NIM_URL=https://integrate.api.nvidia.com/v1  # or http://your-nim-host:8001/v1
+# Security: Use HTTPS for production. HTTP is only acceptable for localhost/development.
+EMBEDDING_NIM_URL=https://integrate.api.nvidia.com/v1  # or https://your-nim-host:8001/v1 (use https:// for production)
 
 # Required: API key
 NVIDIA_API_KEY=your-nvidia-api-key-here
@@ -416,7 +422,8 @@ NVIDIA_API_KEY=your-nvidia-api-key-here
 
 ```bash
 # Required: API endpoint (cloud or self-hosted)
-RAIL_API_URL=https://integrate.api.nvidia.com/v1  # or http://your-nim-host:8007/v1
+# Security: Use HTTPS for production. HTTP is only acceptable for localhost/development.
+RAIL_API_URL=https://integrate.api.nvidia.com/v1  # or https://your-nim-host:8007/v1 (use https:// for production)
 
 # Required: API key (falls back to NVIDIA_API_KEY if not set)
 RAIL_API_KEY=your-nvidia-api-key-here

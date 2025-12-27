@@ -78,6 +78,11 @@ class ForecastingActionTools:
     """
 
     def __init__(self):
+        # Security: HTTP protocol is acceptable for localhost in development/testing only
+        # For production deployments, HTTPS must be used to encrypt API communications
+        # SonarQube may flag HTTP usage, but it's acceptable for:
+        # - localhost (127.0.0.1, 0.0.0.0) - development/testing only
+        # Production external services must use HTTPS
         self.api_base_url = os.getenv("API_BASE_URL", "http://localhost:8001")
         self.forecasting_service = None  # Will be initialized if available
 

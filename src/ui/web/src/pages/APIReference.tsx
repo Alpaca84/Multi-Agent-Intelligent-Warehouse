@@ -275,9 +275,14 @@ const APIReference: React.FC = () => {
               <List>
                 <ListItem>
                   <ListItemText 
-                    primary="Development" 
+                    primary="Development (localhost only)" 
                     secondary="http://localhost:8002"
                   />
+                  {/* Security: HTTP protocol is acceptable for localhost in development/testing only.
+                      Production deployments must use HTTPS to encrypt API communications.
+                      SonarQube may flag HTTP usage, but it's acceptable for:
+                      - localhost (127.0.0.1, 0.0.0.0) - development/testing only
+                      Production external services must use HTTPS */}
                 </ListItem>
                 <ListItem>
                   <ListItemText 

@@ -5,6 +5,11 @@ module.exports = function(app) {
   
   // Use pathRewrite to add /api prefix back when forwarding
   // Express strips /api when using app.use('/api', ...), so we need to restore it
+  // Security: HTTP protocol is acceptable for localhost in development/testing only
+  // For production deployments, HTTPS must be used to encrypt API communications
+  // SonarQube may flag HTTP usage, but it's acceptable for:
+  // - localhost (127.0.0.1, 0.0.0.0) - development/testing only
+  // Production external services must use HTTPS
   app.use(
     '/api',
     createProxyMiddleware({

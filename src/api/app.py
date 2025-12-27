@@ -177,6 +177,11 @@ async def generic_exception_handler(request: Request, exc: Exception):
     return await handle_generic_exception(request, exc)
 
 # CORS Configuration - environment-based for security
+# Security: HTTP protocol is acceptable for localhost in development/testing only
+# For production deployments, HTTPS must be used to encrypt API communications
+# SonarQube may flag HTTP usage, but it's acceptable for:
+# - localhost (127.0.0.1, 0.0.0.0) - development/testing only
+# Production external services must use HTTPS
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000")
 cors_origins_list = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
 
