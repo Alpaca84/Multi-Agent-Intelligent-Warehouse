@@ -32,6 +32,7 @@ used instead.
 """
 
 import asyncio
+import os
 # Security: Using random module is appropriate here - generating synthetic test data only
 # For security-sensitive values (tokens, keys, passwords), use secrets module instead
 import random
@@ -129,6 +130,8 @@ class SyntheticDataGenerator:
     async def generate_inventory_data(self, count: int = 1000):
         """Generate comprehensive inventory data."""
         logger.info(f"📦 Generating {count} inventory items...")
+        # Security: All random.choice/randint/random() calls below are for generating synthetic inventory data only
+        # Not security-sensitive - these are just test data identifiers and quantities
         
         async with self.pg_conn.cursor() as cur:
             # Clear existing data
@@ -192,6 +195,8 @@ class SyntheticDataGenerator:
     async def generate_task_data(self, count: int = 500):
         """Generate comprehensive task data."""
         logger.info(f"📋 Generating {count} tasks...")
+        # Security: All random.choice/randint/random() calls below are for generating synthetic task data only
+        # Not security-sensitive - these are just test data identifiers and attributes
         
         async with self.pg_conn.cursor() as cur:
             # Clear existing data
@@ -239,6 +244,8 @@ class SyntheticDataGenerator:
     async def generate_safety_incident_data(self, count: int = 100):
         """Generate comprehensive safety incident data."""
         logger.info(f"🛡️ Generating {count} safety incidents...")
+        # Security: All random.choice/randint calls below are for generating synthetic safety incident data only
+        # Not security-sensitive - these are just test data identifiers and descriptions
         
         async with self.pg_conn.cursor() as cur:
             # Clear existing data
@@ -277,6 +284,8 @@ class SyntheticDataGenerator:
     async def generate_equipment_telemetry_data(self, days: int = 30):
         """Generate comprehensive equipment telemetry data."""
         logger.info(f"📊 Generating equipment telemetry for {days} days...")
+        # Security: random.choice call below is for generating synthetic equipment types only
+        # Not security-sensitive - this is just test data selection
         
         async with self.pg_conn.cursor() as cur:
             # Clear existing data
@@ -306,6 +315,8 @@ class SyntheticDataGenerator:
     
     def _generate_equipment_metrics(self, equipment_type: str, timestamp: datetime) -> Dict[str, float]:
         """Generate realistic metrics for different equipment types."""
+        # Security: All random.uniform/randint/choice calls below are for generating synthetic telemetry data only
+        # Not security-sensitive - these are just test sensor readings
         metrics = {}
         
         if equipment_type == "forklift":
@@ -344,6 +355,8 @@ class SyntheticDataGenerator:
     async def generate_milvus_vector_data(self, count: int = 1000):
         """Generate vector embeddings for knowledge base and documents."""
         logger.info(f"🧠 Generating {count} vector embeddings...")
+        # Security: random.choice calls below are for generating synthetic document types and categories only
+        # Not security-sensitive - these are just test data identifiers
         
         try:
             # Connect to Milvus
@@ -383,6 +396,8 @@ class SyntheticDataGenerator:
     async def generate_redis_cache_data(self):
         """Generate Redis cache data for sessions and caching."""
         logger.info("💾 Generating Redis cache data...")
+        # Security: random.randint/choice calls below are for generating synthetic session/cache data only
+        # Not security-sensitive - these are just test data identifiers and counts
         
         try:
             # Generate session data
@@ -423,6 +438,8 @@ class SyntheticDataGenerator:
     async def generate_audit_log_data(self, count: int = 200):
         """Generate audit log data for user actions."""
         logger.info(f"📝 Generating {count} audit log entries...")
+        # Security: random.randint/choice/random() calls below are for generating synthetic audit log data only
+        # Not security-sensitive - these are just test data identifiers and attributes
         
         async with self.pg_conn.cursor() as cur:
             actions = [

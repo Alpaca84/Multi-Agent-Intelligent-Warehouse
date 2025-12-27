@@ -94,6 +94,8 @@ async def generate_telemetry_data():
                 ]
 
             # Generate data points for the last 7 days, every hour
+            # Security: All random.uniform/random() calls below are for generating synthetic telemetry data only
+            # Not security-sensitive - these are just test sensor readings
             start_time = datetime.now() - timedelta(days=7)
             current_time = start_time
             data_points = 0
@@ -112,7 +114,6 @@ async def generate_telemetry_data():
                         value = random.uniform(min_val, max_val)
                     elif metric_name == "speed":
                         # Speed should be mostly 0 with occasional movement
-                        # Security: random module is appropriate here - generating synthetic telemetry data only
                         value = random.uniform(0, max_val) if random.random() < 0.3 else 0.0
                     else:
                         value = random.uniform(min_val, max_val)

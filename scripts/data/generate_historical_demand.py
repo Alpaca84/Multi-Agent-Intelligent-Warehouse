@@ -186,6 +186,8 @@ class FritoLayDemandGenerator:
 
     def calculate_daily_demand(self, product: Dict, profile: ProductProfile, date: datetime) -> int:
         """Calculate realistic daily demand for a product"""
+        # Security: random.uniform calls below are for generating synthetic demand variations only
+        # Not security-sensitive - these are just test data calculations
         
         # Base demand
         base_demand = profile.base_daily_demand
@@ -270,6 +272,8 @@ class FritoLayDemandGenerator:
                 daily_demand = self.calculate_daily_demand(product, profile, current_date)
                 
                 # Add some inbound movements (restocking)
+                # Security: random.random/randint used for generating synthetic inventory movements only
+                # Not security-sensitive - these are just test data quantities
                 if random.random() < 0.1:  # 10% chance of inbound movement
                     inbound_quantity = random.randint(50, 200)
                     movements.append({
@@ -292,6 +296,8 @@ class FritoLayDemandGenerator:
                 })
                 
                 # Add occasional adjustments
+                # Security: random.random/randint used for generating synthetic inventory adjustments only
+                # Not security-sensitive - these are just test data adjustments
                 if random.random() < 0.02:  # 2% chance of adjustment
                     adjustment = random.randint(-5, 5)
                     if adjustment != 0:
