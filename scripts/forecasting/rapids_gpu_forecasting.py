@@ -117,7 +117,8 @@ class RAPIDSForecastingAgent:
             "n_estimators": 100,
             "max_depth": 10,
             "min_samples_split": 5,
-            "min_samples_leaf": 2
+            "min_samples_leaf": 2,
+            "max_features": "sqrt"  # sqrt(n_features) for RandomForest
         }
     
     async def initialize_connection(self):
@@ -366,12 +367,16 @@ class RAPIDSForecastingAgent:
             rf_model = cuRandomForestRegressor(
                 n_estimators=self.config['n_estimators'],
                 max_depth=self.config['max_depth'],
+                min_samples_leaf=self.config.get('min_samples_leaf', 2),
+                max_features=self.config.get('max_features', 'sqrt'),
                 random_state=self.config['random_state']
             )
         else:
             rf_model = RandomForestRegressor(
                 n_estimators=self.config['n_estimators'],
                 max_depth=self.config['max_depth'],
+                min_samples_leaf=self.config.get('min_samples_leaf', 2),
+                max_features=self.config.get('max_features', 'sqrt'),
                 random_state=self.config['random_state']
             )
         
