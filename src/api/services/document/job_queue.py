@@ -61,12 +61,13 @@ class JobQueue:
         self.fallback_queue: Dict[str, Dict[str, Any]] = {}
 
     async def initialize(self) -> None:
-        """Initialize Redis connection."""
+        """Initialize Redis connection (lazy initialization - only reads env when called)."""
         if not REDIS_AVAILABLE:
             logger.warning("Redis not available, using in-memory fallback")
             return
 
         try:
+            # Read environment variables only when initialize() is called, not at import time
             redis_host = os.getenv("REDIS_HOST", "localhost")
             redis_port = int(os.getenv("REDIS_PORT", "6379"))
             redis_password = os.getenv("REDIS_PASSWORD")

@@ -36,13 +36,26 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DatabaseConfig:
     """Database configuration for warehouse operations."""
-    host: str = os.getenv("PGHOST", "localhost")
-    port: int = int(os.getenv("PGPORT", "5435"))
-    database: str = os.getenv("POSTGRES_DB", "warehouse")
-    user: str = os.getenv("POSTGRES_USER", "warehouse")
-    password: str = os.getenv("POSTGRES_PASSWORD", "")
+    host: str = "localhost"
+    port: int = 5435
+    database: str = "warehouse"
+    user: str = "warehouse"
+    password: str = ""
     min_size: int = 1
     max_size: int = 10
+    
+    @classmethod
+    def from_env(cls) -> "DatabaseConfig":
+        """Create DatabaseConfig from environment variables (lazy initialization)."""
+        return cls(
+            host=os.getenv("PGHOST", "localhost"),
+            port=int(os.getenv("PGPORT", "5435")),
+            database=os.getenv("POSTGRES_DB", "warehouse"),
+            user=os.getenv("POSTGRES_USER", "warehouse"),
+            password=os.getenv("POSTGRES_PASSWORD", ""),
+            min_size=1,
+            max_size=10,
+        )
 
 class SQLRetriever:
     """
@@ -62,7 +75,8 @@ class SQLRetriever:
     
     def __init__(self, config: Optional[DatabaseConfig] = None):
         if not self._initialized:
-            self.config = config or DatabaseConfig()
+            # Lazy initialization: only read env vars when actually creating config
+            self.config = config or DatabaseConfig.from_env()
             self._pool: Optional[asyncpg.Pool] = None
             self._initialized = True
         
