@@ -44,15 +44,21 @@ jobs:
         head -n 5 coverage.xml || true
         
         echo "===== Setting up Node.js ====="
-        # Install Node.js 20 (LTS) using nvm (Node Version Manager)
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" || \
-          (curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && \
-           export NVM_DIR="$HOME/.nvm" && \
-           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh")
-        
-        nvm install 20
-        nvm use 20
+        # Install Node.js 20 (LTS) directly - more reliable in CI
+        if ! command -v node &> /dev/null; then
+          NODE_VERSION="20.18.0"
+          NODE_DISTRO="linux-x64"
+          NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-${NODE_DISTRO}.tar.xz"
+          
+          echo "Downloading Node.js ${NODE_VERSION}..."
+          curl -fsSL "${NODE_URL}" -o /tmp/node.tar.xz
+          
+          echo "Extracting Node.js..."
+          tar -xJf /tmp/node.tar.xz -C /tmp
+          
+          echo "Setting up Node.js PATH..."
+          export PATH="/tmp/node-v${NODE_VERSION}-${NODE_DISTRO}/bin:$PATH"
+        fi
         
         # Verify Node.js installation
         node --version || (echo "Node.js installation failed" && exit 1)
