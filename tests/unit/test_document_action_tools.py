@@ -643,3 +643,296 @@ class TestDocumentActionToolsStatusManagement:
         assert "data" in result
         assert result["format"] == "PNG"
 
+
+class TestDocumentActionToolsFileValidation:
+    """Test file validation methods."""
+
+    @pytest.mark.asyncio
+    async def test_validate_document_file_valid(self, tmp_path):
+        """Test _validate_document_file with valid file."""
+        tools = DocumentActionTools()
+        
+        # Create a test PDF file
+        test_file = tmp_path / "test.pdf"
+        test_file.write_bytes(b"fake pdf content")
+        
+        result = await tools._validate_document_file(str(test_file))
+        
+        assert result["valid"] is True
+        assert result["file_type"] == "pdf"
+        assert result["file_size"] > 0
+
+    @pytest.mark.asyncio
+    async def test_validate_document_file_not_exists(self):
+        """Test _validate_document_file with non-existent file."""
+        tools = DocumentActionTools()
+        
+        result = await tools._validate_document_file("/nonexistent/file.pdf")
+        
+        assert result["valid"] is False
+        assert "does not exist" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_validate_document_file_too_large(self, tmp_path):
+        """Test _validate_document_file with file exceeding size limit."""
+        tools = DocumentActionTools()
+        tools.max_file_size = 10  # Very small limit for testing
+        
+        # Create a large file
+        test_file = tmp_path / "large.pdf"
+        test_file.write_bytes(b"x" * 100)
+        
+        result = await tools._validate_document_file(str(test_file))
+        
+        assert result["valid"] is False
+        assert "exceeds" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_validate_document_file_unsupported_type(self, tmp_path):
+        """Test _validate_document_file with unsupported file type."""
+        tools = DocumentActionTools()
+        
+        test_file = tmp_path / "test.xyz"
+        test_file.write_bytes(b"content")
+        
+        result = await tools._validate_document_file(str(test_file))
+        
+        assert result["valid"] is False
+        assert "Unsupported file type" in result["error"]
+
+
+class TestDocumentActionToolsQualityScore:
+    """Test quality score creation methods."""
+
+    def test_create_quality_score_from_validation_dict(self):
+        """Test _create_quality_score_from_validation with dictionary."""
+        tools = DocumentActionTools()
+        
+        validation_data = {
+            "overall_score": 0.85,
+            "completeness_score": 0.90,
+            "accuracy_score": 0.80,
+            "compliance_score": 0.75,
+            "quality_score": 0.85,
+            "decision": "APPROVED",
+            "reasoning": "Good quality document",
+            "issues_found": [],
+            "confidence": 0.95,
+        }
+        
+        result = tools._create_quality_score_from_validation(validation_data)
+        
+        assert result.overall_score == 0.85
+        assert result.completeness_score == 0.90
+        assert result.accuracy_score == 0.80
+        assert result.compliance_score == 0.75
+        assert result.quality_score == 0.85
+        assert result.decision.value == "APPROVED"
+        assert isinstance(result.reasoning, dict)
+        assert result.confidence == 0.95
+        assert result.judge_model == tools.MODEL_LARGE_JUDGE
+
+    def test_create_quality_score_from_validation_dict_string_reasoning(self):
+        """Test _create_quality_score_from_validation with string reasoning."""
+        tools = DocumentActionTools()
+        
+        validation_data = {
+            "overall_score": 0.75,
+            "reasoning": "String reasoning text",
+        }
+        
+        result = tools._create_quality_score_from_validation(validation_data)
+        
+        assert isinstance(result.reasoning, dict)
+        assert result.reasoning["summary"] == "String reasoning text"
+        assert result.reasoning["details"] == "String reasoning text"
+
+    def test_create_quality_score_from_validation_object(self):
+        """Test _create_quality_score_from_validation with object."""
+        tools = DocumentActionTools()
+        
+        class ValidationObj:
+            def __init__(self):
+                self.overall_score = 0.85
+                self.completeness_score = 0.90
+                self.accuracy_score = 0.80
+                self.compliance_score = 0.75
+                self.quality_score = 0.85
+                self.decision = "APPROVED"
+                self.reasoning = "Object reasoning"
+                self.issues_found = []
+                self.confidence = 0.95
+        
+        obj = ValidationObj()
+        result = tools._create_quality_score_from_validation(obj)
+        
+        assert result.overall_score == 0.85
+        assert result.decision.value == "APPROVED"
+        assert isinstance(result.reasoning, dict)
+        assert result.reasoning["summary"] == "Object reasoning"
+
+    @pytest.mark.asyncio
+    async def test_extract_quality_from_extraction_data_success(self):
+        """Test _extract_quality_from_extraction_data with valid data."""
+        tools = DocumentActionTools()
+        
+        with patch.object(tools, "_get_extraction_data", return_value={"quality_score": 0.85}):
+            result = await tools._extract_quality_from_extraction_data("doc-1")
+            assert result == 0.85
+
+    @pytest.mark.asyncio
+    async def test_extract_quality_from_extraction_data_no_score(self):
+        """Test _extract_quality_from_extraction_data with no quality score."""
+        tools = DocumentActionTools()
+        
+        with patch.object(tools, "_get_extraction_data", return_value={}):
+            result = await tools._extract_quality_from_extraction_data("doc-1")
+            assert result == 0.0
+
+    @pytest.mark.asyncio
+    async def test_extract_quality_from_extraction_data_error(self):
+        """Test _extract_quality_from_extraction_data handles errors gracefully."""
+        tools = DocumentActionTools()
+        
+        with patch.object(tools, "_get_extraction_data", side_effect=Exception("Test error")):
+            result = await tools._extract_quality_from_extraction_data("doc-1")
+            assert result == 0.0
+
+
+class TestDocumentActionToolsMockData:
+    """Test mock data generation."""
+
+    def test_get_mock_extraction_data(self):
+        """Test _get_mock_extraction_data generates valid structure."""
+        tools = DocumentActionTools()
+        
+        result = tools._get_mock_extraction_data()
+        
+        assert isinstance(result, dict)
+        assert "extraction_results" in result
+        assert "confidence_scores" in result
+        assert "stages" in result
+        assert "quality_score" in result
+        assert "routing_decision" in result
+        assert len(result["extraction_results"]) > 0
+
+
+class TestDocumentActionToolsDocumentOperations:
+    """Test main document operation methods."""
+
+    @pytest.mark.asyncio
+    async def test_upload_document_validation_failure(self, tmp_path):
+        """Test upload_document with validation failure."""
+        tools = DocumentActionTools()
+        
+        # File doesn't exist
+        result = await tools.upload_document(
+            file_path="/nonexistent/file.pdf",
+            document_type="invoice"
+        )
+        
+        assert result["success"] is False
+        assert "validation failed" in result["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_upload_document_success(self, tmp_path):
+        """Test upload_document with valid file."""
+        tools = DocumentActionTools()
+        
+        # Create test file
+        test_file = tmp_path / "test.pdf"
+        test_file.write_bytes(b"fake pdf content")
+        
+        with patch.object(tools, "_start_document_processing", return_value={"processing_started": True}), \
+             patch.object(tools, "_save_status_data"):
+            result = await tools.upload_document(
+                file_path=str(test_file),
+                document_type="invoice"
+            )
+            
+            assert result["success"] is True
+            assert "document_id" in result
+            assert result["status"] == "processing_started"
+
+    @pytest.mark.asyncio
+    async def test_upload_document_with_custom_id(self, tmp_path):
+        """Test upload_document with custom document ID."""
+        tools = DocumentActionTools()
+        
+        test_file = tmp_path / "test.pdf"
+        test_file.write_bytes(b"fake pdf content")
+        custom_id = "custom-doc-123"
+        
+        with patch.object(tools, "_start_document_processing", return_value={"processing_started": True}), \
+             patch.object(tools, "_save_status_data"):
+            result = await tools.upload_document(
+                file_path=str(test_file),
+                document_type="invoice",
+                document_id=custom_id
+            )
+            
+            assert result["success"] is True
+            assert result["document_id"] == custom_id
+
+    @pytest.mark.asyncio
+    async def test_get_document_status_not_found(self):
+        """Test get_document_status with non-existent document."""
+        tools = DocumentActionTools()
+        
+        with patch.object(tools, "_get_processing_status", return_value=None):
+            result = await tools.get_document_status("nonexistent-doc")
+            
+            assert result["success"] is True  # Returns success with unknown status
+            assert result["status"] == "unknown"
+
+    @pytest.mark.asyncio
+    async def test_get_document_status_found(self):
+        """Test get_document_status with existing document."""
+        tools = DocumentActionTools()
+        
+        doc_id = "test-doc-123"
+        tools.document_statuses[doc_id] = {
+            "status": "processing",
+            "current_stage": "OCR Extraction",
+            "progress": 50,
+            "stages": [{"name": "preprocessing", "status": "completed"}],
+            "estimated_completion": datetime.now().timestamp() + 60,
+        }
+        
+        with patch.object(tools, "_get_processing_status") as mock_get:
+            mock_get.return_value = {
+                "status": "processing",
+                "current_stage": "OCR Extraction",
+                "progress": 50,
+                "stages": [{"name": "preprocessing", "status": "completed"}],
+                "estimated_completion": datetime.now().timestamp() + 60,
+            }
+            
+            result = await tools.get_document_status(doc_id)
+            
+            assert result["success"] is True
+            assert result["status"] == "processing"
+            assert result["progress"] == 50
+
+    @pytest.mark.asyncio
+    async def test_extract_document_data_not_found(self):
+        """Test extract_document_data with non-existent document."""
+        tools = DocumentActionTools()
+        
+        with patch.object(tools, "_get_extraction_data", return_value=None):
+            result = await tools.extract_document_data("nonexistent-doc")
+            
+            assert result["success"] is False
+            assert "not found" in result["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_start_document_processing(self):
+        """Test _start_document_processing returns processing info."""
+        tools = DocumentActionTools()
+        
+        result = await tools._start_document_processing()
+        
+        assert result["processing_started"] is True
+        assert "pipeline_id" in result
+        assert "estimated_completion" in result
+
