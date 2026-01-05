@@ -71,6 +71,7 @@ class TestDocumentActionToolsInitialization:
         mock_nim_client = AsyncMock()
         mock_db_service = AsyncMock()
         
+        # Patch the module import - need to patch where it's imported from
         with patch("src.api.agents.document.action_tools.get_nim_client", return_value=mock_nim_client), \
              patch("src.api.services.document.get_document_db_service", return_value=mock_db_service), \
              patch.object(tools, "_load_status_data"):
@@ -88,8 +89,9 @@ class TestDocumentActionToolsInitialization:
         
         mock_nim_client = AsyncMock()
         
+        # Patch the module import - need to patch where it's imported from
         with patch("src.api.agents.document.action_tools.get_nim_client", return_value=mock_nim_client), \
-             patch("src.api.services.document.get_document_db_service", side_effect=Exception("DB unavailable")), \
+             patch("src.api.services.document.get_document_db_service", side_effect=ImportError("DB unavailable")), \
              patch.object(tools, "_load_status_data"):
             
             await tools.initialize()
@@ -492,6 +494,7 @@ class TestDocumentActionToolsStatusManagement:
 
     def test_save_and_load_status_data(self):
         """Test saving and loading status data from file."""
+        pytest.importorskip("PIL", reason="PIL/Pillow not available")
         tools = DocumentActionTools()
         
         # Use temporary file for testing
@@ -511,6 +514,12 @@ class TestDocumentActionToolsStatusManagement:
                 
                 # Verify file was created
                 assert tmp_path.exists()
+                
+                # Verify file has content
+                with open(tmp_path, 'r') as f:
+                    saved_data = json.load(f)
+                    assert "doc-1" in saved_data
+                    assert "doc-2" in saved_data
                 
                 # Clear and reload
                 tools.document_statuses = {}
@@ -714,7 +723,7 @@ class TestDocumentActionToolsQualityScore:
             "accuracy_score": 0.80,
             "compliance_score": 0.75,
             "quality_score": 0.85,
-            "decision": "APPROVED",
+            "decision": "APPROVE",  # Use valid enum value
             "reasoning": "Good quality document",
             "issues_found": [],
             "confidence": 0.95,
@@ -727,7 +736,7 @@ class TestDocumentActionToolsQualityScore:
         assert result.accuracy_score == 0.80
         assert result.compliance_score == 0.75
         assert result.quality_score == 0.85
-        assert result.decision.value == "APPROVED"
+        assert result.decision.value == "APPROVE"
         assert isinstance(result.reasoning, dict)
         assert result.confidence == 0.95
         assert result.judge_model == tools.MODEL_LARGE_JUDGE
@@ -758,7 +767,7 @@ class TestDocumentActionToolsQualityScore:
                 self.accuracy_score = 0.80
                 self.compliance_score = 0.75
                 self.quality_score = 0.85
-                self.decision = "APPROVED"
+                self.decision = "APPROVE"  # Use valid enum value
                 self.reasoning = "Object reasoning"
                 self.issues_found = []
                 self.confidence = 0.95
@@ -767,7 +776,7 @@ class TestDocumentActionToolsQualityScore:
         result = tools._create_quality_score_from_validation(obj)
         
         assert result.overall_score == 0.85
-        assert result.decision.value == "APPROVED"
+        assert result.decision.value == "APPROVE"
         assert isinstance(result.reasoning, dict)
         assert result.reasoning["summary"] == "Object reasoning"
 
