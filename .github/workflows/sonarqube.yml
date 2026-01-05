@@ -19,6 +19,9 @@ jobs:
       testCommand: |
         set -euxo pipefail
         
+        echo "===== Installing test dependencies ====="
+        uv pip install pytest-asyncio
+        
         echo "===== Python tests + coverage ====="
         uv run pytest tests/ \
           --ignore=tests/integration \

@@ -113,8 +113,8 @@ def sanitize_prompt_input(data: Union[str, Any], max_length: int = 10000) -> str
     data_str = data_str.replace("{", "{{").replace("}", "}}")
     
     # Remove or escape other potentially dangerous characters
-    # Remove control characters (except common whitespace)
-    data_str = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]', '', data_str)
+    # Remove control characters including \n, \r, \t (except space)
+    data_str = re.sub(r'[\x00-\x1f\x7f]', '', data_str)
     
     # Remove backticks that could be used for code execution in some contexts
     data_str = data_str.replace("`", "'")

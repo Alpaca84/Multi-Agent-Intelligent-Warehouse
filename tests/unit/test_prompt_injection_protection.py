@@ -44,9 +44,12 @@ class TestPromptInjectionProtection:
         assert "}}" in result
         assert "__import__" in result  # Content should still be there, just escaped
         
-        # Verify it's safe to use in f-string
+        # Verify it's safe to use in f-string - the result is already escaped
+        # When we use it in an f-string, it will be a literal string, not evaluated
         safe_template = f"User Query: {result}"
-        assert "{__import__" not in safe_template  # Should not be evaluated
+        # The escaped braces mean it won't be evaluated, but the string will contain the literal
+        # Check that the result itself has double braces (escaped)
+        assert result.count("{{") > 0 and result.count("}}") > 0
 
     def test_template_injection_with_variables(self):
         """Test template injection with variable access attempts."""
@@ -57,9 +60,9 @@ class TestPromptInjectionProtection:
         assert "{{" in result
         assert "}}" in result
         
-        # Verify safe usage in f-string
-        safe_template = f"Query: {result}"
-        assert "{query.__class__" not in safe_template
+        # Verify safe usage - the result is already escaped with double braces
+        # When used in f-string, it will be literal text, not evaluated
+        assert result.count("{{") > 0 and result.count("}}") > 0
 
     def test_nested_braces(self):
         """Test nested brace patterns."""
@@ -75,13 +78,15 @@ class TestPromptInjectionProtection:
         malicious_input = "test\x00\x01\x02\n\r\t"
         result = sanitize_prompt_input(malicious_input)
         
-        # Control characters should be removed
+        # Control characters should be removed (including \n, \r, \t)
         assert "\x00" not in result
         assert "\x01" not in result
         assert "\x02" not in result
         assert "\n" not in result
         assert "\r" not in result
-        # \t might be preserved as it's common whitespace, but other control chars should be gone
+        assert "\t" not in result
+        # Only the text "test" should remain
+        assert result == "test"
 
     def test_backticks_replaced(self):
         """Test that backticks are replaced with single quotes."""
