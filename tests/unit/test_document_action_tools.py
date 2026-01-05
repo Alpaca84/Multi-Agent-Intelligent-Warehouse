@@ -71,15 +71,14 @@ class TestDocumentActionToolsInitialization:
         mock_nim_client = AsyncMock()
         mock_db_service = AsyncMock()
         
-        # Import the module first to ensure it's available for patching
-        try:
-            import src.api.services.document
-        except ImportError:
-            pass  # Module might not be importable in test environment
+        # Create a mock module for src.api.services.document
+        mock_document_module = MagicMock()
+        mock_document_module.get_document_db_service = AsyncMock(return_value=mock_db_service)
         
-        # Patch the module import - need to patch where it's imported from
-        with patch("src.api.agents.document.action_tools.get_nim_client", return_value=mock_nim_client), \
-             patch("src.api.services.document.get_document_db_service", return_value=mock_db_service), \
+        # Patch sys.modules to include the mock module
+        import sys
+        with patch.dict(sys.modules, {"src.api.services.document": mock_document_module}), \
+             patch("src.api.agents.document.action_tools.get_nim_client", return_value=mock_nim_client), \
              patch.object(tools, "_load_status_data"):
             
             await tools.initialize()
@@ -95,15 +94,14 @@ class TestDocumentActionToolsInitialization:
         
         mock_nim_client = AsyncMock()
         
-        # Import the module first to ensure it's available for patching
-        try:
-            import src.api.services.document
-        except ImportError:
-            pass  # Module might not be importable in test environment
+        # Create a mock module that raises an exception
+        mock_document_module = MagicMock()
+        mock_document_module.get_document_db_service = AsyncMock(side_effect=Exception("DB unavailable"))
         
-        # Patch the module import - need to patch where it's imported from
-        with patch("src.api.agents.document.action_tools.get_nim_client", return_value=mock_nim_client), \
-             patch("src.api.services.document.get_document_db_service", side_effect=Exception("DB unavailable")), \
+        # Patch sys.modules to include the mock module
+        import sys
+        with patch.dict(sys.modules, {"src.api.services.document": mock_document_module}), \
+             patch("src.api.agents.document.action_tools.get_nim_client", return_value=mock_nim_client), \
              patch.object(tools, "_load_status_data"):
             
             await tools.initialize()
