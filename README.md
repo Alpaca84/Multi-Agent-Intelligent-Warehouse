@@ -218,6 +218,11 @@ See the [Local Development Setup](#local-development-setup) section below for ma
   - **macOS**: `brew install postgresql` or `brew install libpq`
   - **Windows**: Install from [PostgreSQL downloads](https://www.postgresql.org/download/windows/)
   - **Alternative**: Use Docker (see [DEPLOYMENT.md](DEPLOYMENT.md))
+- **Poppler utilities** (`poppler-utils`) - Required for PDF document processing
+  - **Ubuntu/Debian**: `sudo apt-get install poppler-utils`
+  - **macOS**: `brew install poppler`
+  - **Windows**: Install from [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/) or use Chocolatey: `choco install poppler`
+  - **Note**: Required by `pdf2image` package for converting PDF pages to images
 - **CUDA (for GPU acceleration)** - Optional but recommended for RAPIDS GPU-accelerated forecasting
   - **Recommended**: CUDA 12.x (default for RAPIDS packages)
   - **Supported**: CUDA 11.x (via `install_rapids.sh` auto-detection)

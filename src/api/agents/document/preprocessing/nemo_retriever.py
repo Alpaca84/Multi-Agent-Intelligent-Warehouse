@@ -29,6 +29,8 @@ import json
 from PIL import Image
 import io
 
+logger = logging.getLogger(__name__)
+
 # Try to import pdf2image, fallback to None if not available
 try:
     from pdf2image import convert_from_path
@@ -37,7 +39,16 @@ except ImportError:
     PDF2IMAGE_AVAILABLE = False
     logger.warning("pdf2image not available. PDF processing will be limited. Install with: pip install pdf2image")
 
-logger = logging.getLogger(__name__)
+
+def _check_poppler_available() -> bool:
+    """
+    Check if poppler-utils is installed and available in PATH.
+    
+    Returns:
+        True if poppler-utils is available, False otherwise
+    """
+    import shutil
+    return shutil.which("pdfinfo") is not None
 
 
 class NeMoRetrieverPreprocessor:
@@ -203,6 +214,15 @@ class NeMoRetrieverPreprocessor:
                 raise ImportError(
                     "pdf2image is not installed. Install it with: pip install pdf2image. "
                     "Also requires poppler-utils system package: sudo apt-get install poppler-utils"
+                )
+            
+            # Check if poppler-utils is available before attempting conversion
+            if not _check_poppler_available():
+                raise RuntimeError(
+                    "poppler-utils is not installed or not in PATH. "
+                    "Install it with: sudo apt-get install poppler-utils (Ubuntu/Debian) "
+                    "or brew install poppler (macOS). "
+                    "This is required for PDF to image conversion."
                 )
             
             logger.info(f"Converting PDF to images: {file_path}")

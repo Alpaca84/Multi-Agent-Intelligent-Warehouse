@@ -60,6 +60,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     curl \
     git \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python dependencies from backend-deps stage
