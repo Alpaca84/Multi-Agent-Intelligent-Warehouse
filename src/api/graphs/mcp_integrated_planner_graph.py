@@ -707,7 +707,10 @@ class MCPPlannerGraph:
         # Add edge from synthesis to end
         workflow.add_edge("synthesize", END)
 
-        return workflow.compile()
+        # SECURITY: We intentionally use in-memory state management (no checkpointer)
+        # to avoid CVE-2025-8709 (SQL injection in langgraph-checkpoint-sqlite).
+        # If persistence is needed, use a secure checkpoint backend (e.g., Postgres).
+        return workflow.compile()  # No checkpointer = in-memory state
 
     async def _mcp_route_intent(self, state: MCPWarehouseState) -> MCPWarehouseState:
         """Route user message using MCP-enhanced intent classification with semantic routing."""

@@ -723,7 +723,10 @@ def create_planner_graph() -> StateGraph:
     # Add edge from synthesis to end
     workflow.add_edge("synthesize", END)
 
-    return workflow.compile()
+    # SECURITY: We intentionally use in-memory state management (no checkpointer)
+    # to avoid CVE-2025-8709 (SQL injection in langgraph-checkpoint-sqlite).
+    # If persistence is needed, use a secure checkpoint backend (e.g., Postgres).
+    return workflow.compile()  # No checkpointer = in-memory state
 
 
 # Global graph instance
