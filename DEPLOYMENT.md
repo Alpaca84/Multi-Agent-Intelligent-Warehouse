@@ -18,7 +18,17 @@ Complete deployment guide for the Warehouse Operational Assistant.
 
 ### Setup Options
 
-**Option 1: Interactive Jupyter Notebook Setup (Recommended for First-Time Users)**
+**Option 1: Simplified One-Command Deployment (Production-Ready)**
+
+🚀 **[Quick Start Guide (Simplified)](DEPLOYMENT_SIMPLE.md)**
+
+The simplified guide covers:
+- Setting up your NVIDIA API Key.
+- Configuring a production `.env` file.
+- a single `docker compose` command to spin up Backend, Frontend, and Databases.
+
+**Option 2: Interactive Jupyter Notebook Setup (Recommended for Development Learning)**
+
 
 📓 **[Complete Setup Guide (Jupyter Notebook)](notebooks/setup/complete_setup_guide.ipynb)**
 
@@ -235,16 +245,16 @@ The Warehouse Operational Assistant uses **NVIDIA NIMs (NVIDIA Inference Microse
 
 The system uses the following NVIDIA NIMs:
 
-| NIM Service | Model | Purpose | Environment Variable | Default Endpoint |
-|-------------|-------|---------|---------------------|------------------|
-| **LLM Service** | Llama 3.3 Nemotron Super 49B | Primary language model for chat, reasoning, and generation | `LLM_NIM_URL` | `https://api.brev.dev/v1` |
-| **Embedding Service** | llama-3_2-nv-embedqa-1b-v2 | Semantic search embeddings for RAG | `EMBEDDING_NIM_URL` | `https://integrate.api.nvidia.com/v1` |
-| **NeMo Retriever** | NeMo Retriever | Document preprocessing and structure analysis | `NEMO_RETRIEVER_URL` | `https://integrate.api.nvidia.com/v1` |
-| **NeMo OCR** | NeMoRetriever-OCR-v1 | Intelligent OCR with layout understanding | `NEMO_OCR_URL` | `https://integrate.api.nvidia.com/v1` |
-| **Nemotron Parse** | Nemotron Parse | Advanced document parsing and extraction | `NEMO_PARSE_URL` | `https://integrate.api.nvidia.com/v1` |
-| **Small LLM** | nemotron-nano-12b-v2-vl | Structured data extraction and entity recognition | `LLAMA_NANO_VL_URL` | `https://integrate.api.nvidia.com/v1` |
-| **Large LLM Judge** | Llama 3.3 Nemotron Super 49B | Quality validation and confidence scoring | `LLM_NIM_URL` | `https://api.brev.dev/v1` |
-| **NeMo Guardrails** | NeMo Guardrails | Content safety and compliance validation | `RAIL_API_URL` | `https://integrate.api.nvidia.com/v1` |
+| NIM Service           | Model                        | Purpose                                                    | Environment Variable | Default Endpoint                      |
+| --------------------- | ---------------------------- | ---------------------------------------------------------- | -------------------- | ------------------------------------- |
+| **LLM Service**       | Llama 3.3 Nemotron Super 49B | Primary language model for chat, reasoning, and generation | `LLM_NIM_URL`        | `https://api.brev.dev/v1`             |
+| **Embedding Service** | llama-3_2-nv-embedqa-1b-v2   | Semantic search embeddings for RAG                         | `EMBEDDING_NIM_URL`  | `https://integrate.api.nvidia.com/v1` |
+| **NeMo Retriever**    | NeMo Retriever               | Document preprocessing and structure analysis              | `NEMO_RETRIEVER_URL` | `https://integrate.api.nvidia.com/v1` |
+| **NeMo OCR**          | NeMoRetriever-OCR-v1         | Intelligent OCR with layout understanding                  | `NEMO_OCR_URL`       | `https://integrate.api.nvidia.com/v1` |
+| **Nemotron Parse**    | Nemotron Parse               | Advanced document parsing and extraction                   | `NEMO_PARSE_URL`     | `https://integrate.api.nvidia.com/v1` |
+| **Small LLM**         | nemotron-nano-12b-v2-vl      | Structured data extraction and entity recognition          | `LLAMA_NANO_VL_URL`  | `https://integrate.api.nvidia.com/v1` |
+| **Large LLM Judge**   | Llama 3.3 Nemotron Super 49B | Quality validation and confidence scoring                  | `LLM_NIM_URL`        | `https://api.brev.dev/v1`             |
+| **NeMo Guardrails**   | NeMo Guardrails              | Content safety and compliance validation                   | `RAIL_API_URL`       | `https://integrate.api.nvidia.com/v1` |
 
 ### Deployment Options
 
