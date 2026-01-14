@@ -169,6 +169,7 @@ Jenkinsfile
 
 # Deployment configs (not needed in runtime image)
 deploy/
+!deploy/docker/nginx.conf
 monitoring/
 nginx.conf
 
@@ -188,7 +189,7 @@ dmypy.json
 Pipfile
 Pipfile.lock
 poetry.lock
-pyproject.toml
+# pyproject.toml
 setup.py
 setup.cfg
 MANIFEST.in

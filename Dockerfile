@@ -71,6 +71,7 @@ COPY --from=backend-deps /usr/local/bin /usr/local/bin
 # Security: Explicitly copy only required source code to prevent sensitive data exposure
 # .dockerignore provides additional protection as a defense-in-depth measure
 COPY src/ ./src/
+COPY pyproject.toml ./
 # Copy guardrails configuration (required for NeMo Guardrails)
 COPY data/config/guardrails/ ./data/config/guardrails/
 

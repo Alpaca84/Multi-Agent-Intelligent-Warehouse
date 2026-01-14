@@ -83,6 +83,11 @@ services:
     environment:
       - ENVIRONMENT=production
       - DATABASE_URL=postgresql://${POSTGRES_USER:-warehouse}:${POSTGRES_PASSWORD:-changeme}@timescaledb:5432/${POSTGRES_DB:-warehouse}
+      - PGHOST=timescaledb
+      - PGPORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-warehouse}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB:-warehouse}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - MILVUS_HOST=milvus
@@ -105,8 +110,8 @@ services:
   # ==========================================
   frontend:
     build:
-      context: ../../src/ui/web
-      dockerfile: ../../../deploy/docker/frontend.Dockerfile
+      context: ../../
+      dockerfile: deploy/docker/frontend.Dockerfile
       args:
         # Pass build-time variables (REACT_APP_...)
         - REACT_APP_API_URL=http://localhost:${API_PORT:-8001}
